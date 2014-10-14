@@ -1,5 +1,5 @@
 package cpslab.lsh
 
-trait LSHTable {
+trait LSH {
 
 }

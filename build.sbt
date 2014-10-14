@@ -16,5 +16,7 @@ test in assembly :={}
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Yno-adapted-args")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" % "akka-actor_2.11" % "2.3.6"
+  "com.typesafe.akka" % "akka-actor_2.11" % "2.3.6",
+  "com.typesafe" % "config" % "1.2.1",
+  "org.apache.commons" % "commons-math3" % "3.3"
 )
