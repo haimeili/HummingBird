@@ -32,7 +32,7 @@ class LSHBaseInstance(private val a: SparseVector,
 }
 
 class LSHBaseFactory(config: Configuration) extends LSHFactory {
-  private val w = config.getDouble("cpslab.lshquery.lsh.base.w")
+  private val w = Double.MaxValue
   // TODO: enable configure different distribution
   private val mean = config.getDouble("cpslab.lshquery.lsh.base.mean")
   private val sd = config.getDouble("cpslab.lshquery.lsh.base.sd")
