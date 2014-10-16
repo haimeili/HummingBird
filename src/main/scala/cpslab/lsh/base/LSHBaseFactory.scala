@@ -13,7 +13,26 @@ import scala.util.Random
 // with chosen entries following an s-stable distribution, b is a
 // real number chosen uniformly from the range [0, w) and w is a large
 // constant
-class LSHBase extends LSH
+class LSHBase extends LSH {
+
+  /**
+   * insert new data to the hashTables
+   * @param newVector the vector to be inserted
+   * @return the hashtable id and the position this newVector is inserted to
+   */
+  override def insertData(newVector: SparseVector): (Int, Int) = {
+    null
+  }
+
+  /**
+   * query the data
+   * @param query the query vector
+   * @return the similar vectors
+   */
+  override def queryData(query: SparseVector): Array[SparseVector] = {
+    null
+  }
+}
 
 class LSHBaseInstance(private val a: SparseVector,
               private val b: Double,
