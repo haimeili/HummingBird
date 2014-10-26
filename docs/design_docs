@@ -1,0 +1,15 @@
+1. Auto Scaling
+
+akka-cluster-sharding => two level: multi cores, distributed
+
+2. Fault Tolerance /HA
+
+recovery locally after restart
+
+recovery in another machine
+
+recovery speed
+
+3. streaming support
+
+delta table, etc.
