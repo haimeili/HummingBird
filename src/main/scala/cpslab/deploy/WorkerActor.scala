@@ -26,10 +26,11 @@ class WorkerActor(conf: Configuration) extends PersistentActor with ActorLogging
 
   override def receiveCommand: Receive = {
     // TODO: message processing logic
-    case Query(vector) =>
-      //query something
+    case QueryRequest(vector) =>
+      // query something
       val similarVectors = WorkerActor.lshInstance.queryData(vector)
-
+      // send back the result
+      sender() ! QueryResponse(similarVectors)
     case _ =>
   }
 
@@ -55,7 +56,7 @@ object WorkerActor {
 
   val shardResolver: ShardRegion.ShardResolver = msg => msg match {
     // TODO: implement the shardResolver
-    case Query(vector) => ""
+    case QueryRequest(vector) => ""
   }
 
   def props(config: Configuration): Props = Props(new WorkerActor(config))

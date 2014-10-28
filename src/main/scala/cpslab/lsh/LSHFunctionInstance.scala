@@ -5,6 +5,7 @@ import org.apache.spark.mllib.linalg.SparseVector
 import scala.collection.mutable.{ListBuffer, HashMap}
 
 trait LSH {
+  // chainNum => LSUFunctionInstance
   private[lsh] val hashFunctionChains = new HashMap[Int, ListBuffer[LSHFunctionInstance]]
 
   /**
