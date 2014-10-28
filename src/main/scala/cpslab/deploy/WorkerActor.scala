@@ -35,5 +35,6 @@ object WorkerActor {
 
   def main(args: Array[String]): Unit = {
     //TODO: main program to start the worker
+
   }
 }
