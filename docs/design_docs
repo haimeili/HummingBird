@@ -1,0 +1,31 @@
+Requirement:
+1. Auto Scaling
+
+akka-cluster-sharding => two level: multi cores, distributed
+
+2. Fault Tolerance /HA
+
+recovery locally after restart
+
+recovery in another machine
+
+recovery speed
+
+3. streaming support
+
+delta table, etc.
+
+
+Stage 1:
+
+1. Separate the tables into multiple nodes, each shard is a hash table
+
+2. Insert process
+
+send the query vector to any ShardRegion actor, using LeastShardAllocationStrategy to allocate shard, if the shard (hash table) has no position for the query vector, then change the property which will lead to different result of ShardResolver, then send to other shard
+
+3. query process
+
+send the query vector to any ShardRegion actor, query the result, change the result of ShardResolver, send to other shard, until all shards are traversed
+
+potentially needed step of de-duplication
