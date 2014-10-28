@@ -1,9 +1,12 @@
 package cpslab.deploy
 
-import akka.actor.{PoisonPill, ReceiveTimeout, ActorLogging, Actor}
-import akka.actor.Actor.Receive
+import java.io.File
+
+import akka.actor._
+import akka.contrib.pattern.{ShardRegion, ClusterSharding}
 import akka.contrib.pattern.ShardRegion.Passivate
 import akka.persistence.PersistentActor
+import com.typesafe.config.ConfigFactory
 
 class WorkerActor extends PersistentActor with ActorLogging {
 
@@ -33,8 +36,32 @@ class WorkerActor extends PersistentActor with ActorLogging {
 
 object WorkerActor {
 
-  def main(args: Array[String]): Unit = {
-    //TODO: main program to start the worker
+  private val shardName = "LSHWorker"
 
+  val idExtractor: ShardRegion.IdExtractor = {
+    // TODO: implement the shardResolver
+    case msg: Message => (0.toString, msg)
+  }
+
+  val shardResolver: ShardRegion.ShardResolver = msg => msg match {
+    // TODO: implement the shardResolver
+    case msg: Message => 0.toString
+  }
+
+  def props(): Props = Props(new WorkerActor)
+
+  def main(args: Array[String]): Unit = {
+    if (args.length < 1) {
+      println("Usage: program configFilePath")
+      System.exit(1)
+    }
+    val config = ConfigFactory.parseFile(new File(args(0)))
+    // build the actor system
+    val system = ActorSystem("ClusterSystem", config)
+    val lshRegion = ClusterSharding(system).start(
+      typeName = shardName,
+      entryProps = Some(WorkerActor.props()),
+      idExtractor = WorkerActor.idExtractor,
+      shardResolver = WorkerActor.shardResolver)
   }
 }

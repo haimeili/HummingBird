@@ -28,4 +28,4 @@ send the query vector to any ShardRegion actor, using LeastShardAllocationStrate
 
 send the query vector to any ShardRegion actor, query the result, change the result of ShardResolver, send to other shard, until all shards are traversed
 
-potentially needed step of deduplication
+potentially needed step of de-duplication
