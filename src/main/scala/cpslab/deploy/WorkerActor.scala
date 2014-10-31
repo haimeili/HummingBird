@@ -1,20 +1,37 @@
 package cpslab.deploy
 
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor._
 import akka.contrib.pattern.{ShardRegion, ClusterSharding}
 import akka.contrib.pattern.ShardRegion.Passivate
 import akka.persistence.PersistentActor
+import akka.routing.FromConfig
+import com.google.common.util.concurrent
+import com.google.common.util.concurrent.AtomicDouble
 import com.typesafe.config.ConfigFactory
 import cpslab.lsh.{LSH, LSHFactory}
-import cpslab.util.Configuration
+import cpslab.util.{RingBuffer, Configuration}
 
-class WorkerActor(conf: Configuration) extends PersistentActor with ActorLogging {
+class WorkerActor(configuration: Configuration) extends PersistentActor with ActorLogging {
+
+  val shardRouter = context.actorOf(
+    FromConfig.props(Props(classOf[WorkerActor], configuration)),
+    name = "workerActorRouter")
 
   override def persistenceId: String = self.path.parent.name + "-" + self.path.name
 
-  WorkerActor.lshInstance = LSHFactory(conf).newInstance()
+  // TODO: caculate the streaming window average response time based on time window
+  // using ringBuffer to implement
+  private var averageResponseTime: Double = 0.0 //ms
+  private val responseTimeBuffer = new RingBuffer[Double]
+
+  WorkerActor.lshInstance = LSHFactory(configuration).newInstance()
+
+  override def preStart() = {
+    //TODO: periodically send the heartbeat to the coordinator
+  }
 
   // TODO: define the state
 
@@ -66,14 +83,10 @@ object WorkerActor {
       println("Usage: program configFilePath")
       System.exit(1)
     }
-    val config = ConfigFactory.parseFile(new File(args(0)))
-    val configInstance = new Configuration(config)
+    val coordinatorConfig = ConfigFactory.load("worker")
+    val configInstance = new Configuration(coordinatorConfig)
     // build the actor system
-    val system = ActorSystem("ClusterSystem", config)
-    val lshRegion = ClusterSharding(system).start(
-      typeName = shardName,
-      entryProps = Some(WorkerActor.props(configInstance)),
-      idExtractor = WorkerActor.idExtractor,
-      shardResolver = WorkerActor.shardResolver)
+    val system = ActorSystem("WorkerClusterSystem", coordinatorConfig)
+    system.actorOf(Props[WorkerActor], name = "worker")
   }
 }

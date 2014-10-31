@@ -1,36 +1,50 @@
 package cpslab.deploy
 
-import _root_.faimdata.similarity.all.ExecutorAddressNotification
-import akka.actor.{Address, ActorSelection, Actor}
-import akka.actor.Actor.Receive
-import akka.remote.AssociationErrorEvent
-import org.apache.spark.mllib.linalg.SparseVector
+import java.io.File
+
+import akka.routing.FromConfig
+import com.typesafe.config.ConfigFactory
+import cpslab.util.Configuration
 
 import scala.collection.mutable.{HashMap, ListBuffer}
 
-class CoordinateActor(hashTableNum: Int) extends Actor {
+import akka.actor._
+import org.apache.spark.mllib.linalg.SparseVector
 
-  private val workerAddresses = new Array[String](hashTableNum)
-  private val workerActors = new Array[ActorSelection](hashTableNum)
-  private val addressToWorkerAddress = new HashMap[Address, Actor]()
+class CoordinateActor(configuration: Configuration) extends Actor {
 
-  context.system.eventStream.subscribe(self,
-    akka.remote.AssociatedEvent.getClass)
+  val workerRouter = context.actorOf(
+    FromConfig.props(Props(classOf[WorkerActor], configuration)),
+    name = "workerActorRouter")
+
+  private val hashTableNum = configuration.getInt("cpslab.hashtableNum")
 
   override def receive: Receive = {
     case Register(execId, url) =>
-      workerAddresses(execId) = url
-      workerActors(execId) = context.system.actorSelection(url)
-      println("Executor %d is registered at %s".format(execId, url))
-    case AssociationErrorEvent =>
-      // TODO: detect the association error
-    case QueryRequest(vector: SparseVector) =>
-      for (remoteWorkerActor <- workerActors) {
-        remoteWorkerActor ! QueryRequest(vector: SparseVector)
-      }
+      // TODO
+    case req @ QueryRequest(_) =>
+      workerRouter ! req
     case QueryResponse(vector: Array[SparseVector]) =>
       // TODO: provide forward to the client or provide some APIs with Await.result()
+    case Heartbeat(id: String, responseTime: Long) =>
+      // TODO: accumulate the status of coordinators and periodically check if need the
+      // worker to increase shard
+      sender ! IncreaseShard
     case Insert(vector: SparseVector) =>
       // TODO: insert logic
+  }
+}
+
+object CoordinateActor {
+  def main(args: Array[String]) {
+    if (args.length < 1) {
+      println("Usage: program configFilePath")
+      System.exit(1)
+    }
+    val coordinatorConfig = ConfigFactory.load("coordinate")
+    val configInstance = new Configuration(coordinatorConfig)
+    // build the actor system
+    val system = ActorSystem("CoordinatorClusterSystem", coordinatorConfig)
+    system.actorOf(Props[CoordinateActor], name = "coordinator")
   }
 }
