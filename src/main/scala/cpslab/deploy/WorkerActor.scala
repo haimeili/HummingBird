@@ -1,37 +1,37 @@
 package cpslab.deploy
 
-import java.io.File
-import java.util.concurrent.atomic.AtomicLong
+import scala.language.postfixOps
+import scala.concurrent.duration._
 
+import akka.util.Timeout
 import akka.actor._
-import akka.contrib.pattern.{ShardRegion, ClusterSharding}
 import akka.contrib.pattern.ShardRegion.Passivate
+import akka.pattern.ask
+import akka.contrib.pattern.{DistributedPubSubExtension, ClusterSharding, ShardRegion}
+import akka.contrib.pattern.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import akka.persistence.PersistentActor
-import akka.routing.FromConfig
-import com.google.common.util.concurrent
-import com.google.common.util.concurrent.AtomicDouble
 import com.typesafe.config.ConfigFactory
+
 import cpslab.lsh.{LSH, LSHFactory}
-import cpslab.util.{RingBuffer, Configuration}
+import cpslab.util.Configuration
 
 class WorkerActor(configuration: Configuration) extends PersistentActor with ActorLogging {
 
-  val shardRouter = context.actorOf(
-    FromConfig.props(Props(classOf[WorkerActor], configuration)),
-    name = "workerActorRouter")
+  // configure the pub-sub service
+  val mediator = DistributedPubSubExtension(context.system).mediator
+
+  // subscribe the topics
+  configuration.getString("cpslab.worker.subscribeTopic").split(",").foreach(topic => {
+      mediator ! Subscribe(topic, self) // assume the group is null
+    }
+  )
 
   override def persistenceId: String = self.path.parent.name + "-" + self.path.name
 
-  // TODO: caculate the streaming window average response time based on time window
-  // using ringBuffer to implement
-  private var averageResponseTime: Double = 0.0 //ms
-  private val responseTimeBuffer = new RingBuffer[Double]
+  // passivate the entity when no activity
+  context.setReceiveTimeout(2.minutes)
 
   WorkerActor.lshInstance = LSHFactory(configuration).newInstance()
-
-  override def preStart() = {
-    //TODO: periodically send the heartbeat to the coordinator
-  }
 
   // TODO: define the state
 
@@ -40,15 +40,26 @@ class WorkerActor(configuration: Configuration) extends PersistentActor with Act
     null
   }
 
-
   override def receiveCommand: Receive = {
-    // TODO: message processing logic
-    case QueryRequest(vector) =>
+    case Init(_) =>
+      sender ! true
+    case SubscribeAck(Subscribe("query", None, `self`)) =>
+      context.become(receiveQueryOrInsert)
+    case x =>
+      log.warning("received unknown message " + x)
+  }
+
+  private def receiveQueryOrInsert: Receive = {
+    case QueryRequest(_, vector) =>
       // query something
       val similarVectors = WorkerActor.lshInstance.queryData(vector)
       // send back the result
       sender() ! QueryResponse(similarVectors)
-    case _ =>
+    case InsertRequest(_, vector) =>
+      // insert a new vector
+      WorkerActor.lshInstance.insertData(vector)
+    case x =>
+      log.warning("received unknown message " + x)
   }
 
   override def unhandled(msg: Any): Unit = msg match {
@@ -62,18 +73,21 @@ class WorkerActor(configuration: Configuration) extends PersistentActor with Act
 
 object WorkerActor {
 
-  private val shardName = "LSHWorker"
+  private[deploy] val shardName = "LSHWorker"
 
   private var lshInstance: LSH = null
 
+  // TODO: make the maximum number of the actors configurable
   val idExtractor: ShardRegion.IdExtractor = {
-    // TODO: implement the shardResolver
-    case msg: Message => (0.toString, msg)
+    case q @ QueryRequest(id, vector) => (
+      (math.abs(vector.hashCode()) % 100).toString, q)
+    case i @ InsertRequest(id, vector) => (
+      (math.abs(vector.hashCode()) % 100).toString, i)
   }
 
   val shardResolver: ShardRegion.ShardResolver = msg => msg match {
-    // TODO: implement the shardResolver
-    case QueryRequest(vector) => ""
+    case QueryRequest(id, vector) => id.toString
+    case InsertRequest(id, vector) => id.toString
   }
 
   def props(config: Configuration): Props = Props(new WorkerActor(config))
@@ -83,10 +97,30 @@ object WorkerActor {
       println("Usage: program configFilePath")
       System.exit(1)
     }
-    val coordinatorConfig = ConfigFactory.load("worker")
-    val configInstance = new Configuration(coordinatorConfig)
+    val config = ConfigFactory.load("worker")
+    val configInstance = new Configuration(config)
     // build the actor system
-    val system = ActorSystem("WorkerClusterSystem", coordinatorConfig)
-    system.actorOf(Props[WorkerActor], name = "worker")
+    val system = ActorSystem("WorkerClusterSystem", config)
+
+    val minEntryNum = configInstance.getInt("cpslab.worker.minEntryNum")
+    val maxEntryNum = configInstance.getInt("cpslab.worker.maxEntryNum")
+    val initTimeout = configInstance.getInt("cpslab.worker.initTimeout")
+
+    //TODO: start persistence journal
+
+    val lshRegion = ClusterSharding(system).start(
+      typeName = shardName,
+      entryProps = Some(props(configInstance)),
+      idExtractor = idExtractor,
+      shardResolver = shardResolver
+    )
+
+    implicit val timeout = Timeout(initTimeout seconds)
+    // initialize the entry actor with ask pattern
+    for (i <- 0 until minEntryNum) {
+      if (!(lshRegion ? Init(i)).asInstanceOf[Boolean]) {
+        throw new Exception("cannot initialize actor")
+      }
+    }
   }
 }

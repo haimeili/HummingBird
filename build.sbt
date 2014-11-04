@@ -1,5 +1,5 @@
+import sbtassembly.Plugin.AssemblyKeys._
 import sbtassembly.Plugin.{AssemblyKeys, MergeStrategy, PathList}
-import AssemblyKeys._
 
 assemblySettings
 
@@ -13,7 +13,7 @@ scalaVersion := "2.10.4"
 
 test in assembly :={}
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-Yno-adapted-args")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-Yno-adapted-args", "-feature")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-remote_2.10" % "2.3.6",

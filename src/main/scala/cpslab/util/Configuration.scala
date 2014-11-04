@@ -2,7 +2,7 @@ package cpslab.util
 
 import java.io.File
 
-import com.typesafe.config.{ConfigValueFactory, ConfigFactory, Config}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 
 /**
  * doesn't support default value, leave the default value setting to the
