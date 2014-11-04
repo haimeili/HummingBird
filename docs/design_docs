@@ -16,16 +16,17 @@ recovery speed
 delta table, etc.
 
 
-Stage 1:
+Stage 1 (elastic):
 
-1. Separate the tables into multiple nodes, each shard is a hash table
+1. Separate the tables into multiple nodes, each node maintains one or more hash table
 
 2. Insert process
 
-send the query vector to any ShardRegion actor, using LeastShardAllocationStrategy to allocate shard, if the shard (hash table) has no position for the query vector, then change the property which will lead to different result of ShardResolver, then send to other shard
+send the new query to all nodes, to insert them to the hash tables
 
 3. query process
 
-send the query vector to any ShardRegion actor, query the result, change the result of ShardResolver, send to other shard, until all shards are traversed
+send the query to all nodes, each node query the information in the hashtable it maintains, and return the result
 
-potentially needed step of de-duplication
+
+4. auto sharding when the response time is too large

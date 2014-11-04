@@ -34,7 +34,7 @@ class LSHBase extends LSH {
   }
 }
 
-class LSHBaseInstance(private val a: SparseVector,
+class LSHBaseFunctionInstance(private val a: SparseVector,
               private val b: Double,
               private val w: Double) extends LSHFunctionInstance {
 
@@ -58,7 +58,7 @@ class LSHBaseFactory(config: Configuration) extends LSHFactory {
   private val numGenerator = new NormalDistribution(mean, sd)
 
   override def newInstance(): LSH =  {
-    val hashFamily = new Array[LSHBaseInstance](LSHFactory.familySize)
+    val hashFamily = new Array[LSHBaseFunctionInstance](LSHFactory.familySize)
     // 1. generate the whole family
     for (i <- 0 until LSHFactory.familySize) {
       //1.1 generate a vector
@@ -74,7 +74,7 @@ class LSHBaseFactory(config: Configuration) extends LSHFactory {
       //1.2 generate a number b
       val b = new Random(System.currentTimeMillis()).nextDouble() * w
       //1.3 generate the hashFunction
-      hashFamily(i) = new LSHBaseInstance(randomVector.asInstanceOf[SparseVector], b, w)
+      hashFamily(i) = new LSHBaseFunctionInstance(randomVector.asInstanceOf[SparseVector], b, w)
     }
     // 2. generate the chains
     val random = new Random(System.currentTimeMillis())

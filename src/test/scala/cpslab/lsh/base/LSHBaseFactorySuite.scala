@@ -1,9 +1,8 @@
 package cpslab.lsh.base
 
+import cpslab.lsh.{LSHFactory, LSHType}
 import cpslab.util.Configuration
 import org.scalatest.{BeforeAndAfter, FunSuite}
-
-import cpslab.lsh.{LSHType, LSHFactory}
 
 class LSHBaseFactorySuite extends FunSuite with BeforeAndAfter {
 
