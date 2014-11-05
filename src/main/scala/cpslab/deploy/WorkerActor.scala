@@ -50,7 +50,7 @@ class WorkerActor(configuration: Configuration) extends PersistentActor with Act
   }
 
   private def receiveQueryOrInsert: Receive = {
-    case QueryRequest(_, vector) =>
+    case QueryRequest(shardId, vector) =>
       // query something
       val similarVectors = WorkerActor.lshInstance.queryData(vector)
       // send back the result

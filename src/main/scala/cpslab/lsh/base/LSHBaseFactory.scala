@@ -5,6 +5,7 @@ import cpslab.util.Configuration
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.spark.mllib.linalg.{SparseVector, Vectors}
 
+import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.Random
 
@@ -20,8 +21,16 @@ class LSHBase extends LSH {
    * @param newVector the vector to be inserted
    * @return the hashtable id and the position this newVector is inserted to
    */
-  override def insertData(newVector: SparseVector): (Int, Int) = {
-    null
+  override def insertData(newVector: SparseVector): Unit = {
+    var vectorIndex = List[Double]()
+    for (hashTableIndex <- hashTables.keySet) {
+      vectorIndex = {
+        for (function <- hashFunctionChains(hashTableIndex))
+          yield function.compute(newVector)
+      }.toList
+      hashTables(hashTableIndex).getOrElseUpdate(vectorIndex,
+        new ListBuffer[SparseVector]) += newVector
+    }
   }
 
   /**
@@ -29,8 +38,18 @@ class LSHBase extends LSH {
    * @param query the query vector
    * @return the similar vectors
    */
-  override def queryData(query: SparseVector): Array[SparseVector] = {
-    null
+  override def queryData(query: SparseVector): List[SparseVector] = {
+    var similarVectors = List[SparseVector]()
+    var vectorIndex = List[Double]()
+    for (hashTableIndex <- hashTables.keySet) {
+      vectorIndex = {
+        for (function <- hashFunctionChains(hashTableIndex))
+        yield function.compute(query)
+      }.toList
+      similarVectors = hashTables(hashTableIndex).getOrElse(vectorIndex, List[SparseVector]()) ++:
+        similarVectors
+    }
+    similarVectors
   }
 }
 
@@ -42,7 +61,10 @@ class LSHBaseFunctionInstance(private val a: SparseVector,
     val av = {
       var sum = 0.0
       for (nonZeroIdx <- a.indices) {
-        sum += a.values(nonZeroIdx) * input.values(nonZeroIdx)
+        if (input.indices.contains(nonZeroIdx)) {
+          val idx = a.indices.indexOf(nonZeroIdx)
+          sum += a.values(idx) * input.values(idx)
+        }
       }
       sum
     }
@@ -83,6 +105,8 @@ class LSHBaseFactory(config: Configuration) extends LSHFactory {
       lshInstance.hashFunctionChains.getOrElseUpdate(i,
         new ListBuffer[LSHFunctionInstance]) += hashFamily(
           random.nextInt(LSHFactory.familySize))
+      lshInstance.hashTables.getOrElseUpdate(i,
+        new mutable.HashMap[List[Double], ListBuffer[SparseVector]])
     }
     lshInstance
   }
