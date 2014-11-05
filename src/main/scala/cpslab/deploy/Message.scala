@@ -14,7 +14,7 @@ case class QueryRequest(shardId: Int, queryVector: SparseVector) extends Message
 case class InsertRequest(shardId: Int, newVector: SparseVector) extends Message
 
 // sent from the worker to the coordinator and forwarded to the client
-case class QueryResponse(response: Array[SparseVector]) extends Message
+case class QueryResponse(response: List[SparseVector]) extends Message
 
 // sent from coordinator to worker
 case object IncreaseShard
