@@ -8,6 +8,9 @@
 
 3. The system can only utilize the in-memory space, limiting the overall system capacity 
 
+4. Related to 3, the system requires to retire old data and limiting the servers serving write operation within a certain group of servers.
+
+
 ### Solutions ###
 
 1. New Distributed Paradigm 
@@ -44,9 +47,11 @@
 
 3. data structure to manage disk and in-memory space
 
-4. data structure offering high write-throughput (Write Optimized Index)
+4. data structure offering high write-throughput (Write Optimized Index) (to avoid the random write when the streaming data is irregular)
 
-
+	can use prefetching techniques to avoid point queries...
+	
+5. 
 
 
 
