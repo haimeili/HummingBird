@@ -44,6 +44,9 @@
 
 3. data structure to manage disk and in-memory space
 
+4. data structure offering high write-throughput (Write Optimized Index)
+
+
 
 
 
