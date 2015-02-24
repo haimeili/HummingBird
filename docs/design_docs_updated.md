@@ -39,6 +39,8 @@
       
       * In the leaf node level of the actor tree (actors maintaining the data in LSH table), apply the replication techniques, where we save data in multiple nodes and we apply a dynamic replication factor....(Scarlet), then use the power-of-two choices to select data (need rebalance)
       
+      * change the index of the element by adding a random key, (very similar to how to mitigate HBase read/write pressure), and searching the similar items are transformed to a range query. (*)
+      
 2. fault-tolerance
 
    2.1 persist data in the disk with journal or snapshot 
@@ -51,7 +53,10 @@
 
 	can use prefetching techniques to avoid point queries...
 	
-5. 
+5. use an efficient bitmap structure to deduplicate the results
+
+
+
 
 
 
