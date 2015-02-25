@@ -49,7 +49,7 @@ Questions:
          
          * when the new request arrives, if it is related to the how buckets, we append the random key to the hash and rehash the key to decide where to save it (it's the written key), then we broadcast this request with replication factor replicas to send it to all nodes saving the message
          
-         *  
+         * adaptively adding factor number (not support decrease yet) 
 
   
  
