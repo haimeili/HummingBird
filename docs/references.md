@@ -16,3 +16,6 @@ Index:
 LSH: 
 1. Multi-probe LSH: efficient indexing for high-dimensional similarity search
 2. LSH forest: self-tuning indexes for similarity search
+Similarity Search: 
+1. Efficient and accurate nearest neighbor and closest pair search in high-dimensional space
+2. Quality and efficiency in high dimensional nearest neighbor search
