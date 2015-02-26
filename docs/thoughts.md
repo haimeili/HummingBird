@@ -52,5 +52,16 @@ Questions:
          * adaptively adding factor number (not support decrease yet) 
 
   
+ 7. MP-LSH is a good solution for this case?
+ 
+    yes, comparing to other papers, a single request is only generate 100 queries while others requires 700+
+    
+ 8. what's the problem with LSH Forrest
+ 
+    The query latency is too long (the tree height is 15)
+    
+    Using prefix-B-Tree as disk index (not good for writing)
+    
+    
  
      

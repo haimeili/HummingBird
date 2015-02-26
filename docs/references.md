@@ -13,4 +13,6 @@ Index:
 6. compressed, log-structured replication. Proceedings of the VLDB Endowment1, 1 (2008),
 7. bLSM: a general purpose log structured merge tree.
 8. BetrFS: A Right-Optimized Write-Optimized File System (FAST 2015 BEST PAPER)
-
+LSH: 
+1. Multi-probe LSH: efficient indexing for high-dimensional similarity search
+2. LSH forest: self-tuning indexes for similarity search
