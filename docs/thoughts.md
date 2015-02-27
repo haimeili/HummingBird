@@ -63,5 +63,7 @@ Questions:
     Using prefix-B-Tree as disk index (not good for writing)
     
     
- 
+9. How to deduplicate the results
+
+    use a bitmap to deduplicate in server end first, and send the bitmap to the client, then duplicate in client and, in this way, we can minimize the network traffic amount (multiple shards maintained in the same server should also be deduplicated)
      
