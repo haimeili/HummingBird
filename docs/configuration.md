@@ -22,4 +22,11 @@
 	The number of handlers per machine.
   </td>  
 </tr>
+<tr>
+  <td><code>cpslab.lsh.name</code></td>
+  <td>(none)</td>
+  <td>
+	The name of the lsh instance to create.
+  </td>  
+</tr>
 </table>

@@ -1,10 +1,11 @@
 package cpslab.deploy
 
 import akka.actor.Actor
-import com.typesafe.config.{ConfigException, Config}
-import cpslab.storage.{EmptyCacheEngine, CacheEngine, LevelDBEngine, KeyValueEngine}
+import com.typesafe.config.{Config, ConfigException}
+import cpslab.lsh.LSH
+import cpslab.storage.{CacheEngine, EmptyCacheEngine, KeyValueEngine, LevelDBEngine}
 
-private[deploy] class ShardDatabaseWorker(conf: Config) extends Actor{
+private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor{
 
   private var kvEngine: KeyValueEngine = _
   private var cacheEngine: CacheEngine = _
@@ -31,6 +32,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config) extends Actor{
       }
     }
     kvEngine = initKVEngine
+    cacheEngine = initCacheEngine
   }
   
   override def receive: Receive = {
