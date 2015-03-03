@@ -8,7 +8,7 @@ sealed trait Message extends Serializable
 case class Register(execId: Int, url: String) extends Serializable
 case class Heartbeat(id: String, responseTime: Long) extends Message
 
-// sent from the client to the coordinate actor and forwarded by coordinate actor to the 
+// sent from the client to the coordinate actor and forwarded by coordinate actor to the
 // remote worker
 case class QueryRequest(shardId: Int, queryVector: SparseVector) extends Message
 

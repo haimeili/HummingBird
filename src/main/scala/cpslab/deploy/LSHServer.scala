@@ -25,7 +25,7 @@ object LSHServer {
     val (_, system) = CommonUtils.startShardingSystem(Some(Props(new ShardDatabaseWorker(conf))),
       conf)
     val regionActorPath = ClusterSharding(system).shardRegion(ShardDatabaseWorker.
-      ShardDatabaseWorkerActorName).path.toStringWithoutAddress
+      shardDatabaseWorkerActorName).path.toStringWithoutAddress
     // start the router
     val routerActor = system.actorOf(
       ClusterRouterGroup(

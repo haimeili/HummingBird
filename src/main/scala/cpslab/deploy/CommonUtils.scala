@@ -23,7 +23,7 @@ object CommonUtils {
       case x => ""
     }
     ClusterSharding(system).start(
-      typeName = ShardDatabaseWorker.ShardDatabaseWorkerActorName,
+      typeName = ShardDatabaseWorker.shardDatabaseWorkerActorName,
       entryProps = entryProps,
       idExtractor = entryIdExtractor,
       shardResolver = shardIdResolver
