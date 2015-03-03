@@ -1,8 +1,8 @@
 package cpslab.lsh
 
+import com.typesafe.config.Config
 import cpslab.lsh.LSHType._
 import cpslab.lsh.base.LSHBaseFactory
-import cpslab.util.Configuration
 
 trait LSHFactory {
   def newInstance(): LSH
@@ -14,7 +14,7 @@ object LSHFactory {
   private[lsh] var chainLength = 0
   private[lsh] var chainNum = 0
 
-  def apply(config: Configuration): LSHFactory = {
+  def apply(config: Config): LSHFactory = {
     LSHFactory.familySize = config.getInt("cpslab.lshquery.lsh.familySize")
     LSHFactory.vectorDimension = config.getInt("cpslab.lshquery.lsh.vectorSize")
     LSHFactory.chainLength = config.getInt("cpslab.lshquery.lsh.chainLength")

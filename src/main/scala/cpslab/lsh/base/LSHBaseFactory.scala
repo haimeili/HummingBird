@@ -1,13 +1,13 @@
 package cpslab.lsh.base
 
-import cpslab.lsh.{LSH, LSHFactory, LSHFunctionInstance}
-import cpslab.util.Configuration
-import org.apache.commons.math3.distribution.NormalDistribution
-import org.apache.spark.mllib.linalg.{SparseVector, Vectors}
-
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.util.Random
+
+import com.typesafe.config.Config
+import cpslab.lsh.{LSH, LSHFactory, LSHFunctionInstance}
+import cpslab.vector.{Vectors, SparseVector}
+import org.apache.commons.math3.distribution.NormalDistribution
 
 // the definition of this lsh is
 // floor((a.v + b)/w) where a is a theta dimensional random vector
@@ -72,7 +72,7 @@ class LSHBaseFunctionInstance(private val a: SparseVector,
   }
 }
 
-class LSHBaseFactory(config: Configuration) extends LSHFactory {
+class LSHBaseFactory(config: Config) extends LSHFactory {
   private val w = Double.MaxValue
   // TODO: enable configure different distribution
   private val mean = config.getDouble("cpslab.lshquery.lsh.base.mean")

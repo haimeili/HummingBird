@@ -1,9 +1,9 @@
 package cpslab.lsh
 
-import org.apache.spark.mllib.linalg.SparseVector
-
 import scala.collection.mutable
 import scala.collection.mutable.{HashMap, ListBuffer}
+
+import cpslab.vector.SparseVector
 
 trait LSH {
   // chainNum => LSUFunctionInstance
