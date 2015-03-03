@@ -23,7 +23,7 @@ private[cpslab] object LSHServer {
     // initialize the LSH instance
     val lshInstance = LSHFactory.newInstance(conf.getString("cpslab.lsh.name"))
     require(lshInstance != None)
-    
+
     val (_, system) = CommonUtils.startShardingSystem(
       Some(Props(new ShardDatabaseWorker(conf, lshInstance.get))),
       conf)
