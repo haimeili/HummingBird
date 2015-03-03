@@ -15,4 +15,11 @@
   	the name of the cache engine. by default, there is no cache engine
   </td>  
 </tr>
+<tr>
+  <td><code>cpslab.lsh.deploy.clientHandlerInstanceNumber</code></td>
+  <td>10</td>
+  <td>
+	The number of handlers per machine.
+  </td>  
+</tr>
 </table>

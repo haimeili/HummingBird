@@ -25,8 +25,9 @@ object LSHFactory {
         "the current value %d, %d").format(familySize, chainLength))
     }
     if (lshType == BASE) {
-      return new LSHBaseFactory(config)
+      new LSHBaseFactory(config)
+    } else {
+      null
     }
-    null
   }
 }

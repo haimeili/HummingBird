@@ -26,12 +26,19 @@ object LSHServer {
       conf)
     val regionActorPath = ClusterSharding(system).shardRegion(ShardDatabaseWorker.
       shardDatabaseWorkerActorName).path.toStringWithoutAddress
+    val clientHandlerNumber = {
+      try {
+        conf.getInt("cpslab.lsh.deploy.clientHandlerInstanceNumber")
+      } catch {
+        case e: Exception => 10
+      }
+    }
     // start the router
     val routerActor = system.actorOf(
       ClusterRouterGroup(
         local = RoundRobinGroup(List(regionActorPath)), 
         settings = ClusterRouterGroupSettings(
-          totalInstances = 100, 
+          totalInstances = clientHandlerNumber,
           routeesPaths = List(regionActorPath),
           allowLocalRoutees = true, 
           useRole = Some("compute"))).props(), 
