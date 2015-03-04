@@ -29,4 +29,55 @@
 	The name of the lsh instance to create.
   </td>  
 </tr>
+<tr>
+  <td><code>cpslab.lsh.familySize</code></td>
+  <td>(none)</td>
+  <td>
+	the size of the hash family used in LSH schema.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.tableNum</code></td>
+  <td>(none)</td>
+  <td>
+	The number of the hash tables used in LSH.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.vectorDim</code></td>
+  <td>(none)</td>
+  <td>
+	The vector dimensionality.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.chainLength</code></td>
+  <td>(none)</td>
+  <td>
+	The length of the hash functions chain used in each hash table.
+  </td>  
+</tr>
+
+<tr>
+  <td><code>cpslab.lsh.family.pstable.mu</code></td>
+  <td>(none)</td>
+  <td>
+	mu value for gaussian distribution used in pstable family.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.family.pstable.sigma</code></td>
+  <td>(none)</td>
+  <td>
+	sigma value for gaussian distribution used in pstable family.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.family.pstable.w</code></td>
+  <td>(none)</td>
+  <td>
+	w value for gaussian distribution used in pstable family.
+  </td>  
+</tr>
+
 </table>

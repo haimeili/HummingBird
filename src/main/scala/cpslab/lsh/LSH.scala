@@ -1,5 +1,6 @@
 package cpslab.lsh
 
+import com.typesafe.config.Config
 import cpslab.vector.SparseVector
 
 /**
@@ -7,18 +8,33 @@ import cpslab.vector.SparseVector
  * This class wraps one or more LSHTableHashChains
  * By passing different lshFamilyName, we can implement different lsh schema
  */
-private[cpslab] class LSH(tableNum: Int, lshFamilyName: String) extends Serializable {
+private[cpslab] class LSH(lshFamilyName: String, conf: Config) extends Serializable {
   
-  // the child classes use the tableIndexGenerators to calculate the index of the element in each 
-  // table
-  private val tableIndexGenerators: List[LSHTableHashChain[_]] = init()
+  private val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains.get
   
-  private def init[T <: LSHFunctionParameterSet](): List[LSHTableHashChain[_]] = {
-    val lshFamily: Option[LSHHashFamily[T]] = lshFamilyName match {
+  private def initHashChains[T <: LSHFunctionParameterSet]: Option[List[LSHTableHashChain[_]]] = {
+    val familySize = conf.getInt("cpslab.lsh.familySize")
+    val vectorDim = conf.getInt("cpslab.lsh.vectorDim")
+    val chainLength = conf.getInt("cpslab.lsh.chainLength")
+    val initializedChains = lshFamilyName match {
+      case "pStable" =>
+        val mu = conf.getDouble("cpslab.lsh.family.pstable.mu")
+        val sigma = conf.getDouble("cpslab.lsh.family.pstable.sigma")
+        val w = conf.getInt("cpslab.lsh.family.pstable.w")
+        val family = Some(new PStableHashFamily(familySize = familySize, vectorDim = vectorDim,
+          chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
+        pickUpHashChains(family)
       case x => None
     }
-    require(lshFamily.isDefined)
-    lshFamily.map(lshHashFamily => lshHashFamily.pick(tableNum)).get
+    require(initializedChains.isDefined)
+    initializedChains
+  }
+  
+  private def pickUpHashChains[T <: LSHFunctionParameterSet](lshFamily: Option[LSHHashFamily[T]]):
+  Option[List[LSHTableHashChain[T]]] = {
+    require(lshFamily.isDefined, s"$lshFamilyName is not a valid family name")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    lshFamily.map(lshHashFamily => lshHashFamily.pick(tableNum))
   }
   
   
