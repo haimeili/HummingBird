@@ -17,6 +17,6 @@ private[lsh] trait LSHHashFamily[T <: LSHFunctionParameterSet] {
    * hash function from the family  
    * @return the list of LSHTableHashChain
    */
-  def pick(): List[LSHTableHashChain[T]]
+  def pick(tableNum: Int): List[LSHTableHashChain[T]]
 }
 

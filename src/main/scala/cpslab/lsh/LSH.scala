@@ -7,7 +7,7 @@ import cpslab.vector.SparseVector
  * This class wraps one or more LSHTableHashChains
  * By passing different lshFamilyName, we can implement different lsh schema
  */
-private[cpslab] class LSH(tableLength: Int, lshFamilyName: String) extends Serializable {
+private[cpslab] class LSH(tableNum: Int, lshFamilyName: String) extends Serializable {
   
   // the child classes use the tableIndexGenerators to calculate the index of the element in each 
   // table
@@ -18,7 +18,7 @@ private[cpslab] class LSH(tableLength: Int, lshFamilyName: String) extends Seria
       case x => None
     }
     require(lshFamily.isDefined)
-    lshFamily.map(lshHashFamily => lshHashFamily.pick()).get
+    lshFamily.map(lshHashFamily => lshHashFamily.pick(tableNum)).get
   }
   
   
