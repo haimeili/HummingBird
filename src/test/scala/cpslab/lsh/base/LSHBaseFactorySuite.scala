@@ -1,8 +1,6 @@
 package cpslab.lsh.base
 
-import cpslab.lsh.{LSHFactory, LSHType}
-import cpslab.util.Configuration
-import org.apache.spark.mllib.linalg.{SparseVector, Vectors}
+import cpslab.lsh.LSHFactory
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
 class LSHBaseFactorySuite extends FunSuite with BeforeAndAfter {
