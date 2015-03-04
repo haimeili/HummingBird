@@ -202,9 +202,10 @@ class DenseVector(val values: Array[Double]) extends Vector {
   }
 }
 
-class SparseVector( override val size: Int,
-                    val indices: Array[Int],
-                    val values: Array[Double]) extends Vector {
+class SparseVector(
+    override val size: Int,
+    val indices: Array[Int],
+    val values: Array[Double]) extends Vector {
 
   require(indices.length == values.length)
 
@@ -225,6 +226,6 @@ class SparseVector( override val size: Int,
   override def copy: SparseVector = {
     new SparseVector(size, indices.clone(), values.clone())
   }
-
+  
   private[cpslab] override def toBreeze: BV[Double] = new BSV[Double](indices, values, size)
 }

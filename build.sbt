@@ -16,8 +16,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-Yno-adapted-args", "-featu
 libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-contrib_2.10" % "2.3.8",
   "com.typesafe" % "config" % "1.2.1",
-  "org.apache.commons" % "commons-math3" % "3.3",
-  "org.scalatest" % "scalatest_2.10" % "2.2.2",
+  "org.scalatest" % "scalatest_2.10" % "2.2.4",
   "org.scalanlp" % "breeze-math_2.10" % "0.4"
 )
 
