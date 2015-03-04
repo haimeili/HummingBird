@@ -7,7 +7,7 @@ import scala.util.Random
 import cpslab.vector.{SparseVector, Vectors}
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
-class PStableHashSuite extends FunSuite with BeforeAndAfter {
+class PStableHashSuite extends FunSuite {
   
   test("PStableHashChain calculates the index correctly for single hash function") {
     val randomVector = Vectors.sparse(3, Seq((0, 1.0), (1, 1.0), (2, 1.0))).
