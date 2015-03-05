@@ -79,5 +79,11 @@
 	w value for gaussian distribution used in pstable family.
   </td>  
 </tr>
-
+<tr>
+  <td><code>cpslab.lsh.similarityThreshold</code></td>
+  <td>(none)</td>
+  <td>
+	the global threshold to select the most similar vectors.
+  </td>  
+</tr>
 </table>
