@@ -1,7 +1,5 @@
 package cpslab.lsh
 
-import cpslab.deploy.LSHServer
-
 object LSHFactory {
 
   /**

@@ -14,22 +14,23 @@ import cpslab.lsh.{LSH, LSHFactory}
 
 private[cpslab] object LSHServer {
   
-  private def startPLSHSystem(conf: Config, lsh: LSH): Unit = {
+  private[deploy] def startPLSHSystem(conf: Config, lsh: LSH, 
+      newActorProps: (Config, LSH) => Props): ActorSystem = {
     // start actorSystem
     val system = ActorSystem("LSHSystem")
     // start local actors
     val localActorNum = conf.getInt("cpslab.lsh.plsh.localActorNum")
 
     for (i <- 0 until localActorNum) {
-      system.actorOf(Props(new PLSHWorker(conf = conf, lshInstance = lsh)),
-        name = s"LocalActor-$i")
+      val props = newActorProps(conf, lsh)
+      system.actorOf(props, name = s"PLSHWorker-$i")
     }
 
     //start clientRequestHandler
     val routeePath = {
       val t = new ListBuffer[String]
       for (i <- 0 until localActorNum) {
-        t += s"/user/LocalActor-$i"
+        t += s"/user/PLSHWorker-$i"
       }
       t.toList
     }
@@ -42,9 +43,10 @@ private[cpslab] object LSHServer {
             allowLocalRoutees = true, 
             useRole = Some("compute"))).props(),
       name = "clientRequestHandler")
+    system
   }
   
-  private def startShardingSystem(conf: Config, lsh: LSH): Unit = {
+  private[deploy] def startShardingSystem(conf: Config, lsh: LSH): Unit = {
     val (_, system) = CommonUtils.startShardingSystem(
       Some(Props(new ShardDatabaseWorker(conf, lsh))),
       conf)
@@ -82,11 +84,12 @@ private[cpslab] object LSHServer {
       withFallback(ConfigFactory.load())
     
     // initialize the LSH instance
-    val lshInstance = LSHFactory.newInstance(conf.getString("cpslab.lsh.name"))
-    require(lshInstance != None)
+    val lshEngine = LSHFactory.newInstance(conf.getString("cpslab.lsh.name"))
+    require(lshEngine != None)
     conf.getString("cpslab.lsh.distributedSchema") match {
-      case "PLSH" => startPLSHSystem(conf, lshInstance.get)
-      case "SHARDING" => startShardingSystem(conf, lshInstance.get)
+      case "PLSH" =>
+        startPLSHSystem(conf, lshEngine.get, PLSHWorker.props)
+      case "SHARDING" => startShardingSystem(conf, lshEngine.get)
       case x => println(s"Unsupported Distributed Schema $x")
     }
   }
