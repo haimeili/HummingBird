@@ -15,14 +15,16 @@ import cpslab.lsh.{LSH, LSHFactory}
 private[cpslab] object LSHServer {
   
   private[deploy] def startPLSHSystem(conf: Config, lsh: LSH, 
-      newActorProps: (Config, LSH) => Props): ActorSystem = {
+      newActorProps: (Int, Config, LSH) => Props): ActorSystem = {
     // start actorSystem
     val system = ActorSystem("LSHSystem")
     // start local actors
     val localActorNum = conf.getInt("cpslab.lsh.plsh.localActorNum")
+    // local ID
+    val localNodeId = conf.getInt("cpslab.lsh.nodeID")
 
     for (i <- 0 until localActorNum) {
-      val props = newActorProps(conf, lsh)
+      val props = newActorProps(localNodeId * localActorNum + i, conf, lsh)
       system.actorOf(props, name = s"PLSHWorker-$i")
     }
 

@@ -17,6 +17,8 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
   def this() = this({
     val conf = ConfigFactory.parseString(
       s"""
+         |akka.remote.netty.tcp.port = 0
+         |cpslab.lsh.nodeID = 0
          |cpslab.lsh.plsh.localActorNum = 10
        """.stripMargin)
     LSHServer.startPLSHSystem(conf, null, DummyPLSHWorker.props)
@@ -29,12 +31,12 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
   test("LSHServer start PLSH system and the actors correctly") {
     for (i <- 0 until 10) {
       intercept[InvalidActorNameException] {
-        actorSystem.actorOf(Props(new DummyPLSHWorker(ConfigFactory.load(), null)), 
+        actorSystem.actorOf(Props(new DummyPLSHWorker(i, ConfigFactory.load(), null)),
           name = s"PLSHWorker-$i")
       }
     }
     intercept[InvalidActorNameException] {
-      actorSystem.actorOf(Props(new DummyPLSHWorker(ConfigFactory.load(), null)), 
+      actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
         name = "clientRequestHandler")
     }
   }

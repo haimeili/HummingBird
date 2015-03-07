@@ -8,7 +8,7 @@ import cpslab.lsh.LSH
 case object Ping
 case object Pong
 
-class DummyPLSHWorker(conf: Config, lshInstance: LSH) extends Actor {
+class DummyPLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
 
   override def receive: Receive = {
     case Ping =>
@@ -17,5 +17,7 @@ class DummyPLSHWorker(conf: Config, lshInstance: LSH) extends Actor {
 }
 
 object DummyPLSHWorker {
-  def props(conf: Config, lshInstance: LSH) = Props(new DummyPLSHWorker(conf, lshInstance))
+  def props(id: Int, conf: Config, lshInstance: LSH) = {
+    Props(new DummyPLSHWorker(id, conf, lshInstance))
+  }
 }

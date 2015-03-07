@@ -100,4 +100,18 @@
 	the number of the actors started in each node for PLSH schema.
   </td>  
 </tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.maxWorkerNum</code></td>
+  <td>(none)</td>
+  <td>
+	The total number of worker started in PLSH schema.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.nodeID</code></td>
+  <td>(none)</td>
+  <td>
+	localID of the node, used as the baseline of the worker ID.
+  </td>  
+</tr>
 </table>

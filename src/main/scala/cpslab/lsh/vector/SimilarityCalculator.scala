@@ -1,8 +1,8 @@
-package cpslab.vector
+package cpslab.lsh.vector
 
 import scala.collection.mutable
 
-object SimilarityCalculator {
+private[cpslab] object SimilarityCalculator {
   //assuming the normalized vectors
   def calculateSimilarity(vector1: SparseVectorWrapper, vector2: SparseVectorWrapper): Double = {
     val (_, sparseVector1) = vector1.sparseVector

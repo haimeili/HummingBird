@@ -1,4 +1,4 @@
-package cpslab.vector
+package cpslab.lsh.vector
 
 /**
  * this class is used for sending the sparse vector in the cluster

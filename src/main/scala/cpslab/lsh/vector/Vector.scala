@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cpslab.vector
+package cpslab.lsh.vector
 
 import java.lang.{Double => JavaDouble, Integer => JavaInteger, Iterable => JavaIterable}
 import java.util

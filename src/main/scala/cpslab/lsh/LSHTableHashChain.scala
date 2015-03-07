@@ -1,6 +1,6 @@
 package cpslab.lsh
 
-import cpslab.vector.SparseVector
+import cpslab.lsh.vector.SparseVector
 
 /**
  * the class implementing the functions chaining in one of the hash tables
