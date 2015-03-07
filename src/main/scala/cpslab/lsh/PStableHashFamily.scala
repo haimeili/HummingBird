@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import scala.util.Random
 
 import breeze.stats.distributions.Gaussian
-import cpslab.vector.SparseVector
+import cpslab.lsh.vector.SparseVector
 
 /**
  * a hash family containing functions H(v) = FLOOR((a * v  + b) / W)

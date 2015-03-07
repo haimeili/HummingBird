@@ -10,7 +10,7 @@ object CommonUtils {
 
   private[deploy] def startShardingSystem(entryProps: Option[Props],
                                           conf: Config): (Config, ActorSystem) = {
-    val system = ActorSystem("ClusterSystem", conf)
+    val system = ActorSystem("LSH", conf)
     val maxShardNum = conf.getInt("cpslab.allpair.maxShardNum")
     val maxEntryNum = conf.getInt("cpslab.allpair.maxEntryNum")
     // fix the entry Id to send to a proxy and then spawn to the multiple indexWorkers,

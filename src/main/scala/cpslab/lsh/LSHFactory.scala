@@ -10,4 +10,5 @@ object LSHFactory {
   def newInstance(name: String): Option[LSH] = name match {
     case x => None
   }
+  
 }

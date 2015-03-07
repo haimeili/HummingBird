@@ -1,7 +1,7 @@
 package cpslab.lsh
 
 import com.typesafe.config.Config
-import cpslab.vector.SparseVector
+import cpslab.lsh.vector.SparseVector
 
 /**
  * Implementation class of LSH 
@@ -10,9 +10,9 @@ import cpslab.vector.SparseVector
  */
 private[cpslab] class LSH(lshFamilyName: String, conf: Config) extends Serializable {
   
-  private val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains.get
+  private val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains
   
-  private def initHashChains[T <: LSHFunctionParameterSet]: Option[List[LSHTableHashChain[_]]] = {
+  private def initHashChains[T <: LSHFunctionParameterSet]: List[LSHTableHashChain[_]] = {
     val familySize = conf.getInt("cpslab.lsh.familySize")
     val vectorDim = conf.getInt("cpslab.lsh.vectorDim")
     val chainLength = conf.getInt("cpslab.lsh.chainLength")
@@ -26,8 +26,11 @@ private[cpslab] class LSH(lshFamilyName: String, conf: Config) extends Serializa
         pickUpHashChains(family)
       case x => None
     }
-    require(initializedChains.isDefined)
-    initializedChains
+    if (initializedChains.isDefined) {
+      initializedChains.get
+    } else {
+      List()
+    }
   }
   
   private def pickUpHashChains[T <: LSHFunctionParameterSet](lshFamily: Option[LSHHashFamily[T]]):

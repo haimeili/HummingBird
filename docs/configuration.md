@@ -73,6 +73,13 @@
   </td>  
 </tr>
 <tr>
+  <td><code>cpslab.lsh.distributedSchema</code></td>
+  <td>(none)</td>
+  <td>
+	The distributed schema of the system. Currently support schemas: PLSH, SHARDING. 
+  </td>  
+</tr>
+<tr>
   <td><code>cpslab.lsh.family.pstable.w</code></td>
   <td>(none)</td>
   <td>
@@ -84,6 +91,27 @@
   <td>(none)</td>
   <td>
 	the global threshold to select the most similar vectors.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.localActorNum</code></td>
+  <td>(none)</td>
+  <td>
+	the number of the actors started in each node for PLSH schema.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.maxWorkerNum</code></td>
+  <td>(none)</td>
+  <td>
+	The total number of worker started in PLSH schema.
+  </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.nodeID</code></td>
+  <td>(none)</td>
+  <td>
+	localID of the node, used as the baseline of the worker ID.
   </td>  
 </tr>
 </table>

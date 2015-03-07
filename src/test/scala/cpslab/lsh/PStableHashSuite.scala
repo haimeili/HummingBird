@@ -4,8 +4,8 @@ import java.nio.ByteBuffer
 
 import scala.util.Random
 
-import cpslab.vector.{SparseVector, Vectors}
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import cpslab.lsh.vector.{SparseVector, Vectors}
+import org.scalatest.FunSuite
 
 class PStableHashSuite extends FunSuite {
   

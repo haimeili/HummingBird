@@ -1,8 +1,8 @@
 package cpslab.lsh
 
 import com.typesafe.config.{Config, ConfigFactory}
-import cpslab.vector.{SparseVector, Vectors}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfter, FunSuite}
+import cpslab.lsh.vector.{SparseVector, Vectors}
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 class LSHSuite extends FunSuite with BeforeAndAfterAll {
 

@@ -1,7 +1,7 @@
 package cpslab.deploy
 
 import akka.contrib.pattern.ShardRegion.ShardId
-import cpslab.vector.SparseVector
+import cpslab.lsh.vector.SparseVector
 
 sealed trait SimilaritySearchMessages extends Serializable
 
@@ -26,8 +26,8 @@ case class SearchRequest(vectorId: String, vector: SparseVector, topK: Int = 0)
  *                           and reduce the network traffic amount, we rely on the client-end 
  *                           further deduplicate to select the final topK
  */
-case class SimilarityOutput(queryVectorID: String, similarVectorPairs: (String, Double) *) 
-  extends SimilaritySearchMessages
+case class SimilarityOutput(queryVectorID: String, 
+    similarVectorPairs: Option[List[(String, Double)]]) extends SimilaritySearchMessages
 
 // messages for the communication between nodes in the cluster sharding schema
 
