@@ -16,9 +16,6 @@ private[cpslab] object ShardingUtils {
   private var lshInstance: LSH = _
   private var localShardingSystem: ActorSystem = _
 
-  // fix the entry Id to send to a proxy and then spawn to the multiple indexWorkers,
-  // otherwise, it is impossible to send data packet to multiple entries just
-  // through idExtractor
   private val entryIdExtractor: ShardRegion.IdExtractor = {
     case req @ SearchRequest(_, _, _) =>
       (Random.nextInt(maxEntryNum).toString, req)
