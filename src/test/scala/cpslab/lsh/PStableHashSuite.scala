@@ -45,4 +45,40 @@ class PStableHashSuite extends FunSuite {
       assert(hashChain.chainLength === 2)
     }
   }
+
+  test("pStableParameterSet generates string correctly") {
+    val vectorA = Vectors.sparse(3, Array(0, 1), Array(1.0, 2.0)).asInstanceOf[SparseVector]
+    val paraSet = new PStableParameterSet(vectorA, 0.1, 5)
+    assert(paraSet.toString === s"$vectorA;0.1;5")
+  }
+  
+  test("pStable HashFamily generates pStableParameterSet from file correctly") {
+    val hashFamily = new PStableHashFamily(familySize = 0, vectorDim = 3, pStableMu = 0,
+      pStableSigma = 0.5, w = 0, chainLength = 3)
+    val hashChain = hashFamily.generateTableChainFromFile(
+      getClass.getClassLoader.getResource("testpstablefile").getFile, 3)
+    assert(hashChain.size === 3)
+    val firstChain = hashChain(0)
+    assert(firstChain.chainIndexCalculator.size === 3)
+    for (para <- firstChain.chainIndexCalculator) {
+      assert(para.a.toString === "(3,[0,1],[1.0,2.0])")
+      assert(para.b === 0.1)
+      assert(para.w === 5)
+    }
+    val secondChain = hashChain(1)
+    assert(secondChain.chainIndexCalculator.size === 3)
+    for (para <- secondChain.chainIndexCalculator) {
+      assert(para.a.toString === "(3,[0,1],[1.0,3.0])")
+      assert(para.b === 0.2)
+      assert(para.w === 6)
+    }
+    val thirdChain = hashChain(2)
+    assert(thirdChain.chainIndexCalculator.size === 3)
+    for (para <- thirdChain.chainIndexCalculator) {
+      assert(para.a.toString === "(3,[0,1],[1.0,4.0])")
+      assert(para.b === 0.3)
+      assert(para.w === 7)
+    }
+      
+  }
 }

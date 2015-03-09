@@ -10,7 +10,7 @@ import cpslab.lsh.vector.SparseVector
  */
 private[lsh] abstract class LSHTableHashChain[+T <: LSHFunctionParameterSet](
     private[lsh] val chainLength: Int,
-    chainIndexCalculator: List[T]) {
+    private[lsh] val chainIndexCalculator: List[T]) {
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions 
