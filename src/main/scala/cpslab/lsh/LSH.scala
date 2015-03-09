@@ -11,11 +11,11 @@ import cpslab.lsh.vector.SparseVector
  * By passing different lshFamilyName, we can implement different lsh schema
  */
 private[cpslab] class LSH(conf: Config) extends Serializable {
-  
-  private var tableIndexGenerators: List[LSHTableHashChain[_]] = null
+
   private val lshFamilyName: String = conf.getString("cpslab.lsh.name")
+  private val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains()
   
-  private def initHashChains[T <: LSHFunctionParameterSet](): Unit = {
+  private def initHashChains[T <: LSHFunctionParameterSet](): List[LSHTableHashChain[_]] = {
     val familySize = conf.getInt("cpslab.lsh.familySize")
     val vectorDim = conf.getInt("cpslab.lsh.vectorDim")
     val chainLength = conf.getInt("cpslab.lsh.chainLength")
@@ -31,9 +31,9 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
       case x => None
     }
     if (initializedChains.isDefined) {
-      tableIndexGenerators = initializedChains.get
+      initializedChains.get
     } else {
-      tableIndexGenerators = List()
+      List()
     }
   }
   
@@ -67,8 +67,6 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
     (for (i <- 0 until tableIndexGenerators.size if validTableIDs.contains(i))
       yield tableIndexGenerators(i).compute(vector)).toArray
   }
-
-  initHashChains()
 }
 
 private[lsh] object LSH {
