@@ -10,7 +10,7 @@ import akka.contrib.pattern.ClusterSharding
 import akka.routing.{BroadcastGroup, RoundRobinGroup}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.plsh.PLSHWorker
-import cpslab.lsh.{LSH, LSHFactory}
+import cpslab.lsh.LSH
 
 private[cpslab] object LSHServer {
   
@@ -86,12 +86,11 @@ private[cpslab] object LSHServer {
       withFallback(ConfigFactory.load())
     
     // initialize the LSH instance
-    val lshEngine = LSHFactory.newInstance(conf.getString("cpslab.lsh.name"))
-    require(lshEngine != None)
+    val lshEngine = new LSH(conf)
     conf.getString("cpslab.lsh.distributedSchema") match {
       case "PLSH" =>
-        startPLSHSystem(conf, lshEngine.get, PLSHWorker.props)
-      case "SHARDING" => startShardingSystem(conf, lshEngine.get)
+        startPLSHSystem(conf, lshEngine, PLSHWorker.props)
+      case "SHARDING" => startShardingSystem(conf, lshEngine)
       case x => println(s"Unsupported Distributed Schema $x")
     }
   }

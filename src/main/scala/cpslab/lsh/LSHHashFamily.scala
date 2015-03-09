@@ -18,5 +18,12 @@ private[lsh] trait LSHHashFamily[+T <: LSHFunctionParameterSet] {
    * @return the list of LSHTableHashChain
    */
   def pick(tableNum: Int): List[LSHTableHashChain[T]]
-}
 
+  /**
+   * generate a hash table chain from the file
+   * @param filePath the path of the file storing the hash chain
+   * @param tableNum the number of hash tables*
+   * @return the list of LSHTableHashChain
+   */
+  def generateTableChainFromFile(filePath: String, tableNum: Int): List[LSHTableHashChain[T]]
+}

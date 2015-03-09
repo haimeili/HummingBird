@@ -8,7 +8,7 @@ import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
 
-private class DummyLSH(conf: Config) extends LSH("", conf) {
+private class DummyLSH(conf: Config) extends LSH(conf) {
   override def calculateIndex(vector: SparseVector, validTableIDs: Seq[Int]): Array[Array[Byte]] = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     // i.toByte ensure that the vector is distributed to all machines 
@@ -23,6 +23,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
   def this() = this({
     val conf = ConfigFactory.parseString(
       s"""
+         |cpslab.lsh.name = none
          |akka.remote.netty.tcp.port = 0
          |cpslab.lsh.vectorDim = 3
          |cpslab.lsh.chainLength = 10

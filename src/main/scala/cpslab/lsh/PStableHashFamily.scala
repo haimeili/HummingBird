@@ -2,10 +2,12 @@ package cpslab.lsh
 
 import java.nio.ByteBuffer
 
+import scala.collection.mutable.ListBuffer
+import scala.io.Source
 import scala.util.Random
 
 import breeze.stats.distributions.Gaussian
-import cpslab.lsh.vector.SparseVector
+import cpslab.lsh.vector.{SparseVector, Vectors}
 
 /**
  * a hash family containing functions H(v) = FLOOR((a * v  + b) / W)
@@ -24,7 +26,7 @@ private[lsh] class PStableHashFamily(
     pStableSigma: Double,
     w: Int, 
     chainLength: Int) extends LSHHashFamily[PStableParameterSet] {
-
+  
   /**
    * initialize the hash family
    * @return the Array containing all hash functions in this family 
@@ -65,6 +67,36 @@ private[lsh] class PStableHashFamily(
       generatedHashChains(i) = new PStableHashChain(chainLength, hashFunctionChain)
     }
     generatedHashChains.toList
+  }
+
+  /**
+   * generate a hash table chain from the file
+   * assumed file format (for each line)
+   * vector A; b; w
+   * @param filePath the path of the file storing the hash chain
+   * @param tableNum the number of hash tables                 
+   * @return the list of LSHTableHashChain
+   */
+  override def generateTableChainFromFile(filePath: String, tableNum: Int): 
+  List[LSHTableHashChain[PStableParameterSet]] = {
+    val paraSetList = new ListBuffer[PStableParameterSet]
+    try {
+      for (line <- Source.fromFile(filePath).getLines()) {
+        val Array(vectorString, bInStr, wInStr) = line.split(";")
+        val vectorA = Vectors.fromString(vectorString)
+        val b = bInStr.toDouble
+        val w = wInStr.toInt
+        paraSetList += new PStableParameterSet(
+          Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
+          b, w)
+      }
+      val groupedParaSets = paraSetList.grouped(chainLength)
+      groupedParaSets.map(paraSet => new PStableHashChain(chainLength, paraSet.toList)).toList
+    } catch {
+      case e: Exception => 
+        e.printStackTrace()
+        null
+    }
   }
 }
 
@@ -117,4 +149,9 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
  *
  */
 private[lsh] class PStableParameterSet(val a: SparseVector, val b: Double, val w: Int)
-  extends LSHFunctionParameterSet
+  extends LSHFunctionParameterSet {
+  
+  override def toString: String = s"$a;$b;$w"
+}
+
+

@@ -11,6 +11,8 @@ class LSHSuite extends FunSuite with BeforeAndAfterAll {
   override def beforeAll() {
     config = ConfigFactory.parseString(
       s"""
+         |cpslab.lsh.generateMethod = default
+         |cpslab.lsh.name = pStable
          |cpslab.lsh.familySize = 10
          |cpslab.lsh.tableNum = 100
          |cpslab.lsh.vectorDim = 1024
@@ -23,7 +25,7 @@ class LSHSuite extends FunSuite with BeforeAndAfterAll {
   }
   
   test("LSH initialize Hash Family and Hash Chain correctly") {
-    val lsh = new LSH("pStable", config)
+    val lsh = new LSH(config)
     val testVector = Vectors.sparse(3, Seq((0, 1.0), (1, 1.0), (2, 1.0))).
       asInstanceOf[SparseVector]
     val keyArray = lsh.calculateIndex(testVector)
