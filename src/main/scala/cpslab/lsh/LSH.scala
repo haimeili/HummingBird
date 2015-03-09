@@ -76,7 +76,7 @@ private[lsh] object LSH {
     val lsh = new LSH(config)
     lsh.tableIndexGenerators.foreach(hashChain =>
       hashChain.chainIndexCalculator.foreach(hashParameterSet =>
-        sb.append(hashParameterSet.toString))
+        sb.append(hashParameterSet.toString + "\n"))
     )
     sb.toString
   }
