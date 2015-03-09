@@ -13,7 +13,14 @@ import cpslab.deploy.plsh.PLSHWorker
 import cpslab.lsh.LSH
 
 private[cpslab] object LSHServer {
-  
+
+  /**
+   * start actor system for PLSH schema
+   * @param conf the config object
+   * @param lsh LSH instance to be passed to each worker
+   * @param newActorProps the function generating the actor props
+   * @return ActorSystem
+   */
   private[deploy] def startPLSHSystem(conf: Config, lsh: LSH, 
       newActorProps: (Int, Config, LSH) => Props): ActorSystem = {
     // start actorSystem
@@ -47,11 +54,16 @@ private[cpslab] object LSHServer {
       name = "clientRequestHandler")
     system
   }
-  
+
+  /**
+   * start Actor system for cluster sharding schema
+   * @param conf the config object
+   * @param lsh LSH instance
+   */
   private[deploy] def startShardingSystem(conf: Config, lsh: LSH): Unit = {
-    val (_, system) = CommonUtils.startShardingSystem(
+    val (_, system) = ShardingUtils.startShardingSystem(
       Some(Props(new ShardDatabaseWorker(conf, lsh))),
-      conf)
+      conf, lsh)
 
     val shardRegionActorPath = ClusterSharding(system).shardRegion(ShardDatabaseWorker.
       shardDatabaseWorkerActorName).path.toStringWithoutAddress

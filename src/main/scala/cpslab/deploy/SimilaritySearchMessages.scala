@@ -1,7 +1,9 @@
 package cpslab.deploy
 
+import scala.collection.mutable
+
 import akka.contrib.pattern.ShardRegion.ShardId
-import cpslab.lsh.vector.SparseVector
+import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
 
 sealed trait SimilaritySearchMessages extends Serializable
 
@@ -35,9 +37,19 @@ case class SimilarityOutput(queryVectorID: String,
  * this message represents the allocation of the shards of the vectors
  * the message can be sent from the shardRegions to the entry actors (EntryResolver) and also can be
  * sent from the actors calculating the allocated shards to the other shardRegions
- * @param shardIDs the IDs of the shards
- * @param vectors the list of the vector which would be allocated to the shards with the IDs in the 
- *                prior shardIDs list
+ *
+ * NOTE: to correctly perform the funcitonality, we need to ensure that all shardids contained in 
+ * this class belongs to the same ShardRegion
+ *
+ * @param shardsMap (TableID -> (ShardID, vectors))
  */
-case class ShardAllocation(shardIDs: List[ShardId], vectors: List[SparseVector])
+case class ShardAllocation(shardsMap: mutable.HashMap[Int, 
+  mutable.HashMap[ShardId, List[SparseVectorWrapper]]])
 
+/**
+ * the class representing the request to index sparseVectors in certain table
+ * NOTE: we need to ensure that, all sparse vectors represented in this class belongs to the same 
+ * entry
+ * @param indexMap tableID -> vectors
+ */
+case class LSHTableIndexRequest(indexMap: mutable.HashMap[Int, List[SparseVectorWrapper]])

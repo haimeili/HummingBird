@@ -56,7 +56,8 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
   
   
   /**
-   * calculate the index of the vector in tables
+   * calculate the index of the vector in tables, the index in each table is represented as a 
+   * byte array
    * @param vector the vector to be indexed
    * @param validTableIDs the tables where this vector to be put in. If not passing this parameter
    *                      in, the index of the vector in all tables will be calculated

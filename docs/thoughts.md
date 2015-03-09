@@ -67,3 +67,15 @@ Questions:
 
     use a bitmap to deduplicate in server end first, and send the bitmap to the client, then duplicate in client and, in this way, we can minimize the network traffic amount (multiple shards maintained in the same server should also be deduplicated)
      
+     
+10. shall we put the similar elements (within the same or similar bucket index) in the same shards/machine?
+
+    no, let's consider the following case
+
+	We have 5 products and 1 m customers
+	
+	product 1 is very popular, 90% of the customers only bought this product and optionally bought another product
+	
+	so we will see that, a lot of vectors are just 1 bit off with the [1, 0, 0, 0, 0]..if we allocate similar elements in the same shard, we will see the hotspot
+	
+	So the wise way to do this is to distribute shards to multiple machines, and merge messages to reduce network cost.

@@ -118,14 +118,28 @@
   <td><code>cpslab.lsh.generateMethod</code></td>
   <td>(none)</td>
   <td>
-	defining the method on how to generate HashFamily; "default" -> create new HashFamily instance, "fromfile" -> generate a hashchain from a fixed file
+	defining the method on how to generate HashFamily; "default" -> create new HashFamily instance, 
+	"fromfile" -> generate a hashchain from a fixed file
   </td>  
 </tr>
 <tr>
   <td><code>cpslab.lsh.familyFilePath</code></td>
   <td>(none)</td>
   <td>
-	the path of the file defining the hash family
+	the path of the file defining the hash family</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxShardNum</code></td>
+  <td>(none)</td>
+  <td>
+	maximum number of shards allowed in the system
   </td>  
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxShardDatabaseWorkerNum</code></td>
+  <td>(none)</td>
+  <td>
+	maximum number of shard worker allowed in each process
+  </td>
 </tr>
 </table>
