@@ -56,10 +56,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
           shardID.toString -> vectorId
       }
       // TODO: add write buffer and merge request sent to the same node
-      // TODO: we need to carefully ensure the correctness of the merge request, when there is no 
+      // we need to carefully ensure the correctness of the merge request, when there is no
       // such shard in the cache, we can only separate into different messages
-      //shardingExtension.
-    case shardAllocation @ ShardAllocation(_) => 
+      // shardingExtension.
+    case shardAllocation @ ShardAllocation(_) =>
       // TODO calculate the LSHTableIndexRequest ensuring that all vectors in an
       // LSHTableIndexRequest belongs to the same entry
     case indexRequest @ LSHTableIndexRequest(_) => 

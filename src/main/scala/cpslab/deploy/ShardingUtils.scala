@@ -43,8 +43,10 @@ private[cpslab] object ShardingUtils {
     lshInstance = lsh
   }
 
-  private[deploy] def startShardingSystem(entryProps: Option[Props],
-                                          conf: Config, lsh: LSH): (Config, ActorSystem) = {
+  private[deploy] def startShardingSystem(
+      entryProps: Option[Props],
+      conf: Config, 
+      lsh: LSH): (Config, ActorSystem) = {
     localShardingSystem = ActorSystem("LSH", conf)
     initShardAllocation(conf, lsh)
     
@@ -60,10 +62,11 @@ private[cpslab] object ShardingUtils {
     (conf, localShardingSystem)
   }
 
-  private[deploy] def startShardingSystem(entryProps: Option[Props],
-                                          akkaConfPath: String,
-                                          appConfPath: String,
-                                          lsh: LSH): (Config, ActorSystem) = {
+  private[deploy] def startShardingSystem(
+      entryProps: Option[Props],
+      akkaConfPath: String,
+      appConfPath: String,
+      lsh: LSH): (Config, ActorSystem) = {
 
     val conf = ConfigFactory.parseFile(new File(akkaConfPath)).
       withFallback(ConfigFactory.parseFile(new File(appConfPath))).
