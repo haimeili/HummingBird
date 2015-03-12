@@ -12,13 +12,8 @@ sealed trait SimilaritySearchMessages extends Serializable
  * messages sent from client to server, representing the request for similarity search
  * @param vectorId the unique ID representing the query vector
  * @param vector the vector data
- * @param topK select the most k similar vectors, default to be 0, then we rely on the global 
- *             similarity threshold (cpslab.lsh.similarityThreshold) to select the most similar 
- *             vectors
- *                          
  */
-case class SearchRequest(vectorId: String, vector: SparseVector, topK: Int = 0)
-  extends SimilaritySearchMessages
+case class SearchRequest(vectorId: String, vector: SparseVector) extends SimilaritySearchMessages
 
 /**
  * the result of the similarity search
@@ -29,7 +24,7 @@ case class SearchRequest(vectorId: String, vector: SparseVector, topK: Int = 0)
  *                           further deduplicate to select the final topK
  */
 case class SimilarityOutput(queryVectorID: String, 
-    similarVectorPairs: Option[List[(String, Double)]]) extends SimilaritySearchMessages
+    similarVectorPairs: List[(String, Double)]) extends SimilaritySearchMessages
 
 // messages for the communication between nodes in the cluster sharding schema
 
@@ -44,12 +39,13 @@ case class SimilarityOutput(queryVectorID: String,
  * @param shardsMap (TableID -> (ShardID, vectors))
  */
 case class ShardAllocation(shardsMap: mutable.HashMap[Int, 
-  mutable.HashMap[ShardId, List[SparseVectorWrapper]]])
+    mutable.HashMap[ShardId, List[SparseVectorWrapper]]])
 
 /**
  * the class representing the request to index sparseVectors in certain table
+ * this request also serves as the query request
  * NOTE: we need to ensure that, all sparse vectors represented in this class belongs to the same 
  * entry
- * @param indexMap tableID -> vectors
+ * @param indexMap shardID -> vectors
  */
 case class LSHTableIndexRequest(indexMap: mutable.HashMap[Int, List[SparseVectorWrapper]])

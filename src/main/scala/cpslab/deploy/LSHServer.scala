@@ -11,6 +11,7 @@ import akka.routing.{BroadcastGroup, RoundRobinGroup}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.plsh.PLSHWorker
 import cpslab.lsh.LSH
+import cpslab.lsh.vector.SparseVector
 
 private[cpslab] object LSHServer {
 
@@ -60,7 +61,7 @@ private[cpslab] object LSHServer {
    * @param conf the config object
    * @param lsh LSH instance
    */
-  private[deploy] def startShardingSystem(conf: Config, lsh: LSH): Unit = {
+  private[deploy] def startShardingSystem(conf: Config, lsh: LSH): ActorSystem = {
     val (_, system) = ShardingUtils.startShardingSystem(
       Some(Props(new ShardDatabaseWorker(conf, lsh))),
       conf, lsh)
@@ -75,7 +76,7 @@ private[cpslab] object LSHServer {
       }
     }
     // start the router
-    val routerActor = system.actorOf(
+    val router = system.actorOf(
       ClusterRouterGroup(
         local = RoundRobinGroup(List(shardRegionActorPath)),
         settings = ClusterRouterGroupSettings(
@@ -84,7 +85,7 @@ private[cpslab] object LSHServer {
           allowLocalRoutees = true,
           useRole = Some("compute"))).props(),
       name = "clientRequestHandler")
-    println(routerActor.path.toString + " started")
+    system
   }
   
   
@@ -96,15 +97,22 @@ private[cpslab] object LSHServer {
     val conf = ConfigFactory.parseFile(new File(args(0))).
       withFallback(ConfigFactory.parseFile(new File(args(1)))).
       withFallback(ConfigFactory.load())
+
     
     // initialize the LSH instance
     val lshEngine = new LSH(conf)
-    conf.getString("cpslab.lsh.distributedSchema") match {
+    val system = conf.getString("cpslab.lsh.distributedSchema") match {
       case "PLSH" =>
         startPLSHSystem(conf, lshEngine, PLSHWorker.props)
-      case "SHARDING" => startShardingSystem(conf, lshEngine)
-      case x => println(s"Unsupported Distributed Schema $x")
+      case "SHARDING" => 
+        startShardingSystem(conf, lshEngine)
+      case x => 
+        println(s"Unsupported Distributed Schema $x")
+        null
     }
+    
+    val regionActor = ClusterSharding(system).shardRegion(ShardDatabaseWorker.shardDatabaseWorkerActorName)
+    regionActor ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
   }
 }
 

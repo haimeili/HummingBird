@@ -129,10 +129,10 @@
 	the path of the file defining the hash family</td>
 </tr>
 <tr>
-  <td><code>cpslab.lsh.sharding.maxShardNum</code></td>
+  <td><code>cpslab.lsh.sharding.maxShardNumPerTable</code></td>
   <td>(none)</td>
   <td>
-	maximum number of shards allowed in the system
+	maximum number of shards *per table* allowed in the system
   </td>  
 </tr>
 <tr>
@@ -142,4 +142,27 @@
 	maximum number of shard worker allowed in each process
   </td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.namespace</code></td>
+  <td>(none)</td>
+  <td>
+	sharding strategy of distributed LSH schema; 
+	"independent" -> load balance with table first and then load balance with shardID
+  </td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxDatabaseNodeNum</code></td>
+  <td>(none)</td>
+  <td>
+	Maximum number of nodes storing data for the table.
+  </td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.topK</code></td>
+  <td>(none)</td>
+  <td>
+	select topK similar vectors.
+  </td>
+</tr>
+
 </table>
