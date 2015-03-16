@@ -148,6 +148,7 @@
   <td>
 	sharding strategy of distributed LSH schema; 
 	"independent" -> load balance with table first and then load balance with shardID
+	"flat" -> load balance by making all buckets in all tables in a flat namespace; essentially it's balance with shard first and then on table
   </td>
 </tr>
 <tr>

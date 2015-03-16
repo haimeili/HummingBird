@@ -2,10 +2,9 @@ package cpslab.deploy.plsh
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import cpslab.deploy._
 import cpslab.deploy.utils.DummyLSH
-import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
 

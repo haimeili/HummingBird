@@ -8,7 +8,6 @@ import akka.actor.{ActorSystem, Props}
 import akka.contrib.pattern.{ClusterSharding, ShardRegion}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.lsh.LSH
-import cpslab.lsh.vector.SparseVector
 
 private[cpslab] object ShardingUtils {
   
@@ -19,22 +18,36 @@ private[cpslab] object ShardingUtils {
 
   private val independentNamespaceEntryResolver: ShardRegion.IdExtractor = {
     case req @ SearchRequest(_, _) =>
-      ("1", req)
-    case shardAllocation @ ShardAllocation(_) =>
+      (Random.nextInt(maxEntryNum).toString, req)
+    case shardAllocation @ PerTableShardAllocation(_) =>
       ("1", shardAllocation)
   }
   
-  private val independentNamespaceShardResolver: ShardRegion.ShardResolver = msg => msg match {
-    case searchRequest @ SearchRequest(_, _) =>
+  private val independentNamespaceShardResolver: ShardRegion.ShardResolver = {
+    case searchRequest@SearchRequest(_, _) =>
       //TODO: assign to local shards
       Random.nextInt(maxShardNum).toString
-    case shardAllocation @ ShardAllocation(_) =>
+    case shardAllocation@PerTableShardAllocation(_) =>
       val tableID = shardAllocation.shardsMap.keys
       // in independent namespace, we allow only one table in ShardAllocation Info
       require(tableID.size == 1)
       tableID.toList(0).toString
   }
   
+  private val flatNamespaceNamespaceEntryResolver: ShardRegion.IdExtractor = {
+    case req @ SearchRequest(_, _) =>
+      (Random.nextInt(maxEntryNum).toString, req)
+    case shardAllocation @ FlatShardAllocation(_) => 
+      ("1", shardAllocation)
+  }
+
+  private val flatNamespaceShardResolver: ShardRegion.ShardResolver = {
+    case searchRequest@SearchRequest(_, _) =>
+      Random.nextInt(maxShardNum).toString
+    case shardAllocation@FlatShardAllocation(_) =>
+      shardAllocation.shardsMap.keys.toList(0)
+  }
+
   private def initShardAllocation(conf: Config, lsh: LSH): Unit = {
     maxShardNum = conf.getInt("cpslab.lsh.sharding.maxShardNumPerTable")
     maxEntryNum = conf.getInt("cpslab.lsh.sharding.maxShardDatabaseWorkerNum")
@@ -54,8 +67,9 @@ private[cpslab] object ShardingUtils {
     val (shardResolver, entryResolver) = conf.getString("cpslab.lsh.sharding.namespace") match {
       case "independent" => 
         // allowing only one entryactor in independent namespace
-        require(maxEntryNum == 1)
         (independentNamespaceShardResolver, independentNamespaceEntryResolver)
+      case "flat" => 
+        (flatNamespaceShardResolver, flatNamespaceNamespaceEntryResolver)
     }
     
     ClusterSharding(localShardingSystem).start(

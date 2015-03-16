@@ -5,7 +5,7 @@ import scala.language.postfixOps
 import akka.actor.{ActorSystem, InvalidActorNameException, Props}
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
-import cpslab.deploy.utils.{Pong, Ping, DummyPLSHWorker}
+import cpslab.deploy.utils.{DummyPLSHWorker, Ping, Pong}
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
 /**

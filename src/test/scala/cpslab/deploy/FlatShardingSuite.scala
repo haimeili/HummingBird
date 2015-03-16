@@ -1,20 +1,20 @@
 package cpslab.deploy
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{Props, ActorSystem}
 import akka.contrib.pattern.ClusterSharding
-import akka.testkit._
+import akka.testkit.{TestActorRef, ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
 import cpslab.deploy.utils.{Client, DummyLSH}
 import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
-class IndependentShardingSuite(var actorSystem: ActorSystem)
+class FlatShardingSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
-  
+
   def this() = this({
     val conf = ConfigFactory.parseString(
       s"""
@@ -28,7 +28,7 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
          |cpslab.lsh.deploy.client = "/user/client"
          |cpslab.lsh.chainLength = 3
          |cpslab.lsh.distributedSchema = SHARDING
-         |cpslab.lsh.sharding.namespace = independent
+         |cpslab.lsh.sharding.namespace = flat
          |cpslab.lsh.sharding.maxShardNumPerTable = 100
          |cpslab.lsh.sharding.maxShardDatabaseWorkerNum = 1
          |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
@@ -50,16 +50,18 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
          |cpslab.lsh.family.pstable.w = 3
        """.stripMargin)
     LSHServer.startShardingSystem(conf, new DummyLSH(conf))
-    })
+  })
 
-  
-  test("(independent) Sharding scheme forwards search request correctly") {
+
+  test("(flat) Sharding scheme forwards search request correctly") {
     val client = TestActorRef[Client](Props(new Client), name = "client")
     val clientHandler = ClusterSharding(actorSystem).shardRegion(
       ShardDatabaseWorker.shardDatabaseWorkerActorName)
     clientHandler ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
     clientHandler ! SearchRequest("vector1", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
     Thread.sleep(5000)
+    assert(client.underlyingActor.state.contains("vector1") ||
+      client.underlyingActor.state.contains("vector0") === true)
     val checkResult = {
       if (client.underlyingActor.state.contains("vector1")) {
         client.underlyingActor.state("vector1") == List(("vector0", 2.0))
