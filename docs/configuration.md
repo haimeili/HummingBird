@@ -118,14 +118,52 @@
   <td><code>cpslab.lsh.generateMethod</code></td>
   <td>(none)</td>
   <td>
-	defining the method on how to generate HashFamily; "default" -> create new HashFamily instance, "fromfile" -> generate a hashchain from a fixed file
+	defining the method on how to generate HashFamily; "default" -> create new HashFamily instance, 
+	"fromfile" -> generate a hashchain from a fixed file
   </td>  
 </tr>
 <tr>
   <td><code>cpslab.lsh.familyFilePath</code></td>
   <td>(none)</td>
   <td>
-	the path of the file defining the hash family
+	the path of the file defining the hash family</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxShardNumPerTable</code></td>
+  <td>(none)</td>
+  <td>
+	maximum number of shards *per table* allowed in the system
   </td>  
 </tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxShardDatabaseWorkerNum</code></td>
+  <td>(none)</td>
+  <td>
+	maximum number of shard worker allowed in each process
+  </td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.namespace</code></td>
+  <td>(none)</td>
+  <td>
+	sharding strategy of distributed LSH schema; 
+	"independent" -> load balance with table first and then load balance with shardID
+	"flat" -> load balance by making all buckets in all tables in a flat namespace; essentially it's balance with shard first and then on table
+  </td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.maxDatabaseNodeNum</code></td>
+  <td>(none)</td>
+  <td>
+	Maximum number of nodes storing data for the table.
+  </td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.topK</code></td>
+  <td>(none)</td>
+  <td>
+	select topK similar vectors.
+  </td>
+</tr>
+
 </table>

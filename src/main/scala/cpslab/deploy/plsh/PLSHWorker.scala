@@ -17,9 +17,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   
   private val vectorIdToVector = new mutable.HashMap[String, SparseVector]
   private val maxWorkerNumber = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
+  private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
+  private lazy val topK = conf.getInt("cpslab.lsh.topK")
   
   override def receive: Receive = {
-    case SearchRequest(vectorId: String, vector: SparseVector, topK: Int) =>
+    case SearchRequest(vectorId: String, vector: SparseVector) =>
       // PLSH needs to calculate similarity in all tables
       val indexOnAllTable = lshInstance.calculateIndex(vector)
       var similarVectors = List[(String, Double)]()
@@ -35,7 +37,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         val sortedSimilarityResult = similarityResultOpt.map(similarityResult =>
           similarityResult.sortWith { case ((id1, similarity1), (id2, similarity2)) =>
             similarity1 > similarity2
-          }).map(list => if (topK > 0) list.take(topK) else list)
+          }).map(list => if (topK > 0) list.take(topK) else list.filter(_._2 > similarityThreshold))
         sortedSimilarityResult.foreach(sortedSimilarVectorList => 
           similarVectors = similarVectors ++ sortedSimilarVectorList)
         // update the local tables
@@ -45,7 +47,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         }
       }
       if (similarVectors.size > 0) {
-        sender ! SimilarityOutput(vectorId, Some(similarVectors))
+        sender ! SimilarityOutput(vectorId, similarVectors)
       }
   }
 }

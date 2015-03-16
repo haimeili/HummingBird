@@ -1,4 +1,4 @@
-package cpslab.deploy
+package cpslab.deploy.utils
 
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config

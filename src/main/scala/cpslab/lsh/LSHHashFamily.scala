@@ -3,7 +3,7 @@ package cpslab.lsh
 /**
  * the set of the parameters defining a hash function
  */
-trait LSHFunctionParameterSet
+trait LSHFunctionParameterSet extends Serializable
 
 /**
  * the trait defining all hash functions used in a LSH instance

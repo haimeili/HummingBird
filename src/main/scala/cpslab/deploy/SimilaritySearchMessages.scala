@@ -1,22 +1,21 @@
 package cpslab.deploy
 
+import scala.collection.mutable
+
 import akka.contrib.pattern.ShardRegion.ShardId
-import cpslab.lsh.vector.SparseVector
+import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
 
 sealed trait SimilaritySearchMessages extends Serializable
+
+sealed trait ShardAllocation extends SimilaritySearchMessages
 
 // messages for the basic communication between nodes (client-server, server-server)
 /**
  * messages sent from client to server, representing the request for similarity search
  * @param vectorId the unique ID representing the query vector
  * @param vector the vector data
- * @param topK select the most k similar vectors, default to be 0, then we rely on the global 
- *             similarity threshold (cpslab.lsh.similarityThreshold) to select the most similar 
- *             vectors
- *                          
  */
-case class SearchRequest(vectorId: String, vector: SparseVector, topK: Int = 0)
-  extends SimilaritySearchMessages
+case class SearchRequest(vectorId: String, vector: SparseVector) extends SimilaritySearchMessages
 
 /**
  * the result of the similarity search
@@ -27,17 +26,42 @@ case class SearchRequest(vectorId: String, vector: SparseVector, topK: Int = 0)
  *                           further deduplicate to select the final topK
  */
 case class SimilarityOutput(queryVectorID: String, 
-    similarVectorPairs: Option[List[(String, Double)]]) extends SimilaritySearchMessages
+    similarVectorPairs: List[(String, Double)]) extends SimilaritySearchMessages
 
 // messages for the communication between nodes in the cluster sharding schema
 
 /**
  * this message represents the allocation of the shards of the vectors
  * the message can be sent from the shardRegions to the entry actors (EntryResolver) and also can be
- * sent from the actors calculating the allocated shards to the other shardRegions
- * @param shardIDs the IDs of the shards
- * @param vectors the list of the vector which would be allocated to the shards with the IDs in the 
- *                prior shardIDs list
+ * sent from the actors calculating the allocated shards to the local shardRegions
+ *
+ * NOTE: to correctly perform the funcitonality, we need to ensure that all shardids contained in 
+ * this class belongs to the same ShardRegion
+ *
+ * @param shardsMap (TableID -> (ShardID, vectors))
  */
-case class ShardAllocation(shardIDs: List[ShardId], vectors: List[SparseVector])
+case class PerTableShardAllocation(shardsMap: mutable.HashMap[Int, 
+    mutable.HashMap[ShardId, List[SparseVectorWrapper]]]) extends ShardAllocation
 
+
+/**
+ * this message represents the allocation of the shards of the vectors
+ * the message can be sent from the shardRegions to the entry actors (EntryResolver) and also can be
+ * sent from the actors calculating the allocated shards to the local shardRegions
+ *
+ * NOTE: to correctly perform the funcitonality, we need to ensure that all shardids contained in
+ * this class belongs to the same ShardRegion
+ *
+ * @param shardsMap (ShardID -> (TableID, vectors)
+ */
+case class FlatShardAllocation(shardsMap: mutable.HashMap[ShardId, 
+  mutable.HashMap[Int, List[SparseVectorWrapper]]]) extends ShardAllocation
+
+/**
+ * the class representing the request to index sparseVectors in certain table
+ * this request also serves as the query request
+ * NOTE: we need to ensure that, all sparse vectors represented in this class belongs to the same 
+ * entry
+ * @param indexMap shardID(independent)/tableID(flat) -> vectors
+ */
+case class LSHTableIndexRequest(indexMap: mutable.HashMap[Int, List[SparseVectorWrapper]])

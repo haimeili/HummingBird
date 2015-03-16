@@ -113,13 +113,17 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
    * defined in this class
+   * each function generates an integer which is then converted into a byte array and all integers
+   * are concatenated as the index of the element in the table
    * @param vector the vector to be indexed
    * @return the index of the vector
    */
   override def compute(vector: SparseVector): Array[Byte] = {
-    val index = chainedFunctions.foldLeft(Array.fill(0)(0))((existingByteArray, ps2) => {
+    // generate integer typed index
+    val indexInATable = chainedFunctions.foldLeft(Array.fill(0)(0))((existingByteArray, ps2) => {
       val newByteArray = {
         // calculate new Byte Array
+        // assuming normalized vector
         // TODO: optimize the efficiency with bit vector
         var sum = 0.0
         for (idx <- vector.indices) {
@@ -132,8 +136,10 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
       }
       existingByteArray ++ newByteArray
     })
-    index.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).foldLeft(Array.fill(0)(0.toByte))(
-      (existingByteArray, newByteArray) => existingByteArray ++ newByteArray
+    // generate byte array typed index
+    indexInATable.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).
+      foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) => 
+      existingByteArray ++ newByteArray
     )
   }
 }

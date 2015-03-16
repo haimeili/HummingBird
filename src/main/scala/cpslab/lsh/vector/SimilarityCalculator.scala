@@ -5,8 +5,8 @@ import scala.collection.mutable
 private[cpslab] object SimilarityCalculator {
   //assuming the normalized vectors
   def calculateSimilarity(vector1: SparseVectorWrapper, vector2: SparseVectorWrapper): Double = {
-    val (_, sparseVector1) = vector1.sparseVector
-    val (_, sparseVector2) = vector2.sparseVector
+    val sparseVector1 = vector1.sparseVector
+    val sparseVector2 = vector2.sparseVector
     calculateSimilarity(
       new SparseVector(sparseVector1.size, sparseVector1.indices, sparseVector1.values),
       new SparseVector(sparseVector2.size, sparseVector2.indices, sparseVector2.values))
