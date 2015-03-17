@@ -24,6 +24,11 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
          |cpslab.lsh.chainLength = 10
          |cpslab.lsh.familySize = 100
          |cpslab.lsh.topK = 2
+         |akka.remote.netty.tcp.hostname = "127.0.0.1"
+         |akka.remote.netty.tcp.port = 2556
+         |akka.cluster.roles = [compute]
+         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2556"]
+         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
          |cpslab.lsh.plsh.maxWorkerNum = 10
          |cpslab.lsh.tableNum = 10
          |cpslab.lsh.nodeID = 0

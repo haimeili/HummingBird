@@ -25,6 +25,11 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
          |cpslab.lsh.plsh.maxWorkerNum = 10
          |cpslab.lsh.tableNum = 10
          |cpslab.lsh.nodeID = 0
+         |akka.cluster.roles = [compute]
+         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2555"]
+         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
+         |akka.remote.netty.tcp.hostname = "127.0.0.1"
+         |akka.remote.netty.tcp.port = 2555
          |cpslab.lsh.plsh.localActorNum = 10
        """.stripMargin)
     (conf, LSHServer.startPLSHSystem(conf, null, PLSHWorker.props))

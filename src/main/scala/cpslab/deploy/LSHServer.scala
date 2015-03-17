@@ -25,7 +25,7 @@ private[cpslab] object LSHServer {
   private[deploy] def startPLSHSystem(conf: Config, lsh: LSH, 
       newActorProps: (Int, Config, LSH) => Props): ActorSystem = {
     // start actorSystem
-    val system = ActorSystem("LSHSystem")
+    val system = ActorSystem("LSH", conf)
     // start local actors
     val localActorNum = conf.getInt("cpslab.lsh.plsh.localActorNum")
     // local ID
