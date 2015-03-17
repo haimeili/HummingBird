@@ -18,7 +18,7 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
   def this() = this({
     val conf = ConfigFactory.parseString(
       s"""
-         |akka.loglevel = "OFF"
+         |akka.loglevel = "INFO"
          |akka.cluster.roles = [compute]
          |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2553"]
          |cpslab.lsh.name = none
@@ -59,7 +59,7 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
       ShardDatabaseWorker.shardDatabaseWorkerActorName)
     clientHandler ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
     clientHandler ! SearchRequest("vector1", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
-    Thread.sleep(5000)
+    Thread.sleep(2000)
     val checkResult = {
       if (client.underlyingActor.state.contains("vector1")) {
         client.underlyingActor.state("vector1") == List(("vector0", 2.0))
