@@ -22,8 +22,9 @@ import java.util
 
 import scala.annotation.varargs
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
-import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
+import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV, BitVector}
 
 // added this file to eliminated the dependency to spark (causing sbt
 // assembly extremely slow)
@@ -208,7 +209,21 @@ class SparseVector(
     val values: Array[Double]) extends Vector {
 
   require(indices.length == values.length)
-
+  
+  val indexToMap = new mutable.HashMap[Int, Double]()
+  
+  for (i <- 0 until indices.size) {
+    indexToMap(indices(i)) = values(i)
+  }
+  
+  val bitVector: util.BitSet = {
+    val bv = new util.BitSet()
+    for (i <- indices) {
+      bv.set(i)
+    }
+    bv
+  }
+  
   override def toString: String =
     "(%s,%s,%s)".format(size, indices.mkString("[", ",", "]"), values.mkString("[", ",", "]"))
 
@@ -228,4 +243,10 @@ class SparseVector(
   }
   
   private[cpslab] override def toBreeze: BV[Double] = new BSV[Double](indices, values, size)
+
+  def test: Unit = {
+    val bsv = new BSV[Double](indices, values, size)
+    val bsv1 = new BSV[Double](indices, values, size)
+    bsv.dot(bsv1)
+  }
 }

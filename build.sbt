@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-contrib_2.10" % "2.3.8",
   "com.typesafe" % "config" % "1.2.1",
   "org.scalatest" % "scalatest_2.10" % "2.2.4",
-  "org.scalanlp" % "breeze-math_2.10" % "0.4",
+  "org.scalanlp" %% "breeze" % "0.11.1",
   "com.typesafe.akka" % "akka-testkit_2.10" % "2.3.8"
 )
 
