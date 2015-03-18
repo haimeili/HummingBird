@@ -1,5 +1,7 @@
 package cpslab.lsh.vector
 
+import java.util
+
 import scala.collection.mutable
 
 private[cpslab] object SimilarityCalculator {
@@ -31,6 +33,24 @@ private[cpslab] object SimilarityCalculator {
         } else {
           0.0
         }
+      }
+    }
+    similarity
+  }
+  
+  def fastCalculateSimilarity(vector1: SparseVector, vector2: SparseVector): Double = {
+    require(vector1.size == vector2.size, s"vector1 size: ${vector1.size}, " +
+      s"vector2 size: ${vector2.size}")
+    var similarity = 0.0
+    val validBits = vector1.bitVector.clone().asInstanceOf[util.BitSet]
+    validBits.and(vector2.bitVector)
+    val validIndices = if (vector1.indices.size > vector2.indices.size) vector2.indices else vector1.indices
+    for (i <- validIndices) {
+      val nextBitIndex = validBits.nextSetBit(i)
+      if (nextBitIndex != -1) {
+        similarity += vector1.indexToMap(i) * vector2.indexToMap(i)
+      } else {
+        return similarity
       }
     }
     similarity
