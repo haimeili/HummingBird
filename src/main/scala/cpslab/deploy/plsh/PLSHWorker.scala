@@ -31,7 +31,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         // query the tables
         val similarityResultOpt = inMemoryTable(i).get(keyInTable).map(
           sparseVectors => sparseVectors.map {
-            existingVectorId => (existingVectorId, SimilarityCalculator.calculateSimilarity(
+            existingVectorId => (existingVectorId, SimilarityCalculator.fastCalculateSimilarity(
               vectorIdToVector(existingVectorId), vector))
           })
         val sortedSimilarityResult = similarityResultOpt.map(similarityResult =>

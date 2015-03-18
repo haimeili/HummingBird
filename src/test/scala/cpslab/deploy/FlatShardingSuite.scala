@@ -1,8 +1,8 @@
 package cpslab.deploy
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import akka.contrib.pattern.ClusterSharding
-import akka.testkit.{TestActorRef, ImplicitSender, TestKit}
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import cpslab.deploy.utils.{Client, DummyLSH}
 import cpslab.lsh.vector.SparseVector

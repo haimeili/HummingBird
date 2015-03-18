@@ -36,7 +36,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
         val selectedCandidates = allVectorCandidates.map(allcandidates =>
           allcandidates.foldLeft(new ListBuffer[(String, Double)])
             ((selectedCandidates, candidate) => selectedCandidates +=
-              candidate._1 -> SimilarityCalculator.calculateSimilarity(vector.sparseVector,
+              candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector.sparseVector,
                 candidate._2))
         )
         //send back to client
@@ -65,7 +65,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
         val selectedCandidates = allVectorCandidates.map(allcandidates =>
           allcandidates.foldLeft(new ListBuffer[(String, Double)])
             ((selectedCandidates, candidate) => selectedCandidates +=
-              candidate._1 -> SimilarityCalculator.calculateSimilarity(vector.sparseVector,
+              candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector.sparseVector,
                 candidate._2))
         )
         //send back to client
