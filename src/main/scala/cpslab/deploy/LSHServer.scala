@@ -11,7 +11,6 @@ import akka.routing.{BroadcastGroup, RoundRobinGroup}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.plsh.PLSHWorker
 import cpslab.lsh.LSH
-import cpslab.lsh.vector.SparseVector
 
 private[cpslab] object LSHServer {
 
