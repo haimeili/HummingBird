@@ -12,10 +12,10 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
   // data structures for different sharding schema
   private lazy val elementsInIndependentSpace =
-    new mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]]
+    new mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]
   private lazy val elementsInFlatSpace =
     new mutable.HashMap[Int,
-      mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]]]
+      mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]]
   
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
@@ -28,12 +28,12 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
   }
 
   private def generateSimilarityOutput(
-      vectorID: String,
+      vectorID: Int,
       vector: SparseVector,
-      candidateList: Option[ListBuffer[(String, SparseVector)]]): Option[SimilarityOutput] = {
+      candidateList: Option[ListBuffer[(Int, SparseVector)]]): Option[SimilarityOutput] = {
     //calculate similarity
     val selectedCandidates = candidateList.map(allcandidates =>
-      allcandidates.foldLeft(new ListBuffer[(String, Double)])
+      allcandidates.foldLeft(new ListBuffer[(Int, Double)])
         ((selectedCandidates, candidate) => selectedCandidates +=
           candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector,
             candidate._2))
@@ -57,7 +57,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
           elementsInIndependentSpace.get(bucketIndex)
         case "flat" =>
           elementsInFlatSpace.getOrElseUpdate(tableId,
-            new mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]])
+            new mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]])
           elementsInFlatSpace(tableId).get(bucketIndex)
       }
       val simOutputOpt = generateSimilarityOutput(
@@ -74,15 +74,15 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
   private def indexVector(
       tableId: Int,
       bucketIndex: ByteArrayWrapper,
-      vectorID: String,
+      vectorID: Int,
       vector: SparseVector): Unit = {
     shardingNamespace match {
       case "independent" =>
         elementsInIndependentSpace.getOrElseUpdate(bucketIndex,
-          new ListBuffer[(String, SparseVector)]) += (vectorID -> vector)
+          new ListBuffer[(Int, SparseVector)]) += (vectorID -> vector)
       case "flat" =>
         elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex,
-          new ListBuffer[(String, SparseVector)]) += (vectorID -> vector)
+          new ListBuffer[(Int, SparseVector)]) += (vectorID -> vector)
     }
   }
   

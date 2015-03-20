@@ -113,7 +113,7 @@ private[cpslab] object LSHServer {
     
     val regionActor = ClusterSharding(system).shardRegion(
       ShardDatabaseWorker.shardDatabaseWorkerActorName)
-    regionActor ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
+    //regionActor ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
   }
 }
 

@@ -50,18 +50,18 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))
-    indexMap += 0 -> List(SparseVectorWrapper("0", byteArray, 
+    indexMap += 0 -> List(SparseVectorWrapper(0, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 1.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     indexMap.remove(0)
-    indexMap += 0 -> List(SparseVectorWrapper("1", byteArray,
+    indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
     databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput("1", List(("0", 3.0))))
-    indexMap += 0 -> List(SparseVectorWrapper("2", byteArray,
+    expectMsg(SimilarityOutput(1, List((0, 3.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(2, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 3.0))))
     databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput("2", List(("1", 7.0))))
+    expectMsg(SimilarityOutput(2, List((1, 7.0))))
   }
 
   test ("(flat) ShardDatabaseStorage calculate the similarity, return results and " +
@@ -75,17 +75,17 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))
-    indexMap += 0 -> List(SparseVectorWrapper("0", byteArray,
+    indexMap += 0 -> List(SparseVectorWrapper(0, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 1.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     indexMap.remove(0)
-    indexMap += 0 -> List(SparseVectorWrapper("1", byteArray,
+    indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
     databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput("1", List(("0", 3.0))))
-    indexMap += 0 -> List(SparseVectorWrapper("2", byteArray,
+    expectMsg(SimilarityOutput(1, List((0, 3.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(2, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 3.0))))
     databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput("2", List(("1", 7.0))))
+    expectMsg(SimilarityOutput(2, List((1, 7.0))))
   }
 }

@@ -15,7 +15,7 @@ sealed trait ShardAllocation extends SimilaritySearchMessages
  * @param vectorId the unique ID representing the query vector
  * @param vector the vector data
  */
-case class SearchRequest(vectorId: String, vector: SparseVector) extends SimilaritySearchMessages
+case class SearchRequest(vectorId: Int, vector: SparseVector) extends SimilaritySearchMessages
 
 /**
  * the result of the similarity search
@@ -25,8 +25,8 @@ case class SearchRequest(vectorId: String, vector: SparseVector) extends Similar
  *                           and reduce the network traffic amount, we rely on the client-end 
  *                           further deduplicate to select the final topK
  */
-case class SimilarityOutput(queryVectorID: String, 
-    similarVectorPairs: List[(String, Double)]) extends SimilaritySearchMessages
+case class SimilarityOutput(queryVectorID: Int, similarVectorPairs: List[(Int, Double)])
+  extends SimilaritySearchMessages
 
 // messages for the communication between nodes in the cluster sharding schema
 
