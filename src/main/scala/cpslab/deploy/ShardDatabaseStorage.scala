@@ -5,15 +5,17 @@ import scala.collection.mutable.ListBuffer
 
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config
-import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
+import cpslab.lsh.vector.{SparseVectorWrapper, SimilarityCalculator, SparseVector}
 import cpslab.storage.ByteArrayWrapper
 
 private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
-  
-  private val elementsInIndependentSpace = 
+
+  // data structures for different sharding schema
+  private lazy val elementsInIndependentSpace =
     new mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]]
-  private val elementsInFlatSpace =
-    new mutable.HashMap[Int, mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]]]
+  private lazy val elementsInFlatSpace =
+    new mutable.HashMap[Int,
+      mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]]]
   
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
@@ -25,63 +27,63 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
     context.actorSelection(clientActorAddress)
   }
 
-  private def handleIndexRequest(indexRequest: LSHTableIndexRequest) = shardingNamespace match {
-    case "independent" =>
-      for ((_, vectors) <- indexRequest.indexMap; vector <- vectors) {
-        val bucketIndex = ByteArrayWrapper(
-          vector.bucketIndex.filter(indexInTable => indexInTable != null)(0))
-        //get all existing vectors
-        val allVectorCandidates = elementsInIndependentSpace.get(bucketIndex)
-        //calculate similarity
-        val selectedCandidates = allVectorCandidates.map(allcandidates =>
-          allcandidates.foldLeft(new ListBuffer[(String, Double)])
-            ((selectedCandidates, candidate) => selectedCandidates +=
-              candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector.sparseVector,
-                candidate._2))
-        )
-        //send back to client
-        selectedCandidates.foreach(candidatesList => {
-          if (topK > 0) {
-            clientActor ! SimilarityOutput(vector.vectorID,
-              selectedCandidates.get.sortWith((a, b) => a._2 > b._2).take(topK).toList)
-          } else {
-            clientActor ! SimilarityOutput(vector.vectorID,
-              selectedCandidates.get.filter(_._2 > similarityThreshold).toList)
-          }
-        })
-        // save to elements
-        elementsInIndependentSpace.getOrElseUpdate(bucketIndex, 
-          new ListBuffer[(String, SparseVector)]) += (vector.vectorID -> vector.sparseVector)
+  private def generateSimilarityOutput(
+      vectorID: String,
+      vector: SparseVector,
+      candidateList: Option[ListBuffer[(String, SparseVector)]]): Option[SimilarityOutput] = {
+    //calculate similarity
+    val selectedCandidates = candidateList.map(allcandidates =>
+      allcandidates.foldLeft(new ListBuffer[(String, Double)])
+        ((selectedCandidates, candidate) => selectedCandidates +=
+          candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector,
+            candidate._2))
+    )
+    selectedCandidates.map(candidates =>
+      if (topK > 0) {
+        SimilarityOutput(vectorID,
+          candidates.sortWith((a, b) => a._2 > b._2).take(topK).toList)
+      } else {
+        SimilarityOutput(vectorID, candidates.filter(_._2 > similarityThreshold).toList)
       }
-    case "flat" =>
-      for ((tableId, vectors) <- indexRequest.indexMap; vector <- vectors) {
-        val bucketIndex = ByteArrayWrapper(
-          vector.bucketIndex.filter(indexInTable => indexInTable != null)(0))
-        // get all existing vectors
-        elementsInFlatSpace.getOrElseUpdate(tableId, 
-          new mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]])
-        val allVectorCandidates = elementsInFlatSpace(tableId).get(bucketIndex)
-        // calculate similarity
-        val selectedCandidates = allVectorCandidates.map(allcandidates =>
-          allcandidates.foldLeft(new ListBuffer[(String, Double)])
-            ((selectedCandidates, candidate) => selectedCandidates +=
-              candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector.sparseVector,
-                candidate._2))
-        )
-        //send back to client
-        selectedCandidates.foreach(candidatesList => {
-          if (topK > 0) {
-            clientActor ! SimilarityOutput(vector.vectorID,
-              selectedCandidates.get.sortWith((a, b) => a._2 > b._2).take(topK).toList)
-          } else {
-            clientActor ! SimilarityOutput(vector.vectorID,
-              selectedCandidates.get.filter(_._2 > similarityThreshold).toList)
-          }
-        })
-        // save to elements
-        elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex, 
-          new ListBuffer[(String, SparseVector)]) += (vector.vectorID -> vector.sparseVector)
+    )
+  }
+
+  private def handleIndexRequest(indexRequest: LSHTableIndexRequest): Unit = {
+    for ((tableId, vectors) <- indexRequest.indexMap; vector <- vectors) {
+      val bucketIndex = ByteArrayWrapper(
+        vector.bucketIndex.filter(indexInTable => indexInTable != null)(0))
+      val allVectorCandidates = shardingNamespace match {
+        case "independent" =>
+          elementsInIndependentSpace.get(bucketIndex)
+        case "flat" =>
+          elementsInFlatSpace.getOrElseUpdate(tableId,
+            new mutable.HashMap[ByteArrayWrapper, ListBuffer[(String, SparseVector)]])
+          elementsInFlatSpace(tableId).get(bucketIndex)
       }
+      val simOutputOpt = generateSimilarityOutput(
+        vectorID = vector.vectorID,
+        vector = vector.sparseVector,
+        candidateList = allVectorCandidates)
+      simOutputOpt.foreach(simOutput => clientActor ! simOutput)
+      // index the vector
+      indexVector(tableId, bucketIndex, vector.vectorID, vector.sparseVector)
+    }
+
+  }
+
+  private def indexVector(
+      tableId: Int,
+      bucketIndex: ByteArrayWrapper,
+      vectorID: String,
+      vector: SparseVector): Unit = {
+    shardingNamespace match {
+      case "independent" =>
+        elementsInIndependentSpace.getOrElseUpdate(bucketIndex,
+          new ListBuffer[(String, SparseVector)]) += (vectorID -> vector)
+      case "flat" =>
+        elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex,
+          new ListBuffer[(String, SparseVector)]) += (vectorID -> vector)
+    }
   }
   
   override def receive: Receive = {
