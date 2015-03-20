@@ -109,16 +109,21 @@ private[cpslab] class LongBitSet {
 
   def allSetBits(): Array[Long] = {
     val allSetBitsArray = new Array[Long](mSets.values.map(_.cardinality()).sum)
+    var currentIdx = 0
     for ((setIndex, bitSet) <- mSets) {
       val base: Long = setIndex << VALUE_BITS
-      var nextSetIndex = 0
-      var currentIdx = 0
-      while (nextSetIndex >= 0) {
-        nextSetIndex = bitSet.nextSetBit(0)
-        allSetBitsArray(currentIdx) = base + nextSetIndex
-        currentIdx += 1
+      var nextCheckPosition = 0
+      while (nextCheckPosition >= 0) {
+        val newSetIndex = bitSet.nextSetBit(nextCheckPosition)
+        if (newSetIndex >= 0) {
+          nextCheckPosition = newSetIndex + 1
+          val s = base + newSetIndex
+          allSetBitsArray(currentIdx) = s
+          currentIdx += 1
+        } else {
+          nextCheckPosition = newSetIndex
+        }
       }
-      return allSetBitsArray
     }
     allSetBitsArray
   }

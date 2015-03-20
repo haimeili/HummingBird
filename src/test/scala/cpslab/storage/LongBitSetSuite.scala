@@ -40,4 +40,18 @@ class LongBitSetSuite extends FunSuite {
     assert(l3.mSets(1).get(1) === true)
     assert(l3.mSets(2).get(0) === true)
   }
+
+  test("output all set bits correctly") {
+    val l = new LongBitSet
+    l.set(1)
+    l.set(1024)
+    l.set(1025)
+    l.set(2048)
+    val a = l.allSetBits()
+    assert(a.length === 4)
+    assert(a(0) === 2048)
+    assert(a(1) === 1024)
+    assert(a(2) === 1025)
+    assert(a(3) === 1)
+  }
 }
