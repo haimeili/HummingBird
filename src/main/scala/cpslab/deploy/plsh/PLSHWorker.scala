@@ -5,10 +5,10 @@ import scala.collection.mutable.ListBuffer
 
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config
-import cpslab.deploy.{SearchRequest, SimilarityOutput}
+import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
-import cpslab.storage.ByteArrayWrapper
+import cpslab.storage.{LongBitSet, ByteArrayWrapper}
 
 private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
   
@@ -47,7 +47,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         }
       }
       if (similarVectors.size > 0) {
-        sender ! SimilarityOutput(vectorId, similarVectors)
+        sender ! SimilarityIntermediateOutput(vectorId, new LongBitSet, similarVectors)
       }
   }
 }

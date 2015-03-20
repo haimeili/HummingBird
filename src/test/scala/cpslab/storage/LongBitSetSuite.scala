@@ -54,4 +54,20 @@ class LongBitSetSuite extends FunSuite {
     assert(a(2) === 1025)
     assert(a(3) === 1)
   }
+
+  test("flip test") {
+    val l = new LongBitSet
+    l.set(1)
+    l.set(1024)
+    l.set(1025)
+    l.set(2048)
+    val x = l.flip()
+    x.mSets(0).and(l.mSets(0))
+    x.mSets(1).and(l.mSets(1))
+    x.mSets(2).and(l.mSets(2))
+    assert(x.mSets.size === 3)
+    assert(x.mSets(0).length() === 0)
+    assert(x.mSets(1).length() === 0)
+    assert(x.mSets(2).length() === 0)
+  }
 }

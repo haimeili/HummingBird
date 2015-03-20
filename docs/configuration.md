@@ -165,5 +165,11 @@
 	select topK similar vectors.
   </td>
 </tr>
-
+<tr>
+  <td><code>cpslab.lsh.writerActorNum</code></td>
+  <td>(none)</td>
+  <td>
+  	The number of actors per Actor System receiving the intermediate results of similarity detection and send to clients.
+  </td>
+</tr>
 </table>

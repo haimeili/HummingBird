@@ -51,8 +51,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
       assert(similarityOutput.queryVectorID === 2)
       assert(similarityOutput.similarVectorPairs.size === 1)
       for ((similarVector, similarity) <- similarityOutput.similarVectorPairs) {
@@ -66,8 +66,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
       assert(similarityOutput.queryVectorID === 4)
       assert(similarityOutput.similarVectorPairs.size === 2)
     }
@@ -77,8 +77,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
       assert(similarityOutput.queryVectorID === 3)
       assert(similarityOutput.similarVectorPairs.size === 2)
       val (similarVector, similarity) = similarityOutput.similarVectorPairs.head

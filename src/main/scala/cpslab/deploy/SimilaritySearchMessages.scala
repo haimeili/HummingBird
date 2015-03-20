@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 import akka.contrib.pattern.ShardRegion.ShardId
 import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
+import cpslab.storage.LongBitSet
 
 sealed trait SimilaritySearchMessages extends Serializable
 
@@ -18,15 +19,26 @@ sealed trait ShardAllocation extends SimilaritySearchMessages
 case class SearchRequest(vectorId: Int, vector: SparseVector) extends SimilaritySearchMessages
 
 /**
- * the result of the similarity search
- * @param queryVectorID the unique ID representing the query vector 
+ * the intermediate result of the similarity search
+ * @param queryVectorID the unique ID representing the query vector
+ * @param bitmap the bitmap representing the similarVectorPairs
  * @param similarVectorPairs the ID of the similar vectors as well as the corresponding similarity 
  *                           value; NOTE: though in server end, we can use bitmap to de-duplicate 
  *                           and reduce the network traffic amount, we rely on the client-end 
  *                           further deduplicate to select the final topK
  */
-case class SimilarityOutput(queryVectorID: Int, similarVectorPairs: List[(Int, Double)])
-  extends SimilaritySearchMessages
+case class SimilarityIntermediateOutput(
+    queryVectorID: Int,
+    bitmap: LongBitSet,
+    similarVectorPairs: List[(Int, Double)]) extends SimilaritySearchMessages
+
+/**
+ * the result of the similarity search
+ * @param queryID the unique ID representing the query vector
+ * @param bitmap the bitmap representing similarVectors             
+ * @param similarVectors the ID of the similar vectors
+ */
+case class SimilarityOutput(queryID: Int, bitmap: LongBitSet, similarVectors: List[(Int, Double)])
 
 // messages for the communication between nodes in the cluster sharding schema
 

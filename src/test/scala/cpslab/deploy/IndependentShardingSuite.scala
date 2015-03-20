@@ -19,6 +19,7 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
     val conf = ConfigFactory.parseString(
       s"""
          |akka.loglevel = "INFO"
+         |cpslab.lsh.writerActorNum=10
          |akka.cluster.roles = [compute]
          |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2553"]
          |cpslab.lsh.name = none
@@ -62,9 +63,9 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
     Thread.sleep(2000)
     val checkResult = {
       if (client.underlyingActor.state.contains(1)) {
-        client.underlyingActor.state(1) == List((0, 2.0))
+        client.underlyingActor.state(1).toList == List[Long](0L)
       } else if (client.underlyingActor.state.contains(0)) {
-        client.underlyingActor.state(0) == List((1, 2.0))
+        client.underlyingActor.state(0).toList == List[Long](1L)
       } else {
         false
       }

@@ -2,6 +2,7 @@ package cpslab.storage
 
 import java.util
 
+import scala.StringBuilder
 import scala.collection.mutable
 
 import cpslab.storage.LongBitSet._
@@ -64,7 +65,7 @@ private[cpslab] class LongBitSet {
    * @param key the index of the bitset
    * @param bitset the bitset object
    */
-  def saveBits(key: Long, bitset: util.BitSet): Unit = {
+  private[storage] def saveBits(key: Long, bitset: util.BitSet): Unit = {
     mSets += key -> bitset
   }
 
@@ -91,6 +92,16 @@ private[cpslab] class LongBitSet {
     ret
   }
 
+  def flip(): LongBitSet = {
+    val lbs = new LongBitSet
+    for ((setIdx, bitSet) <- mSets) {
+      val newBitSet = bitSet.clone().asInstanceOf[util.BitSet]
+      newBitSet.flip(0, 1 << VALUE_BITS)
+      lbs.saveBits(setIdx, newBitSet)
+    }
+    lbs
+  }
+
   def & (other: LongBitSet): LongBitSet = {
     val ret = new LongBitSet
     val shorterSet = if (other.mSets.size > this.mSets.size) this.mSets else other.mSets
@@ -108,7 +119,7 @@ private[cpslab] class LongBitSet {
   }
 
   def allSetBits(): Array[Long] = {
-    val allSetBitsArray = new Array[Long](mSets.values.map(_.cardinality()).sum)
+    val allSetBitsArray = Array.fill[Long](mSets.values.map(_.cardinality()).sum)(-1)
     var currentIdx = 0
     for ((setIndex, bitSet) <- mSets) {
       val base: Long = setIndex << VALUE_BITS
@@ -126,6 +137,15 @@ private[cpslab] class LongBitSet {
       }
     }
     allSetBitsArray
+  }
+
+  override def toString: String = {
+    val bits = allSetBits()
+    val sb = new StringBuilder()
+    for (b <- bits) {
+      sb.append(b + " ")
+    }
+    "{" + sb.toString() + "}"
   }
 }
 

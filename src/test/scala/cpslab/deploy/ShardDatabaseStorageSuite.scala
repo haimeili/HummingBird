@@ -7,6 +7,7 @@ import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.plsh.PLSHWorker
 import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
+import cpslab.storage.ByteArrayWrapper
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
 
 class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKit(setup._2) 
@@ -19,6 +20,7 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
          |cpslab.lsh.similarityThreshold = 0.0
          |akka.remote.netty.tcp.port = 0
          |cpslab.lsh.vectorDim = 3
+         |cpslab.lsh.writerActorNum=10
          |cpslab.lsh.topK = 1
          |cpslab.lsh.chainLength = 10
          |cpslab.lsh.familySize = 100
@@ -39,8 +41,7 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
     TestKit.shutdownActorSystem(system)
   }
   
-  test ("(independent) ShardDatabaseStorage calculate the similarity, return results and " +
-    "index new vector correctly") {
+  test ("(independent) ShardDatabaseStorage calculate the similarity, index new vector correctly") {
     val conf = setup._1.withFallback(
       ConfigFactory.parseString(
         s"""
@@ -56,16 +57,14 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
     indexMap.remove(0)
     indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
-    databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput(1, List((0, 3.0))))
-    indexMap += 0 -> List(SparseVectorWrapper(2, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 3.0))))
-    databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput(2, List((1, 7.0))))
+    databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
+    assert(databaseNode.underlyingActor.elementsInIndependentSpace.get(
+      ByteArrayWrapper(byteArray(0))).get.toList === List((0,
+      new SparseVector(3, Array(0, 1), Array(1.0, 1.0))), (1,
+      new SparseVector(3, Array(0, 1), Array(1.0, 2.0)))))
   }
 
-  test ("(flat) ShardDatabaseStorage calculate the similarity, return results and " +
-    "index new vector correctly") {
+  test ("(flat) ShardDatabaseStorage calculate the similarity, index new vector correctly") {
     val conf = setup._1.withFallback(
       ConfigFactory.parseString(
         s"""
@@ -81,11 +80,10 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
     indexMap.remove(0)
     indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
       new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
-    databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput(1, List((0, 3.0))))
-    indexMap += 0 -> List(SparseVectorWrapper(2, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 3.0))))
-    databaseNode ! LSHTableIndexRequest(indexMap)
-    expectMsg(SimilarityOutput(2, List((1, 7.0))))
+    databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
+    assert(databaseNode.underlyingActor.elementsInFlatSpace.get(0).get.
+      get(ByteArrayWrapper(byteArray(0))).get.toList ===
+      List((0, new SparseVector(3, Array(0, 1), Array(1.0, 1.0))),
+        (1, new SparseVector(3, Array(0, 1), Array(1.0, 2.0)))))
   }
 }

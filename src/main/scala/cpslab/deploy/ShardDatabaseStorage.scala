@@ -6,46 +6,47 @@ import scala.collection.mutable.ListBuffer
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
-import cpslab.storage.ByteArrayWrapper
+import cpslab.storage.{LongBitSet, ByteArrayWrapper}
 
 private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
   // data structures for different sharding schema
-  private lazy val elementsInIndependentSpace =
+  private[deploy] lazy val elementsInIndependentSpace =
     new mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]
-  private lazy val elementsInFlatSpace =
+  private[deploy] lazy val elementsInFlatSpace =
     new mutable.HashMap[Int,
       mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]]
   
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
+
+  private val writeActorsNum = conf.getInt("cpslab.lsh.writerActorNum")
   
-  private val clientActorAddress = conf.getString("cpslab.lsh.deploy.client")
-
-  private val clientActor = {
-    context.actorSelection(clientActorAddress)
-  }
-
   private def generateSimilarityOutput(
       vectorID: Int,
       vector: SparseVector,
-      candidateList: Option[ListBuffer[(Int, SparseVector)]]): Option[SimilarityOutput] = {
-    //calculate similarity
-    val selectedCandidates = candidateList.map(allcandidates =>
-      allcandidates.foldLeft(new ListBuffer[(Int, Double)])
-        ((selectedCandidates, candidate) => selectedCandidates +=
-          candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector,
-            candidate._2))
-    )
-    selectedCandidates.map(candidates =>
-      if (topK > 0) {
-        SimilarityOutput(vectorID,
-          candidates.sortWith((a, b) => a._2 > b._2).take(topK).toList)
-      } else {
-        SimilarityOutput(vectorID, candidates.filter(_._2 > similarityThreshold).toList)
+      candidateList: Option[ListBuffer[(Int, SparseVector)]]):
+      Option[SimilarityIntermediateOutput] = {
+    if (!candidateList.isDefined) {
+      Some(SimilarityIntermediateOutput(vectorID, new LongBitSet, List[(Int, Double)]()))
+    } else {
+      //calculate similarity
+      val selectedCandidates = candidateList.map(allCandidates =>
+        allCandidates.foldLeft(new ListBuffer[(Int, Double)])
+          ((selectedCandidates, candidate) => selectedCandidates +=
+            candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector,
+              candidate._2))
+      )
+      selectedCandidates.map(candidates => {
+        val result = candidates.filter(_._2 > similarityThreshold).sortWith((a, b) => a._2 > b._2).
+          take(topK).toList
+        val bitmap = new LongBitSet
+        result.foreach(pair => bitmap.set(pair._1))
+        SimilarityIntermediateOutput(vectorID, bitmap, result)
       }
-    )
+      )
+    }
   }
 
   private def handleIndexRequest(indexRequest: LSHTableIndexRequest): Unit = {
@@ -64,14 +65,19 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
         vectorID = vector.vectorID,
         vector = vector.sparseVector,
         candidateList = allVectorCandidates)
-      simOutputOpt.foreach(simOutput => clientActor ! simOutput)
-      // index the vector
-      indexVector(tableId, bucketIndex, vector.vectorID, vector.sparseVector)
-    }
 
+      simOutputOpt.foreach(simOutput => {
+          val outputActor = context.actorSelection(
+            s"/user/writerActor-${simOutput.queryVectorID % writeActorsNum}")
+          outputActor ! simOutput
+        }
+      )
+      // index the vector
+      writeActorToTable(tableId, bucketIndex, vector.vectorID, vector.sparseVector)
+    }
   }
 
-  private def indexVector(
+  private def writeActorToTable(
       tableId: Int,
       bucketIndex: ByteArrayWrapper,
       vectorID: Int,

@@ -24,7 +24,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   
   private lazy val maxDatabaseNodeNum = conf.getInt("cpslab.lsh.sharding.maxDatabaseNodeNum")
   private lazy val shardDatabase = new Array[ActorRef](maxDatabaseNodeNum)
-  
+
   override def preStart(): Unit = {
     def initKVEngine: KeyValueEngine = {
       //start kvEngine
