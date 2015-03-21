@@ -23,6 +23,7 @@ class FlatShardingSuite(var actorSystem: ActorSystem)
          |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2553"]
          |cpslab.lsh.name = none
          |cpslab.lsh.familySize = 100
+         |cpslab.lsh.writerActorNum=10
          |cpslab.lsh.topK = 10
          |cpslab.lsh.vectorDim = 3
          |cpslab.lsh.deploy.client = "/user/client"
@@ -57,14 +58,15 @@ class FlatShardingSuite(var actorSystem: ActorSystem)
     val client = TestActorRef[Client](Props(new Client), name = "client")
     val clientHandler = ClusterSharding(actorSystem).shardRegion(
       ShardDatabaseWorker.shardDatabaseWorkerActorName)
-    clientHandler ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
-    clientHandler ! SearchRequest("vector1", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
+    clientHandler ! SearchRequest(0, new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
+    Thread.sleep(2000)
+    clientHandler ! SearchRequest(1, new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
     Thread.sleep(2000)
     val checkResult = {
-      if (client.underlyingActor.state.contains("vector1")) {
-        client.underlyingActor.state("vector1") == List(("vector0", 2.0))
-      } else if (client.underlyingActor.state.contains("vector0")) {
-        client.underlyingActor.state("vector0") == List(("vector1", 2.0))
+      if (client.underlyingActor.state.contains(1)) {
+        client.underlyingActor.state(1).toList == List[Long](0L)
+      } else if (client.underlyingActor.state.contains(0)) {
+        client.underlyingActor.state(0).toList == List[Long](1L)
       } else {
         false
       }

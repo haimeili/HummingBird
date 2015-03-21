@@ -44,7 +44,13 @@ private[cpslab] object SimilarityCalculator {
     var similarity = 0.0
     val validBits = vector1.bitVector.clone().asInstanceOf[util.BitSet]
     validBits.and(vector2.bitVector)
-    val validIndices = if (vector1.indices.size > vector2.indices.size) vector2.indices else vector1.indices
+    val validIndices = {
+      if (vector1.indices.length > vector2.indices.length) {
+        vector2.indices
+      } else {
+        vector1.indices
+      }
+    }
     for (i <- validIndices) {
       val nextBitIndex = validBits.nextSetBit(i)
       if (nextBitIndex != -1) {

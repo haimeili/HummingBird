@@ -78,6 +78,11 @@ private[cpslab] object ShardingUtils {
       idExtractor = entryResolver,
       shardResolver = shardResolver
     )
+    // start the writerActors
+    val writeActorsNum = conf.getInt("cpslab.lsh.writerActorNum")
+    for (i <- 0 until writeActorsNum) {
+      localShardingSystem.actorOf(Props(new SimilarityOutputWriter(conf)), s"writerActor-$i")
+    }
     Thread.sleep(10000)
     (conf, localShardingSystem)
   }

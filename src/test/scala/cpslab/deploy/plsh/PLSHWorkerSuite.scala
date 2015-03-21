@@ -43,46 +43,46 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
   
   test("PLSH saves vector and calculates (topK) similarity correctly") {
     val plshWorker = actorSystem.actorSelection("/user/clientRequestHandler")
-    plshWorker ! SearchRequest("vector1", 
+    plshWorker ! SearchRequest(1,
       Vectors.sparse(1, Array.fill[Int](1)(0), Array.fill[Double](1)(1.0)).asInstanceOf[SparseVector])
     var receivedMessages = receiveN(0)
-    plshWorker ! SearchRequest("vector2",
+    plshWorker ! SearchRequest(2,
       Vectors.sparse(1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.5)).asInstanceOf[SparseVector])
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
-      assert(similarityOutput.queryVectorID === "vector2")
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(similarityOutput.queryVectorID === 2)
       assert(similarityOutput.similarVectorPairs.size === 1)
       for ((similarVector, similarity) <- similarityOutput.similarVectorPairs) {
-        assert(similarVector === "vector1")
+        assert(similarVector === 1)
         assert(similarity === 0.5)
       }
     }
     //output multiple vectors
-    plshWorker ! SearchRequest("vector4",
+    plshWorker ! SearchRequest(4,
       Vectors.sparse(1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.3)).asInstanceOf[SparseVector])
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
-      assert(similarityOutput.queryVectorID === "vector4")
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(similarityOutput.queryVectorID === 4)
       assert(similarityOutput.similarVectorPairs.size === 2)
     }
     // test topK
-    plshWorker ! SearchRequest("vector3",
+    plshWorker ! SearchRequest(3,
       Vectors.sparse(1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.8)).asInstanceOf[SparseVector])
     receivedMessages = receiveN(10)
     for (i <- 0 until 10) {
       val receivedMessage = receivedMessages(i)
-      assert(receivedMessage.isInstanceOf[SimilarityOutput] === true)
-      val similarityOutput = receivedMessage.asInstanceOf[SimilarityOutput]
-      assert(similarityOutput.queryVectorID === "vector3")
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
+      val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(similarityOutput.queryVectorID === 3)
       assert(similarityOutput.similarVectorPairs.size === 2)
-      val (similarVector, similarity) = similarityOutput.similarVectorPairs(0)
-      assert(similarVector === "vector1")
+      val (similarVector, similarity) = similarityOutput.similarVectorPairs.head
+      assert(similarVector === 1)
       assert(similarity === 0.8)
     }
   }
