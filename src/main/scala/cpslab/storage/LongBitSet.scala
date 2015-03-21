@@ -2,7 +2,6 @@ package cpslab.storage
 
 import java.util
 
-import scala.StringBuilder
 import scala.collection.mutable
 
 import cpslab.storage.LongBitSet._

@@ -8,7 +8,7 @@ import com.typesafe.config.Config
 import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
-import cpslab.storage.{LongBitSet, ByteArrayWrapper}
+import cpslab.storage.{ByteArrayWrapper, LongBitSet}
 
 private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
   

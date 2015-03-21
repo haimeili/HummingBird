@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
-import cpslab.storage.{LongBitSet, ByteArrayWrapper}
+import cpslab.storage.{ByteArrayWrapper, LongBitSet}
 
 private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
