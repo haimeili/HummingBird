@@ -52,7 +52,7 @@ case class SimilarityOutput(queryID: Int, bitmap: LongBitSet, similarVectors: Li
  *
  * @param shardsMap (TableID -> (ShardID, vectors))
  */
-case class PerTableShardAllocation(shardsMap: mutable.HashMap[Int, 
+case class PerTableShardAllocation(shardsMap: mutable.HashMap[Int,
     mutable.HashMap[ShardId, List[SparseVectorWrapper]]]) extends ShardAllocation
 
 
@@ -66,7 +66,7 @@ case class PerTableShardAllocation(shardsMap: mutable.HashMap[Int,
  *
  * @param shardsMap (ShardID -> (TableID, vectors)
  */
-case class FlatShardAllocation(shardsMap: mutable.HashMap[ShardId, 
+case class FlatShardAllocation(shardsMap: mutable.HashMap[ShardId,
   mutable.HashMap[Int, List[SparseVectorWrapper]]]) extends ShardAllocation
 
 /**
