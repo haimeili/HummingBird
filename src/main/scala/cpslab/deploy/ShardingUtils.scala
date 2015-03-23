@@ -29,7 +29,6 @@ private[cpslab] object ShardingUtils {
       Random.nextInt(maxShardNum).toString
     case shardAllocation@PerTableShardAllocation(_) =>
       val tableID = shardAllocation.shardsMap.keys
-      println("received shardMap for table " + tableID)
       // in independent namespace, we allow only one table in ShardAllocation Info
       require(tableID.size == 1)
       tableID.toList.head.toString

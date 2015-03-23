@@ -93,45 +93,37 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     }
   }
 
-  private def handleShardAllocation(shardAllocation: ShardAllocation) = shardingNamespace match {
-    case "independent" =>
-      val perTableAllocation = shardAllocation.asInstanceOf[PerTableShardAllocation]
-      for ((_, shardAllocationPerTable) <- perTableAllocation.shardsMap;
-           (shardIDStr, vectors) <- shardAllocationPerTable) {
-        val shardID = shardIDStr.toInt
-        val storageNode = shardID % maxDatabaseNodeNum
-        if (shardDatabase(storageNode) == null) {
-          val newActor = context.actorOf(ShardDatabaseStorage.props(conf),
-            name = s"StorageNode-$storageNode")
-          shardDatabase(storageNode) = newActor
-        }
-        val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
-        indexMap += shardID -> vectors
-        shardDatabase(storageNode).tell(LSHTableIndexRequest(indexMap), sender())
+  private def processShardAllocation(shardAllocation: ShardAllocation) {
+    val shardMap = shardAllocation match {
+      case perTableAllocation @ PerTableShardAllocation(_) =>
+        perTableAllocation.shardsMap
+      case flatAllocation @ FlatShardAllocation(_) =>
+        flatAllocation.shardsMap.map{case (shardId, perTableAllocation) => {
+          val transformedAlloc = perTableAllocation.map{
+            case (tableId, vectors) => (tableId.toString, vectors)}
+          (shardId, transformedAlloc)
+        }}
+    }
+    for ((_, shardAllocationPerUnit) <- shardMap ;
+         (allocationIdStr, vectors) <- shardAllocationPerUnit) {
+      val id = allocationIdStr.toInt
+      val storageNodeIndex = id % maxDatabaseNodeNum
+      if (shardDatabase(storageNodeIndex) == null) {
+        val newActor = context.actorOf(ShardDatabaseStorage.props(conf),
+          name = s"StorageNode-$storageNodeIndex")
+        shardDatabase(storageNodeIndex) = newActor
       }
-    case "flat" => 
-      val flatAllocation = shardAllocation.asInstanceOf[FlatShardAllocation]
-      for ((_, shardAllocationForAllTables) <- flatAllocation.shardsMap;
-           (tableIDStr, vectors) <- shardAllocationForAllTables) {
-        val tableID = tableIDStr.toInt
-        val storageNode = tableID % maxDatabaseNodeNum
-        if (shardDatabase(storageNode) == null) {
-          val newActor = context.actorOf(ShardDatabaseStorage.props(conf),
-            name = s"StorageNode-$storageNode")
-          shardDatabase(storageNode) = newActor
-        }
-        val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
-        indexMap += tableID -> vectors
-        shardDatabase(storageNode).tell(LSHTableIndexRequest(indexMap), sender())
-      }
-      
+      val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
+      indexMap += id -> vectors
+      shardDatabase(storageNodeIndex).tell(LSHTableIndexRequest(indexMap), sender())
+    }
   }
-  
+
   override def receive: Receive = {
     case searchRequest @ SearchRequest(_, _) =>
       processSearchRequest(searchRequest)
     case shardAllocation: ShardAllocation =>
-      handleShardAllocation(shardAllocation)
+      processShardAllocation(shardAllocation)
   }
 }
 
