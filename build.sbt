@@ -11,7 +11,7 @@ scalaVersion := "2.10.4"
 
 test in assembly :={}
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-Yno-adapted-args", "-feature")
+scalacOptions ++= Seq("-unchecked", "-Xlint", "-deprecation", "-Yno-adapted-args", "-feature", "-Xfatal-warnings")
 
 fork := true
 
