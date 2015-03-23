@@ -28,6 +28,7 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
          |cpslab.lsh.vectorDim = 3
          |cpslab.lsh.deploy.client = "/user/client"
          |cpslab.lsh.chainLength = 3
+         |cpslab.lsh.sharding.loadBatchingDuration = 0
          |cpslab.lsh.distributedSchema = SHARDING
          |cpslab.lsh.sharding.namespace = independent
          |cpslab.lsh.sharding.maxShardNumPerTable = 100

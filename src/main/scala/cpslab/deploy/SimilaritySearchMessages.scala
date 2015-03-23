@@ -77,3 +77,8 @@ case class FlatShardAllocation(shardsMap: mutable.HashMap[ShardId,
  * @param indexMap shardID(independent)/tableID(flat) -> vectors
  */
 case class LSHTableIndexRequest(indexMap: mutable.HashMap[Int, List[SparseVectorWrapper]])
+
+/**
+ * message triggering the IO operation in ShardDatabaseWorker
+ */
+case object IOTicket

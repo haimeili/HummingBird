@@ -172,4 +172,12 @@
   	The number of actors per Actor System receiving the intermediate results of similarity detection and send to clients.
   </td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.sharding.loadBatchingDuration</code></td>
+  <td>(none)</td>
+  <td>
+  	The length of the duration for message batching, in milliseconds. The values no larger than 0 disables the load batching functionality.
+  </td>
+</tr>
+
 </table>

@@ -3,19 +3,18 @@ package cpslab.deploy
 import java.util
 
 import scala.collection.mutable
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.Config
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVectorWrapper
-import cpslab.storage.{CacheEngine, EmptyCacheEngine, KeyValueEngine, LevelDBEngine}
 
 private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor{
 
-  private var kvEngine: KeyValueEngine = _
-  private var cacheEngine: CacheEngine = _
   private val maxShardNumPerTable = conf.getInt("cpslab.lsh.sharding.maxShardNumPerTable")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
   private val shardingExtension = ClusterSharding(context.system)
@@ -25,70 +24,83 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private lazy val maxDatabaseNodeNum = conf.getInt("cpslab.lsh.sharding.maxDatabaseNodeNum")
   private lazy val shardDatabase = new Array[ActorRef](maxDatabaseNodeNum)
 
+  // data structures for message batching
+  private val loadBatchingDuration = conf.getLong("cpslab.lsh.sharding.loadBatchingDuration")
+  private lazy val perTableAllocationWriteBuffer = new mutable.HashMap[Int,
+    mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
+  private lazy val flatAllocationWriteBuffer = new mutable.HashMap[ShardId,
+    mutable.HashMap[Int, List[SparseVectorWrapper]]]
+  private var batchSender: Cancellable = null
+
   override def preStart(): Unit = {
-    def initKVEngine: KeyValueEngine = {
-      //start kvEngine
-      try {
-        conf.getString("cpslab.lsh.kvEngineName") match {
-          case "LevelDB" => new LevelDBEngine
-        }
-      } catch {
-        case e: ConfigException.Missing => new LevelDBEngine
-      }
+    // initialize the sender for load batching
+    if (loadBatchingDuration > 0) {
+      val system = context.system
+      import system.dispatcher
+      val batchSender = context.system.scheduler.schedule(
+        0 milliseconds, loadBatchingDuration milliseconds, self, IOTicket)
     }
-    def initCacheEngine: CacheEngine = {
-      //start kvEngine
-      try {
-        conf.getString("cpslab.lsh.cacheEngineName") match {
-          case "LevelDB" => new EmptyCacheEngine
-        }
-      } catch {
-        case e: ConfigException.Missing => new EmptyCacheEngine
-      }
-    }
-    kvEngine = initKVEngine
-    cacheEngine = initCacheEngine
   }
 
+  /**
+   * processing logic for search request
+   * @param searchRequest the search requeste received from client
+   */
   private def processSearchRequest(searchRequest: SearchRequest): Unit = {
     val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[Int, List[SparseVectorWrapper]]]
     for (i <- 0 until indexInAllTables.length) {
       val indexInTable = new Array[Array[Byte]](indexInAllTables.length)
-      val shardID = util.Arrays.hashCode(indexInAllTables(i)) % maxShardNumPerTable
+      val bucketIndex = util.Arrays.hashCode(indexInAllTables(i)) % maxShardNumPerTable
       indexInTable(i) = indexInAllTables(i)
       val vectorInList =
         List(SparseVectorWrapper(searchRequest.vectorId, indexInTable, searchRequest.vector))
       shardingNamespace match {
         case "independent" =>
           outputShardMap.getOrElseUpdate(i.toString,
-            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += shardID -> vectorInList
+            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += bucketIndex -> vectorInList
         case "flat" =>
-          outputShardMap.getOrElseUpdate(shardID.toString,
+          outputShardMap.getOrElseUpdate(bucketIndex.toString,
             new mutable.HashMap[Int, List[SparseVectorWrapper]]) += i -> vectorInList
       }
     }
-    sendShardAllocation(outputShardMap)
+    sendOrBatchShardAllocation(outputShardMap)
   }
 
-  private def sendShardAllocation(
+  private def sendOrBatchShardAllocation(
       outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]):
     Unit = {
     for ((shardId, tableMap) <- outputShardMap) {
       shardingNamespace match {
         case "independent" =>
-          val shardMap = new mutable.HashMap[Int,
-            mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
           for ((tableId, vectors) <- tableMap) {
-            shardMap.getOrElseUpdate(tableId,
-              new mutable.HashMap[ShardId, List[SparseVectorWrapper]]) += shardId -> vectors
-            regionActor ! PerTableShardAllocation(shardMap)
+            if (loadBatchingDuration <= 0) {
+              val shardMap = new mutable.HashMap[Int,
+                mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
+              shardMap.getOrElseUpdate(tableId,
+                new mutable.HashMap[ShardId, List[SparseVectorWrapper]]) += shardId -> vectors
+              regionActor ! PerTableShardAllocation(shardMap)
+            } else {
+              val vectorsInBatching = perTableAllocationWriteBuffer.getOrElseUpdate(tableId,
+                new mutable.HashMap[ShardId, List[SparseVectorWrapper]]).
+                getOrElseUpdate(shardId, List[SparseVectorWrapper]())
+              perTableAllocationWriteBuffer(tableId)(shardId) = vectorsInBatching ++ vectors
+            }
           }
         case "flat" =>
-          val map = new mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]
-          map.getOrElseUpdate(shardId, tableMap)
-          regionActor ! FlatShardAllocation(map)
+          if (loadBatchingDuration <= 0) {
+            val map = new mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]
+            map.getOrElseUpdate(shardId, tableMap)
+            regionActor ! FlatShardAllocation(map)
+          } else {
+            val tableId = tableMap.keysIterator.toList.head
+            val vectors = tableMap.values.head
+            val vectorsInBatching = flatAllocationWriteBuffer.getOrElseUpdate(shardId,
+              new mutable.HashMap[Int, List[SparseVectorWrapper]]).
+              getOrElseUpdate(tableId, List[SparseVectorWrapper]())
+            flatAllocationWriteBuffer(shardId)(tableId) = vectorsInBatching ++ vectors
+          }
       }
     }
   }
@@ -119,11 +131,34 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     }
   }
 
+  private def sendShardAllocation(): Unit = {
+    shardingNamespace match {
+      case "independent" =>
+        for ((tableId, perTableMap) <- perTableAllocationWriteBuffer) {
+          val sendMap = new mutable.HashMap[Int,
+            mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
+          sendMap += tableId -> perTableMap
+          regionActor ! PerTableShardAllocation(sendMap)
+        }
+        perTableAllocationWriteBuffer.clear()
+      case "flat" =>
+        for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
+          val sendMap = new mutable.HashMap[ShardId,
+            mutable.HashMap[Int, List[SparseVectorWrapper]]]
+          sendMap += shardId -> perShardMap
+          regionActor ! FlatShardAllocation(sendMap)
+        }
+        flatAllocationWriteBuffer.clear()
+    }
+  }
+
   override def receive: Receive = {
     case searchRequest @ SearchRequest(_, _) =>
       processSearchRequest(searchRequest)
     case shardAllocation: ShardAllocation =>
       processShardAllocation(shardAllocation)
+    case IOTicket =>
+      sendShardAllocation()
   }
 }
 

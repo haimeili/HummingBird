@@ -32,6 +32,7 @@ class FlatShardingSuite(var actorSystem: ActorSystem)
          |cpslab.lsh.sharding.namespace = flat
          |cpslab.lsh.sharding.maxShardNumPerTable = 100
          |cpslab.lsh.sharding.maxShardDatabaseWorkerNum = 1
+         |cpslab.lsh.sharding.loadBatchingDuration = 0
          |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
          |akka.cluster.auto-down-unreachable-after = 10s
          |akka.remote.netty.tcp.hostname = "127.0.0.1"
