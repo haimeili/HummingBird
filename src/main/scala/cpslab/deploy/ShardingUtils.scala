@@ -29,9 +29,10 @@ private[cpslab] object ShardingUtils {
       Random.nextInt(maxShardNum).toString
     case shardAllocation@PerTableShardAllocation(_) =>
       val tableID = shardAllocation.shardsMap.keys
+      println("received shardMap for table " + tableID)
       // in independent namespace, we allow only one table in ShardAllocation Info
       require(tableID.size == 1)
-      tableID.toList(0).toString
+      tableID.toList.head.toString
   }
   
   private val flatNamespaceNamespaceEntryResolver: ShardRegion.IdExtractor = {
@@ -45,7 +46,7 @@ private[cpslab] object ShardingUtils {
     case searchRequest@SearchRequest(_, _) =>
       Random.nextInt(maxShardNum).toString
     case shardAllocation@FlatShardAllocation(_) =>
-      shardAllocation.shardsMap.keys.toList(0)
+      shardAllocation.shardsMap.keys.toList.head
   }
 
   private def initShardAllocation(conf: Config, lsh: LSH): Unit = {

@@ -49,41 +49,50 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     kvEngine = initKVEngine
     cacheEngine = initCacheEngine
   }
-  
-  private def handleSearchRequest(searchRequest: SearchRequest) = shardingNamespace match {
-    case "independent" =>
-      val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
-      for (i <- 0 until indexInAllTables.size) {
-        val shardMap = new mutable.HashMap[Int, mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
-        val indexInTable = new Array[Array[Byte]](indexInAllTables.size)
-        val indexInInteger = util.Arrays.hashCode(indexInTable(i)) % maxShardNumPerTable
-        indexInTable(i) = indexInAllTables(i)
-        val vectorInList =
-          List(SparseVectorWrapper(searchRequest.vectorId, indexInTable, searchRequest.vector))
-        shardMap.getOrElseUpdate(i, new mutable.HashMap[ShardId, List[SparseVectorWrapper]]) +=
-          indexInInteger.toString -> vectorInList
-        regionActor ! PerTableShardAllocation(shardMap)
+
+  private def processSearchRequest(searchRequest: SearchRequest): Unit = {
+    val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
+    val outputShardMap = new mutable.HashMap[ShardId,
+      mutable.HashMap[Int, List[SparseVectorWrapper]]]
+    for (i <- 0 until indexInAllTables.length) {
+      val indexInTable = new Array[Array[Byte]](indexInAllTables.length)
+      val shardID = util.Arrays.hashCode(indexInAllTables(i)) % maxShardNumPerTable
+      indexInTable(i) = indexInAllTables(i)
+      val vectorInList =
+        List(SparseVectorWrapper(searchRequest.vectorId, indexInTable, searchRequest.vector))
+      shardingNamespace match {
+        case "independent" =>
+          outputShardMap.getOrElseUpdate(i.toString,
+            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += shardID -> vectorInList
+        case "flat" =>
+          outputShardMap.getOrElseUpdate(shardID.toString,
+            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += i -> vectorInList
       }
-    case "flat" =>
-      val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
-      val outputShardMap = new mutable.HashMap[ShardId,
-        mutable.HashMap[Int, List[SparseVectorWrapper]]]
-      for (i <- 0 until indexInAllTables.size) {
-        val indexInTable = new Array[Array[Byte]](indexInAllTables.size)
-        val indexInInteger = util.Arrays.hashCode(indexInTable(i)) % maxShardNumPerTable
-        indexInTable(i) = indexInAllTables(i)
-        val vectorInList =
-          List(SparseVectorWrapper(searchRequest.vectorId, indexInTable, searchRequest.vector))
-        outputShardMap.getOrElseUpdate(indexInInteger.toString, 
-          new mutable.HashMap[Int, List[SparseVectorWrapper]]) += i -> vectorInList
+    }
+    sendShardAllocation(outputShardMap)
+  }
+
+  private def sendShardAllocation(
+      outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]):
+    Unit = {
+    for ((shardId, tableMap) <- outputShardMap) {
+      shardingNamespace match {
+        case "independent" =>
+          val shardMap = new mutable.HashMap[Int,
+            mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
+          for ((tableId, vectors) <- tableMap) {
+            shardMap.getOrElseUpdate(tableId,
+              new mutable.HashMap[ShardId, List[SparseVectorWrapper]]) += shardId -> vectors
+            regionActor ! PerTableShardAllocation(shardMap)
+          }
+        case "flat" =>
+          val map = new mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]
+          map.getOrElseUpdate(shardId, tableMap)
+          regionActor ! FlatShardAllocation(map)
       }
-      for ((shardId, tableMap) <- outputShardMap) {
-        val map = new mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]
-        map.getOrElseUpdate(shardId, tableMap)
-        regionActor ! FlatShardAllocation(map)
-      }
-  } 
-  
+    }
+  }
+
   private def handleShardAllocation(shardAllocation: ShardAllocation) = shardingNamespace match {
     case "independent" =>
       val perTableAllocation = shardAllocation.asInstanceOf[PerTableShardAllocation]
@@ -120,7 +129,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   
   override def receive: Receive = {
     case searchRequest @ SearchRequest(_, _) =>
-      handleSearchRequest(searchRequest)
+      processSearchRequest(searchRequest)
     case shardAllocation: ShardAllocation =>
       handleShardAllocation(shardAllocation)
   }
