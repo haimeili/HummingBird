@@ -25,6 +25,7 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
          |cpslab.lsh.chainLength = 10
          |cpslab.lsh.familySize = 100
          |cpslab.lsh.plsh.maxWorkerNum = 10
+         |cpslab.lsh.sharding.LoadBatchingDuration = 0
          |cpslab.lsh.tableNum = 10
          |cpslab.lsh.nodeID = 0
          |akka.cluster.roles = [compute]
