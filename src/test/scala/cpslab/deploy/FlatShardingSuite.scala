@@ -4,6 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.contrib.pattern.ClusterSharding
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
+import cpslab.TestSettings
 import cpslab.deploy.utils.{Client, DummyLSH}
 import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
@@ -18,39 +19,11 @@ class FlatShardingSuite(var actorSystem: ActorSystem)
   def this() = this({
     val conf = ConfigFactory.parseString(
       s"""
-         |akka.loglevel = "INFO"
-         |akka.cluster.roles = [compute]
-         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2553"]
-         |cpslab.lsh.name = none
-         |cpslab.lsh.familySize = 100
-         |cpslab.lsh.writerActorNum=10
-         |cpslab.lsh.topK = 10
-         |cpslab.lsh.vectorDim = 3
-         |cpslab.lsh.deploy.client = "/user/client"
-         |cpslab.lsh.chainLength = 3
-         |cpslab.lsh.distributedSchema = SHARDING
-         |cpslab.lsh.sharding.namespace = flat
-         |cpslab.lsh.sharding.maxShardNumPerTable = 100
-         |cpslab.lsh.sharding.maxShardDatabaseWorkerNum = 1
-         |cpslab.lsh.sharding.loadBatchingDuration = 0
-         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
-         |akka.cluster.auto-down-unreachable-after = 10s
-         |akka.remote.netty.tcp.hostname = "127.0.0.1"
+         |cpslab.lsh.sharding.systemName = "FlatShardingSystem"
+         |akka.cluster.seed-nodes = ["akka.tcp://FlatShardingSystem@127.0.0.1:2553"]
          |akka.remote.netty.tcp.port = 2553
-         |cpslab.lsh.sharding.maxDatabaseNodeNum = 1
-         |akka.persistence.snapshot-store.local.dir = "target/snapshots-ClusterShardingSpec"
-         |cpslab.lsh.similarityThreshold = 0.0
-         |cpslab.lsh.nodeID = 0
-         |cpslab.lsh.generateMethod = default
-         |cpslab.lsh.name = pStable
-         |cpslab.lsh.familySize = 10
-         |cpslab.lsh.tableNum = 1
-         |cpslab.lsh.vectorDim = 3
-         |cpslab.lsh.chainLength = 2
-         |cpslab.lsh.family.pstable.mu = 0.0
-         |cpslab.lsh.family.pstable.sigma = 0.02
-         |cpslab.lsh.family.pstable.w = 3
-       """.stripMargin)
+         |cpslab.lsh.sharding.namespace = flat
+       """.stripMargin).withFallback(TestSettings.testShardingConf)
     LSHServer.startShardingSystem(conf, new DummyLSH(conf))
   })
 

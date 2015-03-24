@@ -5,50 +5,26 @@ import scala.collection.mutable
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.typesafe.config.{Config, ConfigFactory}
+import cpslab.TestSettings
 import cpslab.deploy.plsh.PLSHWorker
+import cpslab.deploy.utils.DummyLSH
 import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
 import cpslab.storage.ByteArrayWrapper
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
 
-class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKit(setup._2) 
+class ShardDatabaseStorageSuite extends TestKit(ActorSystem())
     with ImplicitSender with FunSuiteLike with BeforeAndAfter with BeforeAndAfterAll {
 
-  def this() = this({
-    val conf = ConfigFactory.parseString(
-      s"""
-         |cpslab.lsh.name = none
-         |cpslab.lsh.similarityThreshold = 0.0
-         |akka.remote.netty.tcp.port = 0
-         |cpslab.lsh.vectorDim = 3
-         |cpslab.lsh.writerActorNum=10
-         |cpslab.lsh.topK = 1
-         |cpslab.lsh.chainLength = 10
-         |cpslab.lsh.familySize = 100
-         |cpslab.lsh.plsh.maxWorkerNum = 10
-         |cpslab.lsh.sharding.LoadBatchingDuration = 0
-         |cpslab.lsh.tableNum = 10
-         |cpslab.lsh.nodeID = 0
-         |akka.cluster.roles = [compute]
-         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2555"]
-         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
-         |akka.remote.netty.tcp.hostname = "127.0.0.1"
-         |akka.remote.netty.tcp.port = 2555
-         |cpslab.lsh.plsh.localActorNum = 10
-       """.stripMargin)
-    (conf, LSHServer.startPLSHSystem(conf, null, PLSHWorker.props))
-  })
-  
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
   
   test ("(independent) ShardDatabaseStorage calculate the similarity, index new vector correctly") {
-    val conf = setup._1.withFallback(
-      ConfigFactory.parseString(
-        s"""
-           |cpslab.lsh.deploy.client = ${testActor.path.toStringWithoutAddress}
-           |cpslab.lsh.sharding.namespace = independent
-         """.stripMargin))
+    val conf = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.deploy.client = ${testActor.path.toStringWithoutAddress}
+         |cpslab.lsh.sharding.namespace = independent
+      """.stripMargin).withFallback(TestSettings.testShardingConf)
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))
@@ -66,12 +42,11 @@ class ShardDatabaseStorageSuite(val setup: (Config, ActorSystem)) extends TestKi
   }
 
   test ("(flat) ShardDatabaseStorage calculate the similarity, index new vector correctly") {
-    val conf = setup._1.withFallback(
-      ConfigFactory.parseString(
-        s"""
-           |cpslab.lsh.deploy.client = ${testActor.path.toStringWithoutAddress}
-           |cpslab.lsh.sharding.namespace = flat
-         """.stripMargin))
+    val conf = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.deploy.client = ${testActor.path.toStringWithoutAddress}
+         |cpslab.lsh.sharding.namespace = flat
+      """.stripMargin).withFallback(TestSettings.testShardingConf)
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))

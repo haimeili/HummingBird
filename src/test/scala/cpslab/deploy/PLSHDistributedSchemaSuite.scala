@@ -5,6 +5,7 @@ import scala.language.postfixOps
 import akka.actor.{ActorSystem, InvalidActorNameException, Props}
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
+import cpslab.TestSettings
 import cpslab.deploy.utils.{DummyPLSHWorker, Ping, Pong}
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
@@ -17,18 +18,9 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
   
   def this() = this({
     val conf = ConfigFactory.parseString(
-      s"""
-         |akka.remote.netty.tcp.port = 0
-         |cpslab.lsh.similarityThreshold = 0.0
-         |cpslab.lsh.nodeID = 0
-         |cpslab.lsh.topK = 1
-         |akka.cluster.roles = [compute]
-         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2551"]
-         |akka.remote.netty.tcp.hostname = "127.0.0.1"
-         |akka.remote.netty.tcp.port = 2551
-         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
-         |cpslab.lsh.plsh.localActorNum = 10
-       """.stripMargin)
+      """
+        |cpslab.lsh.plsh.localActorNum = 10
+      """.stripMargin).withFallback(TestSettings.testBaseConf)
     LSHServer.startPLSHSystem(conf, null, DummyPLSHWorker.props)
   })
   

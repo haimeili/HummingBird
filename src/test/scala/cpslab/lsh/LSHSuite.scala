@@ -1,6 +1,7 @@
 package cpslab.lsh
 
 import com.typesafe.config.{Config, ConfigFactory}
+import cpslab.TestSettings
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -11,19 +12,13 @@ class LSHSuite extends FunSuite with BeforeAndAfterAll {
   override def beforeAll() {
     config = ConfigFactory.parseString(
       s"""
-         |cpslab.lsh.generateMethod = default
-         |cpslab.lsh.name = pStable
          |cpslab.lsh.familySize = 10
          |cpslab.lsh.tableNum = 100
          |cpslab.lsh.vectorDim = 1024
          |cpslab.lsh.chainLength = 2
-         |cpslab.lsh.family.pstable.mu = 0.0
-         |cpslab.lsh.family.pstable.sigma = 0.02
-         |cpslab.lsh.family.pstable.w = 3
-      """.stripMargin)
-
+      """.stripMargin).withFallback(TestSettings.testBaseConf)
   }
-  
+
   test("LSH initialize Hash Family and Hash Chain correctly") {
     val lsh = new LSH(config)
     val testVector = Vectors.sparse(3, Seq((0, 1.0), (1, 1.0), (2, 1.0))).

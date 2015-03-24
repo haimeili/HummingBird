@@ -3,38 +3,25 @@ package cpslab.deploy.plsh
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
+import cpslab.TestSettings
 import cpslab.deploy._
 import cpslab.deploy.utils.DummyLSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
-
-
 
 class PLSHWorkerSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfter 
   with BeforeAndAfterAll {
 
   def this() = this({
-    val conf = ConfigFactory.parseString(
-      s"""
-         |cpslab.lsh.name = none
-         |cpslab.lsh.similarityThreshold = 0.0
-         |akka.remote.netty.tcp.port = 0
-         |cpslab.lsh.vectorDim = 3
-         |cpslab.lsh.chainLength = 10
-         |cpslab.lsh.familySize = 100
-         |cpslab.lsh.topK = 2
-         |akka.remote.netty.tcp.hostname = "127.0.0.1"
-         |akka.remote.netty.tcp.port = 2556
-         |akka.cluster.roles = [compute]
-         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2556"]
-         |akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
-         |cpslab.lsh.plsh.maxWorkerNum = 10
-         |cpslab.lsh.tableNum = 10
-         |cpslab.lsh.nodeID = 0
-         |cpslab.lsh.plsh.localActorNum = 10
-       """.stripMargin)
-    LSHServer.startPLSHSystem(conf, new DummyLSH(conf), PLSHWorker.props)
+    val plshWorkerSuiteConf = ConfigFactory.parseString(
+      """
+        |akka.remote.netty.tcp.port = 2556
+        |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2556"]
+        |cpslab.lsh.plsh.localActorNum = 10
+      """.stripMargin).withFallback(TestSettings.testBaseConf)
+    LSHServer.startPLSHSystem(plshWorkerSuiteConf, new DummyLSH(plshWorkerSuiteConf),
+      PLSHWorker.props)
   })
   
   override def afterAll(): Unit = {
