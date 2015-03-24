@@ -62,8 +62,7 @@ private[cpslab] object LSHServer {
    */
   private[deploy] def startShardingSystem(conf: Config, lsh: LSH): ActorSystem = {
     val (_, system) = ShardingUtils.startShardingSystem(
-      Some(Props(new ShardDatabaseWorker(conf, lsh))),
-      conf, lsh)
+      Some(Props(new ShardDatabaseWorker(conf, lsh))), conf, lsh)
 
     val shardRegionActorPath = ClusterSharding(system).shardRegion(ShardDatabaseWorker.
       shardDatabaseWorkerActorName).path.toStringWithoutAddress

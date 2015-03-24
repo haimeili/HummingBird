@@ -58,7 +58,9 @@ private[cpslab] object ShardingUtils {
       entryProps: Option[Props],
       conf: Config, 
       lsh: LSH): (Config, ActorSystem) = {
-    localShardingSystem = ActorSystem("LSH", conf)
+
+    val shardingSystemName = conf.getString("cpslab.lsh.sharding.systemName")
+    localShardingSystem = ActorSystem(shardingSystemName, conf)
     initShardAllocation(conf, lsh)
     require(maxEntryNum > 0 && maxShardNum > 0 & lshInstance != null,
       "please run ShardingUtils.initShardAllocation before you start Cluster Sharding System")

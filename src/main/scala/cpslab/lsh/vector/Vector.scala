@@ -243,10 +243,4 @@ class SparseVector(
   }
   
   private[cpslab] override def toBreeze: BV[Double] = new BSV[Double](indices, values, size)
-
-  def test: Unit = {
-    val bsv = new BSV[Double](indices, values, size)
-    val bsv1 = new BSV[Double](indices, values, size)
-    bsv.dot(bsv1)
-  }
 }
