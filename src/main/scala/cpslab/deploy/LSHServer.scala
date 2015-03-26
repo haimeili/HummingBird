@@ -88,15 +88,12 @@ private[cpslab] object LSHServer {
   
   
   def main(args: Array[String]): Unit = {
-    if (args.length != 2) {
-      println("Usage: program akka_conf_path app_conf_path")
+    if (args.length != 1) {
+      println("Usage: program conf_path")
       sys.exit(1)
     }
-    val conf = ConfigFactory.parseFile(new File(args(0))).
-      withFallback(ConfigFactory.parseFile(new File(args(1)))).
-      withFallback(ConfigFactory.load())
+    val conf = ConfigFactory.parseFile(new File(args(0)))
 
-    
     // initialize the LSH instance
     val lshEngine = new LSH(conf)
     val system = conf.getString("cpslab.lsh.distributedSchema") match {

@@ -5,3 +5,5 @@ target
 .idea_modules
 journal
 snapshot
+logs
+pid
