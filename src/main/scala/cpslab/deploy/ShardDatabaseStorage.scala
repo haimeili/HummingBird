@@ -12,10 +12,9 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
   // data structures for different sharding schema
   private[deploy] lazy val elementsInIndependentSpace =
-    new mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]
+    new mutable.HashMap[ByteArrayWrapper, ListBuffer[SparseVector]]
   private[deploy] lazy val elementsInFlatSpace =
-    new mutable.HashMap[Int,
-      mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]]]
+    new mutable.HashMap[Int, mutable.HashMap[ByteArrayWrapper, ListBuffer[SparseVector]]]
   
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
@@ -26,7 +25,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
   private def generateSimilarityOutput(
       vectorID: Int,
       vector: SparseVector,
-      candidateList: Option[ListBuffer[(Int, SparseVector)]]):
+      candidateList: Option[ListBuffer[SparseVector]]):
       Option[SimilarityIntermediateOutput] = {
     if (!candidateList.isDefined) {
       Some(SimilarityIntermediateOutput(vectorID, new LongBitSet, List[(Int, Double)]()))
@@ -35,8 +34,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
       val selectedCandidates = candidateList.map(allCandidates =>
         allCandidates.foldLeft(new ListBuffer[(Int, Double)])
           ((selectedCandidates, candidate) => selectedCandidates +=
-            candidate._1 -> SimilarityCalculator.fastCalculateSimilarity(vector,
-              candidate._2))
+            candidate.vectorId -> SimilarityCalculator.fastCalculateSimilarity(vector, candidate))
       )
       selectedCandidates.map(candidates => {
         val result = candidates.filter(_._2 > similarityThreshold).sortWith((a, b) => a._2 > b._2).
@@ -58,11 +56,11 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
           elementsInIndependentSpace.get(bucketIndex)
         case "flat" =>
           elementsInFlatSpace.getOrElseUpdate(tableId,
-            new mutable.HashMap[ByteArrayWrapper, ListBuffer[(Int, SparseVector)]])
+            new mutable.HashMap[ByteArrayWrapper, ListBuffer[SparseVector]])
           elementsInFlatSpace(tableId).get(bucketIndex)
       }
       val simOutputOpt = generateSimilarityOutput(
-        vectorID = vector.vectorID,
+        vectorID = vector.sparseVector.vectorId,
         vector = vector.sparseVector,
         candidateList = allVectorCandidates)
 
@@ -73,7 +71,7 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
         }
       )
       // index the vector
-      writeActorToTable(tableId, bucketIndex, vector.vectorID, vector.sparseVector)
+      writeActorToTable(tableId, bucketIndex, vector.sparseVector.vectorId, vector.sparseVector)
     }
   }
 
@@ -85,10 +83,10 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
     shardingNamespace match {
       case "independent" =>
         elementsInIndependentSpace.getOrElseUpdate(bucketIndex,
-          new ListBuffer[(Int, SparseVector)]) += (vectorID -> vector)
+          new ListBuffer[SparseVector]) += vector
       case "flat" =>
         elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex,
-          new ListBuffer[(Int, SparseVector)]) += (vectorID -> vector)
+          new ListBuffer[SparseVector]) += vector
     }
   }
   

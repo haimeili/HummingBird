@@ -19,6 +19,7 @@ package cpslab.lsh.vector
 
 import java.lang.{Double => JavaDouble, Integer => JavaInteger, Iterable => JavaIterable}
 import java.util
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.annotation.varargs
 import scala.collection.JavaConverters._
@@ -72,6 +73,10 @@ sealed trait Vector extends Serializable {
 
 object Vectors {
 
+  private val vectorId = new AtomicInteger(0)
+
+  def nextVectorID: Int = vectorId.getAndIncrement
+
   /**
    * Creates a dense vector from its values.
    */
@@ -93,7 +98,7 @@ object Vectors {
    * @param values value array, must have the same length as indices.
    */
   def sparse(size: Int, indices: Array[Int], values: Array[Double]): Vector =
-    new SparseVector(size, indices, values)
+    new SparseVector(Vectors.nextVectorID, size, indices, values)
 
   /**
    * Creates a sparse vector using unordered (index, value) pairs.
@@ -112,7 +117,7 @@ object Vectors {
     }
     require(prev < size)
 
-    new SparseVector(size, indices.toArray, values.toArray)
+    new SparseVector(Vectors.nextVectorID, size, indices.toArray, values.toArray)
   }
 
   /**
@@ -176,9 +181,10 @@ object Vectors {
         }
       case v: BSV[Double] =>
         if (v.index.length == v.used) {
-          new SparseVector(v.length, v.index, v.data)
+          new SparseVector(Vectors.nextVectorID, v.length, v.index, v.data)
         } else {
-          new SparseVector(v.length, v.index.slice(0, v.used), v.data.slice(0, v.used))
+          new SparseVector(Vectors.nextVectorID, v.length, v.index.slice(0, v.used),
+            v.data.slice(0, v.used))
         }
       case v: BV[_] =>
         sys.error("Unsupported Breeze vector type: " + v.getClass.getName)
@@ -204,6 +210,7 @@ class DenseVector(val values: Array[Double]) extends Vector {
 }
 
 class SparseVector(
+    val vectorId: Int,
     override val size: Int,
     val indices: Array[Int],
     val values: Array[Double]) extends Vector {
@@ -212,7 +219,7 @@ class SparseVector(
   
   val indexToMap = new mutable.HashMap[Int, Double]()
   
-  for (i <- 0 until indices.size) {
+  for (i <- 0 until indices.length) {
     indexToMap(indices(i)) = values(i)
   }
   
@@ -239,7 +246,7 @@ class SparseVector(
   }
 
   override def copy: SparseVector = {
-    new SparseVector(size, indices.clone(), values.clone())
+    new SparseVector(vectorId, size, indices.clone(), values.clone())
   }
   
   private[cpslab] override def toBreeze: BV[Double] = new BSV[Double](indices, values, size)

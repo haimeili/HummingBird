@@ -17,14 +17,14 @@ private[cpslab] object ShardingUtils {
   private var localShardingSystem: ActorSystem = _
 
   private val independentNamespaceEntryResolver: ShardRegion.IdExtractor = {
-    case req @ SearchRequest(_, _) =>
+    case req @ SearchRequest(_) =>
       (Random.nextInt(maxEntryNum).toString, req)
     case shardAllocation @ PerTableShardAllocation(_) =>
       ("1", shardAllocation)
   }
   
   private val independentNamespaceShardResolver: ShardRegion.ShardResolver = {
-    case searchRequest@SearchRequest(_, _) =>
+    case searchRequest@SearchRequest(_) =>
       //TODO: assign to local shards
       Random.nextInt(maxShardNum).toString
     case shardAllocation@PerTableShardAllocation(_) =>
@@ -35,14 +35,14 @@ private[cpslab] object ShardingUtils {
   }
   
   private val flatNamespaceNamespaceEntryResolver: ShardRegion.IdExtractor = {
-    case req @ SearchRequest(_, _) =>
+    case req @ SearchRequest(_) =>
       (Random.nextInt(maxEntryNum).toString, req)
     case shardAllocation @ FlatShardAllocation(_) => 
       ("1", shardAllocation)
   }
 
   private val flatNamespaceShardResolver: ShardRegion.ShardResolver = {
-    case searchRequest@SearchRequest(_, _) =>
+    case searchRequest@SearchRequest(_) =>
       Random.nextInt(maxShardNum).toString
     case shardAllocation@FlatShardAllocation(_) =>
       shardAllocation.shardsMap.keys.toList.head

@@ -10,8 +10,10 @@ private[cpslab] object SimilarityCalculator {
     val sparseVector1 = vector1.sparseVector
     val sparseVector2 = vector2.sparseVector
     calculateSimilarity(
-      new SparseVector(sparseVector1.size, sparseVector1.indices, sparseVector1.values),
-      new SparseVector(sparseVector2.size, sparseVector2.indices, sparseVector2.values))
+      new SparseVector(sparseVector1.vectorId,
+        sparseVector1.size, sparseVector1.indices, sparseVector1.values),
+      new SparseVector(sparseVector2.vectorId,
+        sparseVector2.size, sparseVector2.indices, sparseVector2.values))
   }
 
   def calculateSimilarity(vector1: SparseVector, vector2: SparseVector): Double = {

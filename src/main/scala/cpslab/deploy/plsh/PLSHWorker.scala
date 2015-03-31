@@ -21,11 +21,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
   
   override def receive: Receive = {
-    case SearchRequest(vectorId: Int, vector: SparseVector) =>
+    case SearchRequest(vector: SparseVector) =>
       // PLSH needs to calculate similarity in all tables
       val indexOnAllTable = lshInstance.calculateIndex(vector)
       var similarVectors = List[(Int, Double)]()
-      for (i <- 0 until indexOnAllTable.size) {
+      for (i <- 0 until indexOnAllTable.length) {
         val indexInCertainTable = indexOnAllTable(i)
         val keyInTable = ByteArrayWrapper(indexInCertainTable)
         // query the tables
@@ -42,12 +42,12 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
           similarVectors = similarVectors ++ sortedSimilarVectorList)
         // update the local tables
         if (math.abs(keyInTable.hashCode()) % maxWorkerNumber == id) {
-          vectorIdToVector += vectorId -> vector
-          inMemoryTable(i).getOrElseUpdate(keyInTable, new ListBuffer[Int]) += vectorId
+          vectorIdToVector += vector.vectorId -> vector
+          inMemoryTable(i).getOrElseUpdate(keyInTable, new ListBuffer[Int]) += vector.vectorId
         }
       }
       if (similarVectors.size > 0) {
-        sender ! SimilarityIntermediateOutput(vectorId, new LongBitSet, similarVectors)
+        sender ! SimilarityIntermediateOutput(vector.vectorId, new LongBitSet, similarVectors)
       }
   }
 }

@@ -59,22 +59,22 @@ class PStableHashSuite extends FunSuite {
       getClass.getClassLoader.getResource("testpstablefile").getFile, 3)
     assert(hashChain.size === 3)
     val firstChain = hashChain(0)
-    assert(firstChain.chainIndexCalculator.size === 3)
-    for (para <- firstChain.chainIndexCalculator) {
+    assert(firstChain.chainedHashFunctions.size === 3)
+    for (para <- firstChain.chainedHashFunctions) {
       assert(para.a.toString === "(3,[0,1],[1.0,2.0])")
       assert(para.b === 0.1)
       assert(para.w === 5)
     }
     val secondChain = hashChain(1)
-    assert(secondChain.chainIndexCalculator.size === 3)
-    for (para <- secondChain.chainIndexCalculator) {
+    assert(secondChain.chainedHashFunctions.size === 3)
+    for (para <- secondChain.chainedHashFunctions) {
       assert(para.a.toString === "(3,[0,1],[1.0,3.0])")
       assert(para.b === 0.2)
       assert(para.w === 6)
     }
     val thirdChain = hashChain(2)
-    assert(thirdChain.chainIndexCalculator.size === 3)
-    for (para <- thirdChain.chainIndexCalculator) {
+    assert(thirdChain.chainedHashFunctions.size === 3)
+    for (para <- thirdChain.chainedHashFunctions) {
       assert(para.a.toString === "(3,[0,1],[1.0,4.0])")
       assert(para.b === 0.3)
       assert(para.w === 7)

@@ -13,10 +13,9 @@ sealed trait ShardAllocation extends SimilaritySearchMessages
 // messages for the basic communication between nodes (client-server, server-server)
 /**
  * messages sent from client to server, representing the request for similarity search
- * @param vectorId the unique ID representing the query vector
  * @param vector the vector data
  */
-case class SearchRequest(vectorId: Int, vector: SparseVector) extends SimilaritySearchMessages
+case class SearchRequest(vector: SparseVector) extends SimilaritySearchMessages
 
 /**
  * the intermediate result of the similarity search
