@@ -55,7 +55,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val bucketIndex = util.Arrays.hashCode(indexInAllTables(i)) % maxShardNumPerTable
       indexInTable(i) = indexInAllTables(i)
       val vectorInList =
-        List(SparseVectorWrapper(searchRequest.vectorId, indexInTable, searchRequest.vector))
+        List(SparseVectorWrapper(indexInTable, searchRequest.vector))
       shardingNamespace match {
         case "independent" =>
           outputShardMap.getOrElseUpdate(i.toString,
@@ -153,7 +153,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   }
 
   override def receive: Receive = {
-    case searchRequest @ SearchRequest(_, _) =>
+    case searchRequest @ SearchRequest(_) =>
       processSearchRequest(searchRequest)
     case shardAllocation: ShardAllocation =>
       processShardAllocation(shardAllocation)

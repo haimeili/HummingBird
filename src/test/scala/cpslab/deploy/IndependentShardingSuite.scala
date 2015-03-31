@@ -32,8 +32,8 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
     val client = TestActorRef[Client](Props(new Client), name = "client")
     val clientHandler = ClusterSharding(actorSystem).shardRegion(
       ShardDatabaseWorker.shardDatabaseWorkerActorName)
-    clientHandler ! SearchRequest(0, new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
-    clientHandler ! SearchRequest(1, new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
+    clientHandler ! SearchRequest(new SparseVector(0, 3, Array(0, 1), Array(1.0, 1.0)))
+    clientHandler ! SearchRequest(new SparseVector(1, 3, Array(0, 1), Array(1.0, 1.0)))
     Thread.sleep(2000)
     val checkResult = {
       if (client.underlyingActor.state.contains(1)) {

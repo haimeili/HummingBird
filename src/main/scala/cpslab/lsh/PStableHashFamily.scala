@@ -41,7 +41,7 @@ private[lsh] class PStableHashFamily(
       val vectorADimValues = (0 until vectorDim).map(idx => (idx, gaussianDist.sample()))
       val nonZeroIdx = vectorADimValues.filter(_._2 != 0).map(_._1).toArray
       val nonZeroValues = vectorADimValues.filter(_._2 != 0).map(_._2).toArray
-      val vectorA = new SparseVector(vectorDim, nonZeroIdx, nonZeroValues)
+      val vectorA = new SparseVector(Vectors.nextVectorID, vectorDim, nonZeroIdx, nonZeroValues)
       // step 2: select b
       val b = uniformRandomizer.nextInt(w)
       // step 3: generate each hash function chain

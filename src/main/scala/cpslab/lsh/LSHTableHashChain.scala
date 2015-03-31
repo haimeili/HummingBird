@@ -5,12 +5,12 @@ import cpslab.lsh.vector.SparseVector
 /**
  * the class implementing the functions chaining in one of the hash tables
  * @param chainLength the number of hash functions
- * @param chainIndexCalculator the parameter setup for one of the functions
+ * @param chainedHashFunctions the parameter setup for one of the functions
  * @tparam T the definition of the parameters set
  */
 private[lsh] abstract class LSHTableHashChain[+T <: LSHFunctionParameterSet](
     private[lsh] val chainLength: Int,
-    private[lsh] val chainIndexCalculator: List[T]) extends Serializable {
+    private[lsh] val chainedHashFunctions: List[T]) extends Serializable {
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions 

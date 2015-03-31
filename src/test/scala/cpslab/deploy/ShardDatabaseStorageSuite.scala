@@ -4,10 +4,8 @@ import scala.collection.mutable
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
-import cpslab.deploy.plsh.PLSHWorker
-import cpslab.deploy.utils.DummyLSH
 import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
 import cpslab.storage.ByteArrayWrapper
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
@@ -28,17 +26,17 @@ class ShardDatabaseStorageSuite extends TestKit(ActorSystem())
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))
-    indexMap += 0 -> List(SparseVectorWrapper(0, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 1.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(byteArray,
+      new SparseVector(0, 3, Array(0, 1), Array(1.0, 1.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     indexMap.remove(0)
-    indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(byteArray,
+      new SparseVector(1, 3, Array(0, 1), Array(1.0, 2.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     assert(databaseNode.underlyingActor.elementsInIndependentSpace.get(
-      ByteArrayWrapper(byteArray(0))).get.toList === List((0,
-      new SparseVector(3, Array(0, 1), Array(1.0, 1.0))), (1,
-      new SparseVector(3, Array(0, 1), Array(1.0, 2.0)))))
+      ByteArrayWrapper(byteArray(0))).get.toList ===
+      List(new SparseVector(1, 3, Array(0, 1), Array(1.0, 1.0)),
+        new SparseVector(1, 3, Array(0, 1), Array(1.0, 2.0))))
   }
 
   test ("(flat) ShardDatabaseStorage calculate the similarity, index new vector correctly") {
@@ -50,16 +48,16 @@ class ShardDatabaseStorageSuite extends TestKit(ActorSystem())
     val databaseNode = TestActorRef[ShardDatabaseStorage](ShardDatabaseStorage.props(conf))
     val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
     val byteArray = Array.fill[Array[Byte]](1)(Array[Byte](0))
-    indexMap += 0 -> List(SparseVectorWrapper(0, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 1.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(byteArray,
+      new SparseVector(0, 3, Array(0, 1), Array(1.0, 1.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     indexMap.remove(0)
-    indexMap += 0 -> List(SparseVectorWrapper(1, byteArray,
-      new SparseVector(3, Array(0, 1), Array(1.0, 2.0))))
+    indexMap += 0 -> List(SparseVectorWrapper(byteArray,
+      new SparseVector(1, 3, Array(0, 1), Array(1.0, 2.0))))
     databaseNode.underlyingActor.receive(LSHTableIndexRequest(indexMap))
     assert(databaseNode.underlyingActor.elementsInFlatSpace.get(0).get.
       get(ByteArrayWrapper(byteArray(0))).get.toList ===
-      List((0, new SparseVector(3, Array(0, 1), Array(1.0, 1.0))),
-        (1, new SparseVector(3, Array(0, 1), Array(1.0, 2.0)))))
+      List(new SparseVector(0, 3, Array(0, 1), Array(1.0, 1.0)),
+        new SparseVector(1, 3, Array(0, 1), Array(1.0, 2.0))))
   }
 }
