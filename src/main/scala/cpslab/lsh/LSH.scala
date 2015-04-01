@@ -13,7 +13,9 @@ import cpslab.lsh.vector.SparseVector
 private[cpslab] class LSH(conf: Config) extends Serializable {
 
   private val lshFamilyName: String = conf.getString("cpslab.lsh.name")
-  private val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains()
+  //TODO: to implement two-level partition mechanism in PLSH, we have to expose this variable to
+  // external side; we can actually fix it with Dependency Injection, etc.?
+  private[cpslab] val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains()
   
   private def initHashChains[T <: LSHFunctionParameterSet](): List[LSHTableHashChain[_]] = {
     val familySize = conf.getInt("cpslab.lsh.familySize")
@@ -28,6 +30,15 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
         val family = Some(new PStableHashFamily(familySize = familySize, vectorDim = vectorDim,
           chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
         pickUpHashChains(family)
+      case "precalculated" =>
+        val mu = conf.getDouble("cpslab.lsh.family.pstable.mu")
+        val sigma = conf.getDouble("cpslab.lsh.family.pstable.sigma")
+        val w = conf.getInt("cpslab.lsh.family.pstable.w")
+
+        val family = Some(new PrecalculatedHashFamily(
+          familySize = familySize, vectorDim = vectorDim,
+          chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
+        pickUpHashChains(family)
       case x => None
     }
     if (initializedChains.isDefined) {
@@ -38,7 +49,7 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
   }
   
   private def pickUpHashChains[T <: LSHFunctionParameterSet](lshFamily: Option[LSHHashFamily[T]]):
-  Option[List[LSHTableHashChain[T]]] = {
+    Option[List[LSHTableHashChain[T]]] = {
     require(lshFamily.isDefined, s"$lshFamilyName is not a valid family name")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val generateMethodOfHashFamily = conf.getString("cpslab.lsh.generateMethod")

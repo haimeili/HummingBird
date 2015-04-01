@@ -129,13 +129,27 @@ class PrecalculatedHashFamily(
  * @param chainSize the length of the chain
  * @param chainedFunctions the list of the funcitons used to calculate the index of the vector
  */
-private[lsh] class PrecalculatedHashChain(
+//TODO: this class is not supposed to be private[cpslab], instead, we should limit it in lsh
+// currently, we only relax the restriction to implement two-level partition in PLSH
+private[cpslab] class PrecalculatedHashChain(
     precalculatedChains: List[LSHTableHashChain[PStableParameterSet]],
     chainSize: Int,
     chainedFunctions: List[PrecalculatedParameterSet])
   extends LSHTableHashChain[PrecalculatedParameterSet](chainSize, chainedFunctions) {
 
   require(chainedFunctions.size == 2)
+
+  def firstPartitionerID = chainedFunctions.head.functionIdx
+
+  def secondPartitionerID = chainedFunctions(1).functionIdx
+
+  def computeFirstLevelIndex(vector:SparseVector): Array[Byte] = {
+    precalculatedChains(chainedFunctions(0).functionIdx).compute(vector)
+  }
+
+  def computeSecondLevelIndex(vector: SparseVector): Array[Byte] = {
+    precalculatedChains(chainedFunctions(1).functionIdx).compute(vector)
+  }
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
@@ -187,4 +201,5 @@ private object LSHHashValueCache {
  *                    supposed to be with the length of k / 2, where k is the total number of hash
  *                    functions in each hash table;
  */
-private[lsh] case class PrecalculatedParameterSet(functionIdx: Int) extends LSHFunctionParameterSet
+private[cpslab] case class PrecalculatedParameterSet(functionIdx: Int)
+  extends LSHFunctionParameterSet
