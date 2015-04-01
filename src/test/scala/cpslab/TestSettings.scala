@@ -11,6 +11,7 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.familySize = 100
        |cpslab.lsh.topK = 2
        |cpslab.lsh.plsh.maxWorkerNum = 10
+       |cpslab.lsh.plsh.partitionSwitch=false
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"
        |cpslab.lsh.generateMethod = default

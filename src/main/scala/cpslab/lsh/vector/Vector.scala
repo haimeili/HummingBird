@@ -27,7 +27,7 @@ import scala.collection.mutable
 
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
 
-// added this file to eliminated the dependency to spark (causing sbt
+// added this file to eliminate the dependency to spark (causing sbt
 // assembly extremely slow)
 
 sealed trait Vector extends Serializable {
@@ -142,15 +142,17 @@ object Vectors {
     new DenseVector(new Array[Double](size))
   }
 
-  private[cpslab] def fromString(inputString: String): (Int, Array[Int], Array[Double]) = {
+  private[cpslab] def fromString(inputString: String): (Int, Array[Int], Array[Double], Long) = {
     val stringArray = inputString.split(",\\[")
     if (stringArray.length != 3) {
       throw new Exception(s"cannot parse $inputString")
     }
     val size = stringArray(0).replace("(", "").toInt
     val indices = stringArray(1).replace("]", "").split(",").map(_.toInt)
-    val values = stringArray(2).replace("])", "").split(",").map(_.toDouble)
-    (size, indices, values)
+    val Array(valuesStr, idStr) = stringArray(2).split("\\]\\),")
+    val values = valuesStr.split(",").map(_.toDouble)
+    val id = idStr.replace(")", "").toLong
+    (size, indices, values, id)
   }
 
   private[cpslab] def parseNumeric(any: Any): Vector = {
