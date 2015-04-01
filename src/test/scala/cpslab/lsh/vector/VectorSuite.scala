@@ -9,7 +9,7 @@ class VectorSuite extends FunSuite {
 
   test("fromString test") {
     val vectorFile = getClass.getClassLoader.getResource("vectorfile").getFile
-    val results = new ListBuffer[(Int, Array[Int], Array[Double], Long)]
+    val results = new ListBuffer[(Int, Array[Int], Array[Double], Int)]
     for (line <- Source.fromFile(vectorFile).getLines()) {
       results += Vectors.fromString(line)
     }

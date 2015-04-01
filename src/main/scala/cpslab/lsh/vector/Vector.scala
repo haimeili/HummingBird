@@ -142,7 +142,7 @@ object Vectors {
     new DenseVector(new Array[Double](size))
   }
 
-  private[cpslab] def fromString(inputString: String): (Int, Array[Int], Array[Double], Long) = {
+  private[cpslab] def fromString(inputString: String): (Int, Array[Int], Array[Double], Int) = {
     val stringArray = inputString.split(",\\[")
     if (stringArray.length != 3) {
       throw new Exception(s"cannot parse $inputString")
@@ -151,7 +151,7 @@ object Vectors {
     val indices = stringArray(1).replace("]", "").split(",").map(_.toInt)
     val Array(valuesStr, idStr) = stringArray(2).split("\\]\\),")
     val values = valuesStr.split(",").map(_.toDouble)
-    val id = idStr.replace(")", "").toLong
+    val id = idStr.replace(")", "").toInt
     (size, indices, values, id)
   }
 
