@@ -26,7 +26,7 @@
   <td><code>cpslab.lsh.name</code></td>
   <td>(none)</td>
   <td>
-	The name of the lsh instance to create.
+	The name of the lsh instance to create. "pStable", "precalculated"
   </td>  
 </tr>
 <tr>
@@ -183,5 +183,15 @@
   <td><code>cpslab.lsh.sharding.systemName</code></td>
   <td>(none)</td>
   <td>The name of sharding system.</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.partitionSwitch</code></td>
+  <td>(none)</td>
+  <td>Control whether partition data in PLSH</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.inputFilePath</code></td>
+  <td>(none)</td>
+  <td>root directory path of the input vectors for each actor; the actior will read all files under the directory recursively</td>
 </tr>
 </table>

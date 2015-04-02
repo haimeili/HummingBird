@@ -154,7 +154,8 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
  * @param w W is an integer which should be large enough
  *
  */
-private[lsh] class PStableParameterSet(val a: SparseVector, val b: Double, val w: Int)
+//TODO: should limit it in LSH
+private[cpslab] class PStableParameterSet(val a: SparseVector, val b: Double, val w: Int)
   extends LSHFunctionParameterSet {
   
   override def toString: String = s"$a;$b;$w"

@@ -63,28 +63,28 @@ class PrecalculatedHashFamily(
   /**
    * generate pStable hash functions from file; called by generateTableChainFromFile
    * @param filePath path of the file storing pstable hash function parameters
-   * @param chainNumber the number of the hash tables
-   * @return the list of p-stable hash chain
+   * @param hashTableNum the number of the hash tables
+   * @return the list of p-stable hash chain, essentially they are u functions, each of which
+   *         contains k /2 hashes. (k is the length of the index on each table)
    */
-  private def generatePStableHashChainsFromFile(filePath: String, chainNumber: Int):
+  private def generatePStableHashChainsFromFile(filePath: String, hashTableNum: Int):
       List[PStableHashChain] = {
-    val paraSetList = new ListBuffer[PStableParameterSet]
+    val underlyingHashesList = new ListBuffer[PStableParameterSet]
     // generate all pstable hash functions
     for (line <- Source.fromFile(filePath).getLines()) {
       val Array(vectorString, bInStr, wInStr) = line.split(";")
       val vectorA = Vectors.fromString(vectorString)
       val b = bInStr.toDouble
       val w = wInStr.toInt
-      paraSetList += new PStableParameterSet(
+      underlyingHashesList += new PStableParameterSet(
         Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
         b, w)
     }
-    // hash set size
-    require(paraSetList.length % chainNumber == 0,
-      "the number of pStableParameterSet must be times of total hashFuncsSetSize")
-    val pStableChainLength = paraSetList.length / chainNumber
+    // the length of each u function chain
+    val pStableChainLength = math.sqrt(hashTableNum).toInt
     // u
-    val pStableHashFunctionsSet = paraSetList.grouped(chainLength / 2).map(_.toList).toList
+    val pStableHashFunctionsSet = underlyingHashesList.grouped(pStableChainLength).
+      map(_.toList).toList
     pStableHashFunctionsSet.map(pStableParams =>
       new PStableHashChain(pStableParams.size, pStableParams))
   }
@@ -125,17 +125,31 @@ class PrecalculatedHashFamily(
 
 /**
  * implementation of a hash chain containing function H(v) = FLOOR((a * v  + b) / W)
- * @param precalculatedChains the hash chain of the precalcuated functions
+ * @param concatenatedChains the hash chain of the precalcuated functions
  * @param chainSize the length of the chain
  * @param chainedFunctions the list of the funcitons used to calculate the index of the vector
  */
-private[lsh] class PrecalculatedHashChain(
-    precalculatedChains: List[LSHTableHashChain[PStableParameterSet]],
+//TODO: this class is not supposed to be private[cpslab], instead, we should limit it in lsh
+// currently, we only relax the restriction to implement two-level partition in PLSH
+private[cpslab] class PrecalculatedHashChain(
+    concatenatedChains: List[LSHTableHashChain[PStableParameterSet]],
     chainSize: Int,
     chainedFunctions: List[PrecalculatedParameterSet])
   extends LSHTableHashChain[PrecalculatedParameterSet](chainSize, chainedFunctions) {
 
   require(chainedFunctions.size == 2)
+
+  def firstPartitionerID = chainedFunctions.head.functionIdx
+
+  def secondPartitionerID = chainedFunctions(1).functionIdx
+
+  def computeFirstLevelIndex(vector:SparseVector): Array[Byte] = {
+    concatenatedChains(chainedFunctions(0).functionIdx).compute(vector)
+  }
+
+  def computeSecondLevelIndex(vector: SparseVector): Array[Byte] = {
+    concatenatedChains(chainedFunctions(1).functionIdx).compute(vector)
+  }
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
@@ -156,7 +170,7 @@ private[lsh] class PrecalculatedHashChain(
           // TODO: optimize the efficiency with bit vector
           if (!cache.contains(vector.vectorId) ||
             !cache(vector.vectorId).contains(ps.functionIdx)) {
-            val pStablePS = precalculatedChains(ps.functionIdx)
+            val pStablePS = concatenatedChains(ps.functionIdx)
             val indexValue = pStablePS.compute(vector)
             cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
               ps.functionIdx -> indexValue
@@ -187,4 +201,5 @@ private object LSHHashValueCache {
  *                    supposed to be with the length of k / 2, where k is the total number of hash
  *                    functions in each hash table;
  */
-private[lsh] case class PrecalculatedParameterSet(functionIdx: Int) extends LSHFunctionParameterSet
+private[cpslab] case class PrecalculatedParameterSet(functionIdx: Int)
+  extends LSHFunctionParameterSet
