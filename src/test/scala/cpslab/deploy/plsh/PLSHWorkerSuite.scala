@@ -28,17 +28,13 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     TestKit.shutdownActorSystem(system)
   }
 
-  test("PLSH saves vector and calculates (topK) similarity correctly (two-level partition)") {
-
-  }
-
   test("PLSH saves vector and calculates (topK) similarity correctly (one-level partition)") {
     val plshWorker = actorSystem.actorSelection("/user/clientRequestHandler")
     plshWorker ! SearchRequest(new SparseVector(1, 1, Array.fill[Int](1)(0), Array.fill[Double](1)(1.0)))
     var receivedMessages = receiveN(0)
     plshWorker ! SearchRequest(new SparseVector(2, 1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.5)))
-    receivedMessages = receiveN(10)
-    for (i <- 0 until 10) {
+    receivedMessages = receiveN(1)
+    for (i <- 0 until 1) {
       val receivedMessage = receivedMessages(i)
       assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
       val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
@@ -51,8 +47,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     }
     //output multiple vectors
     plshWorker ! SearchRequest(new SparseVector(4, 1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.3)))
-    receivedMessages = receiveN(10)
-    for (i <- 0 until 10) {
+    receivedMessages = receiveN(1)
+    for (i <- 0 until 1) {
       val receivedMessage = receivedMessages(i)
       assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
       val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
@@ -61,8 +57,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
     }
     // test topK
     plshWorker ! SearchRequest(new SparseVector(3, 1, Array.fill[Int](1)(0), Array.fill[Double](1)(0.8)))
-    receivedMessages = receiveN(10)
-    for (i <- 0 until 10) {
+    receivedMessages = receiveN(1)
+    for (i <- 0 until 1) {
       val receivedMessage = receivedMessages(i)
       assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput] === true)
       val similarityOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
