@@ -2,10 +2,12 @@ package cpslab.deploy.plsh
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 import scala.io.Source
 
 import akka.actor.{Actor, Props}
 import com.typesafe.config.Config
+import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
@@ -14,17 +16,18 @@ import cpslab.storage.{ByteArrayWrapper, LongBitSet}
 private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
 
   // vector storage
-  private lazy val singleLevelPartitionTable = Array.fill(conf.getInt("cpslab.lsh.tableNum"))(
+  private[plsh] lazy val singleLevelPartitionTable = Array.fill(conf.getInt("cpslab.lsh.tableNum"))(
     new mutable.HashMap[ByteArrayWrapper, ListBuffer[Int]])
   private[plsh] lazy val twoLevelPartitionTable = new mutable.HashMap[ByteArrayWrapper,
     mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]]()
   private lazy val partitionersInPrecalculatedChain = new ListBuffer[PrecalculatedHashChain]
   private val vectorIdToVector = new mutable.HashMap[Int, SparseVector]
+    with mutable.SynchronizedMap[Int, SparseVector]
 
   private val maxWorkerNumber = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
+
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
-
   private val partitionSwitch = conf.getBoolean("cpslab.lsh.plsh.partitionSwitch")
   private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
 
@@ -42,21 +45,26 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     initVectorStorage(inputFilePath)
   }
 
-  private def initVectorStorage(filePath: String): Unit = {
-    if (filePath != "") {
-      // TODO: change iterate over files to over vectors
-      for (line <- Source.fromFile(filePath).getLines()) {
-        try {
-          val (size, indices, values, id) = Vectors.fromString(line)
-          val vector = new SparseVector(id, size, indices, values)
-          //partition data
-          saveVector(vector)
-        } catch {
-          case e: Exception =>
-            e.printStackTrace()
+  private def initVectorStorage(filePath: String)(implicit executorService: ExecutionContext):
+      Unit = {
+    executorService.execute(new Runnable {
+      override def run(): Unit = {
+        if (filePath != "") {
+          // TODO: change iterate over files to over vectors
+          for (line <- Source.fromFile(filePath).getLines()) {
+            try {
+              val (size, indices, values, id) = Vectors.fromString(line)
+              val vector = new SparseVector(id, size, indices, values)
+              //partition data
+              saveVector(vector)
+            } catch {
+              case e: Exception =>
+                e.printStackTrace()
+            }
+          }
         }
       }
-    }
+    })
   }
 
   private def saveVector(vector: SparseVector): Unit = {
@@ -85,9 +93,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       val secondLevelIndex = selectedPartitionIDs.getOrElseUpdate(
         partitioner.secondPartitionerID,
         ByteArrayWrapper(partitioner.computeSecondLevelIndex(vector)))
-      twoLevelPartitionTable.getOrElseUpdate(firstLevelIndex,
+      twoLevelPartitionTable.synchronized {
+        twoLevelPartitionTable.getOrElseUpdate(firstLevelIndex,
           new mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]).
-        getOrElseUpdate(secondLevelIndex, new mutable.HashSet[Int]) += vector.vectorId
+          getOrElseUpdate(secondLevelIndex, new mutable.HashSet[Int]) += vector.vectorId
+      }
     }
   }
 
@@ -112,9 +122,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
     // update the local tables
     if (math.abs(index.hashCode()) % maxWorkerNumber == id) {
-      vectorIdToVector += vector.vectorId -> vector
-      singleLevelPartitionTable(tableId).getOrElseUpdate(vectorIndexInTable, new ListBuffer[Int]) +=
-        vector.vectorId
+      singleLevelPartitionTable.synchronized {
+        vectorIdToVector += vector.vectorId -> vector
+        singleLevelPartitionTable(tableId).getOrElseUpdate(vectorIndexInTable,
+          new ListBuffer[Int]) += vector.vectorId
+      }
     }
   }
 
@@ -135,13 +147,15 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     // get all candidates
     val candidateIndices = new mutable.HashSet[Int]
     for ((firstLevelIndex, secondLevelIndices) <- selectedPartitionIDs) {
-      val firstLevelSetOpt = twoLevelPartitionTable.get(firstLevelIndex)
-      firstLevelSetOpt.foreach(firstLevelSet => {
-        secondLevelIndices.foreach(secondLevelIdx =>
-          firstLevelSet.get(secondLevelIdx).foreach(secondLevelSet =>
-            candidateIndices ++= secondLevelSet)
-        )
-      })
+      twoLevelPartitionTable.synchronized {
+        val firstLevelSetOpt = twoLevelPartitionTable.get(firstLevelIndex)
+        firstLevelSetOpt.foreach(firstLevelSet => {
+          secondLevelIndices.foreach(secondLevelIdx =>
+            firstLevelSet.get(secondLevelIdx).foreach(secondLevelSet =>
+              candidateIndices ++= secondLevelSet)
+          )
+        })
+      }
     }
     val candidateVectors = candidateIndices.toList.map(vectorId => vectorIdToVector(vectorId)).map(
       sparseVector => (sparseVector.vectorId, SimilarityCalculator.fastCalculateSimilarity(
@@ -169,11 +183,15 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       val indexInCertainTable = indexOnAllTable(i)
       val keyInTable = ByteArrayWrapper(indexInCertainTable)
       // query the tables
-      val similarityResultOpt = singleLevelPartitionTable(i).get(keyInTable).map(
-        sparseVectors => sparseVectors.map {
-          existingVectorId => (existingVectorId, SimilarityCalculator.fastCalculateSimilarity(
-            vectorIdToVector(existingVectorId), queryVector))
-        })
+      val similarityResultOpt = {
+        singleLevelPartitionTable.synchronized {
+          singleLevelPartitionTable(i).get(keyInTable).map(
+            sparseVectors => sparseVectors.map {
+              existingVectorId => (existingVectorId, SimilarityCalculator.fastCalculateSimilarity(
+                vectorIdToVector(existingVectorId), queryVector))
+            })
+        }
+      }
       val sortedSimilarityResult = similarityResultOpt.map(similarityResult =>
         similarityResult.sortWith { case ((id1, similarity1), (id2, similarity2)) =>
           similarity1 > similarity2
@@ -190,16 +208,24 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
   }
 
+  private def handleSearchRequest(vector: SparseVector)
+      (implicit executorService: ExecutionContext): Unit = {
+    executorService.execute(new Runnable {
+      override def run(): Unit = {
+        if (partitionSwitch) {
+          handleSearchRequestWithTwoLevelParittionTable(vector)
+        } else {
+          handleSearchRequestWithSingleLevelPartition(vector)
+        }
+      }
+    })
+  }
+
   override def receive: Receive = {
     case SearchRequest(vector: SparseVector) =>
-      if (partitionSwitch) {
-        handleSearchRequestWithTwoLevelParittionTable(vector)
-      } else {
-        handleSearchRequestWithSingleLevelPartition(vector)
-      }
+      handleSearchRequest(vector)
   }
 }
-
 
 private[deploy] object PLSHWorker {
   def props(id: Int, conf: Config, lshInstance: LSH): Props = {

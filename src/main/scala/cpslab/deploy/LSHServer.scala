@@ -2,8 +2,6 @@ package cpslab.deploy
 
 import java.io.File
 
-import scala.collection.mutable.ListBuffer
-
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.routing.{ClusterRouterGroup, ClusterRouterGroupSettings}
 import akka.contrib.pattern.ClusterSharding

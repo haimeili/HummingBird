@@ -108,7 +108,7 @@ private[lsh] class PStableHashFamily(
 private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStableParameterSet]) 
   extends LSHTableHashChain[PStableParameterSet](chainSize, chainedFunctions) {
   
-  require(chainSize == chainedFunctions.size)
+  require(chainSize == chainedFunctions.size, s"$chainSize, ${chainedFunctions.size}")
   
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
