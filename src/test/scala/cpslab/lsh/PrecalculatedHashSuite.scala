@@ -28,7 +28,6 @@ class PrecalculatedHashSuite extends FunSuite {
       assert(hashChain.chainedHashFunctions.length === 2)
     }
     val functionIndexArray = hashChains.flatMap(_.chainedHashFunctions.map(_.functionIdx))
-    println(functionIndexArray)
-    assert(functionIndexArray === List(1, 3, 1, 2, 1, 1, 2, 3, 2, 1, 2, 2, 3, 2, 3, 1, 3, 3))
+    assert(functionIndexArray === List(0, 2, 0, 1, 0, 0, 1, 2, 1, 0, 1, 1, 2, 1, 2, 0, 2, 2) )
   }
 }

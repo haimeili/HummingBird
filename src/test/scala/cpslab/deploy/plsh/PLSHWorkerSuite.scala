@@ -10,7 +10,7 @@ import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuiteLike}
 
 class PLSHWorkerSuite(var actorSystem: ActorSystem)
-  extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfter 
+  extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfter
   with BeforeAndAfterAll {
 
   def this() = this({
@@ -27,8 +27,12 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem)
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
-  
-  test("PLSH saves vector and calculates (topK) similarity correctly") {
+
+  test("PLSH saves vector and calculates (topK) similarity correctly (two-level partition)") {
+
+  }
+
+  test("PLSH saves vector and calculates (topK) similarity correctly (one-level partition)") {
     val plshWorker = actorSystem.actorSelection("/user/clientRequestHandler")
     plshWorker ! SearchRequest(new SparseVector(1, 1, Array.fill[Int](1)(0), Array.fill[Double](1)(1.0)))
     var receivedMessages = receiveN(0)

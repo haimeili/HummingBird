@@ -16,7 +16,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   // vector storage
   private lazy val singleLevelPartitionTable = Array.fill(conf.getInt("cpslab.lsh.tableNum"))(
     new mutable.HashMap[ByteArrayWrapper, ListBuffer[Int]])
-  private lazy val twoLevelPartitionTable = new mutable.HashMap[ByteArrayWrapper,
+  private[plsh] lazy val twoLevelPartitionTable = new mutable.HashMap[ByteArrayWrapper,
     mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]]()
   private lazy val partitionersInPrecalculatedChain = new ListBuffer[PrecalculatedHashChain]
   private val vectorIdToVector = new mutable.HashMap[Int, SparseVector]
@@ -29,7 +29,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
 
   override def preStart(): Unit = {
-    // TODO: think about whether we shall put reading table operation in preStart()
+    // TODO: whether we shall put reading table operation in preStart()
     // read files and save to the hash table
     if (partitionSwitch) {
       //check if it's the right setup
@@ -50,7 +50,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
           val (size, indices, values, id) = Vectors.fromString(line)
           val vector = new SparseVector(id, size, indices, values)
           //partition data
-          partitionVectorTable(vector)
+          saveVector(vector)
         } catch {
           case e: Exception =>
             e.printStackTrace()
@@ -59,7 +59,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
   }
 
-  private def partitionVectorTable(vector: SparseVector): Unit = {
+  private def saveVector(vector: SparseVector): Unit = {
     if (partitionSwitch) {
       //two-level partition
       saveVectorToTwoLevelPartitionTable(vector)
@@ -85,8 +85,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       val secondLevelIndex = selectedPartitionIDs.getOrElseUpdate(
         partitioner.secondPartitionerID,
         ByteArrayWrapper(partitioner.computeSecondLevelIndex(vector)))
-      twoLevelPartitionTable.
-        getOrElseUpdate(firstLevelIndex,
+      twoLevelPartitionTable.getOrElseUpdate(firstLevelIndex,
           new mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]).
         getOrElseUpdate(secondLevelIndex, new mutable.HashSet[Int]) += vector.vectorId
     }
@@ -147,6 +146,8 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     val candidateVectors = candidateIndices.toList.map(vectorId => vectorIdToVector(vectorId)).map(
       sparseVector => (sparseVector.vectorId, SimilarityCalculator.fastCalculateSimilarity(
           sparseVector, queryVector))).sortWith((v1, v2) => v1._2 > v2._2)
+    //save to table
+    saveVector(queryVector)
     //return result
     if (candidateVectors.size > 0) {
       val bitmap = new LongBitSet

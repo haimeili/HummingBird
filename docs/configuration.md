@@ -26,7 +26,7 @@
   <td><code>cpslab.lsh.name</code></td>
   <td>(none)</td>
   <td>
-	The name of the lsh instance to create.
+	The name of the lsh instance to create. "pStable", "precalculated"
   </td>  
 </tr>
 <tr>
