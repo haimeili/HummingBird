@@ -2,8 +2,6 @@ package cpslab.deploy
 
 import java.io.File
 
-import scala.collection.mutable.ListBuffer
-
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.routing.{ClusterRouterGroup, ClusterRouterGroupSettings}
 import akka.contrib.pattern.ClusterSharding
@@ -25,24 +23,15 @@ private[cpslab] object LSHServer {
       newActorProps: (Int, Config, LSH) => Props): ActorSystem = {
     // start actorSystem
     val system = ActorSystem("LSH", conf)
-    // start local actors
-    val localActorNum = conf.getInt("cpslab.lsh.plsh.localActorNum")
     // local ID
     val localNodeId = conf.getInt("cpslab.lsh.nodeID")
 
-    for (i <- 0 until localActorNum) {
-      val props = newActorProps(localNodeId * localActorNum + i, conf, lsh)
-      system.actorOf(props, name = s"PLSHWorker-$i")
-    }
+    val props = newActorProps(localNodeId, conf, lsh)
+    system.actorOf(props, name = s"PLSHWorker")
 
     //start clientRequestHandler
-    val routeePath = {
-      val t = new ListBuffer[String]
-      for (i <- 0 until localActorNum) {
-        t += s"/user/PLSHWorker-$i"
-      }
-      t.toList
-    }
+    val routeePath = List(s"/user/PLSHWorker")
+
     system.actorOf(
       props = ClusterRouterGroup(
         local = BroadcastGroup(routeePath),

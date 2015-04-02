@@ -94,13 +94,6 @@
   </td>  
 </tr>
 <tr>
-  <td><code>cpslab.lsh.plsh.localActorNum</code></td>
-  <td>(none)</td>
-  <td>
-	the number of the actors started in each node for PLSH schema.
-  </td>  
-</tr>
-<tr>
   <td><code>cpslab.lsh.plsh.maxWorkerNum</code></td>
   <td>(none)</td>
   <td>

@@ -17,10 +17,7 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfterAll {
   
   def this() = this({
-    val conf = ConfigFactory.parseString(
-      """
-        |cpslab.lsh.plsh.localActorNum = 10
-      """.stripMargin).withFallback(TestSettings.testBaseConf)
+    val conf = TestSettings.testBaseConf
     LSHServer.startPLSHSystem(conf, null, DummyPLSHWorker.props)
   })
   
@@ -28,12 +25,10 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
     TestKit.shutdownActorSystem(system)
   }
   
-  test("LSHServer start PLSH system and the actors correctly") {
-    for (i <- 0 until 10) {
-      intercept[InvalidActorNameException] {
-        actorSystem.actorOf(Props(new DummyPLSHWorker(i, ConfigFactory.load(), null)),
-          name = s"PLSHWorker-$i")
-      }
+  test("LSHServer starts PLSH system and the actors correctly") {
+    intercept[InvalidActorNameException] {
+      actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
+        name = s"PLSHWorker")
     }
     intercept[InvalidActorNameException] {
       actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
@@ -44,7 +39,7 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
   test("PLSH clientRequestHandler can broadcast the request to all machines correctly ") {
     val clientHandler = actorSystem.actorSelection("/user/clientRequestHandler")
     clientHandler ! Ping
-    val receivedMessages = receiveN(10)
+    val receivedMessages = receiveN(1)
     for (msg <- receivedMessages) {
       assert(msg === Pong)
     }
