@@ -1,7 +1,12 @@
 package cpslab.deploy.plsh
 
+import java.util
+import java.util.concurrent.atomic.AtomicInteger
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.immutable.ParMap
+import scala.collection.parallel.mutable.ParIterable
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -11,121 +16,99 @@ import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
-import cpslab.storage.{ByteArrayWrapper, LongBitSet}
+import cpslab.storage.ByteArrayWrapper
 
 private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
 
+  // general setup
+  private val tableNum = conf.getInt("cpslab.lsh.tableNum")
+  private val maxWorkerNumber = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
+  private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
+  private lazy val topK = conf.getInt("cpslab.lsh.topK")
+  private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
+
   // vector storage
-  private[plsh] lazy val singleLevelPartitionTable = Array.fill(conf.getInt("cpslab.lsh.tableNum"))(
-    new mutable.HashMap[ByteArrayWrapper, ListBuffer[Int]])
-  private[plsh] lazy val twoLevelPartitionTable = new mutable.HashMap[ByteArrayWrapper,
-    mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]]()
+  //two-level partition
+  // 2d array
+  // tableID => (vectorID, bucketIndex)
+  private[plsh] val twoLevelPartitionTable =
+    Array.fill[Array[(Int, ByteArrayWrapper)]](tableNum)(null)
+  private[plsh] var bucketOffsetTable: Array[ParMap[ByteArrayWrapper, Int]] = null
+
   private lazy val partitionersInPrecalculatedChain = new ListBuffer[PrecalculatedHashChain]
   private val vectorIdToVector = new mutable.HashMap[Int, SparseVector]
     with mutable.SynchronizedMap[Int, SparseVector]
 
-  private val maxWorkerNumber = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
-
-  private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
-  private lazy val topK = conf.getInt("cpslab.lsh.topK")
-  private val partitionSwitch = conf.getBoolean("cpslab.lsh.plsh.partitionSwitch")
-  private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
-
   override def preStart(): Unit = {
     // TODO: whether we shall put reading table operation in preStart()
     // read files and save to the hash table
-    if (partitionSwitch) {
-      //check if it's the right setup
-      for (hashChainForEachTable <- lshInstance.tableIndexGenerators) {
-        assert(hashChainForEachTable.isInstanceOf[PrecalculatedHashChain])
-        partitionersInPrecalculatedChain += hashChainForEachTable.
-          asInstanceOf[PrecalculatedHashChain]
-      }
+    //check if it's the right setup
+    for (hashChainForEachTable <- lshInstance.tableIndexGenerators) {
+      assert(hashChainForEachTable.isInstanceOf[PrecalculatedHashChain])
+      partitionersInPrecalculatedChain += hashChainForEachTable.
+        asInstanceOf[PrecalculatedHashChain]
     }
     initVectorStorage(inputFilePath)
   }
 
   private def initVectorStorage(filePath: String)(implicit executorService: ExecutionContext):
       Unit = {
-    executorService.execute(new Runnable {
-      override def run(): Unit = {
-        if (filePath != "") {
-          // TODO: change iterate over files to over vectors
-          for (line <- Source.fromFile(filePath).getLines()) {
-            try {
-              val (size, indices, values, id) = Vectors.fromString(line)
-              val vector = new SparseVector(id, size, indices, values)
-              //partition data
-              saveVector(vector)
-            } catch {
-              case e: Exception =>
-                e.printStackTrace()
-            }
-          }
-        }
-      }
-    })
-  }
-
-  private def saveVector(vector: SparseVector): Unit = {
-    if (partitionSwitch) {
-      //two-level partition
-      saveVectorToTwoLevelPartitionTable(vector)
-    } else {
-      // general partition
-      for (i <- 0 until singleLevelPartitionTable.length) {
-        saveVectorToSinglePartitionTable(vector, i)
-      }
-    }
-  }
-
-  /**
-   * save vector to the table which was partitioned in two levels
-   * @param vector the vector to be saved
-   */
-  private def saveVectorToTwoLevelPartitionTable(vector: SparseVector): Unit = {
-    //put in first level
-    val selectedPartitionIDs = new mutable.HashMap[Int, ByteArrayWrapper]
-    for (partitioner <- partitionersInPrecalculatedChain) {
-      val firstLevelIndex = selectedPartitionIDs.getOrElseUpdate(
-        partitioner.firstPartitionerID,
-        ByteArrayWrapper(partitioner.computeFirstLevelIndex(vector)))
-      val secondLevelIndex = selectedPartitionIDs.getOrElseUpdate(
-        partitioner.secondPartitionerID,
-        ByteArrayWrapper(partitioner.computeSecondLevelIndex(vector)))
-      twoLevelPartitionTable.synchronized {
-        twoLevelPartitionTable.getOrElseUpdate(firstLevelIndex,
-          new mutable.HashMap[ByteArrayWrapper, mutable.HashSet[Int]]).
-          getOrElseUpdate(secondLevelIndex, new mutable.HashSet[Int]) += vector.vectorId
-      }
-    }
-  }
-
-  /**
-   * save vector to the table which is only partitioned in one level,
-   * if vectorIndexInTable is not provided, we need to recalculate the
-   * index of the table, otherwise, we use the provided index directly
-   * @param vector the vector to be saved
-   * @param tableId target tableID
-   * @param vectorIndexInTable the index of the vector in table
-   */
-  private def saveVectorToSinglePartitionTable(
-      vector: SparseVector,
-      tableId: Int,
-      vectorIndexInTable: ByteArrayWrapper = null): Unit = {
-    val index: ByteArrayWrapper = {
-      if (vectorIndexInTable == null) {
-        ByteArrayWrapper(lshInstance.calculateIndex(vector)(tableId))
-      } else {
-        vectorIndexInTable
-      }
-    }
-    // update the local tables
-    if (math.abs(index.hashCode()) % maxWorkerNumber == id) {
-      singleLevelPartitionTable.synchronized {
+    if (filePath != "") {
+      // read all files
+      for (line <- Source.fromFile(filePath).getLines()) {
+        val (size, indices, values, id) = Vectors.fromString(line)
+        val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector += vector.vectorId -> vector
-        singleLevelPartitionTable(tableId).getOrElseUpdate(vectorIndexInTable,
-          new ListBuffer[Int]) += vector.vectorId
+      }
+      // initialize tables
+      for (i <- 0 until tableNum) {
+        twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
+      }
+      // calculate the bucket index for all vectors in all tables
+      val bucketIndexOfAllVectors: ParIterable[Array[(ByteArrayWrapper, Int)]] =
+        vectorIdToVector.par.map { case (vectorId, sparseVector) =>
+          lshInstance.calculateIndex(sparseVector).map(bucketIndex =>
+            (ByteArrayWrapper(bucketIndex), sparseVector.vectorId))
+        }
+      // calculate the offset of each bucket in all tables
+      bucketOffsetTable = calculateOffsetofAllBuckets(bucketIndexOfAllVectors)
+      // calculate offset of each vector
+      calculateOffSetForAllVectors(bucketIndexOfAllVectors)
+    }
+  }
+
+  private def calculateOffsetofAllBuckets(
+      bucketIndexOfAllVectors: ParIterable[Array[(ByteArrayWrapper, Int)]]):
+      Array[ParMap[ByteArrayWrapper, Int]] = {
+    val tableIndex = new AtomicInteger(0)
+    val tempTable = Array.fill[Array[(ByteArrayWrapper, Int)]](tableNum)(null)
+    for (bucketIndexToVector <- bucketIndexOfAllVectors) {
+      tempTable(tableIndex.getAndIncrement) = bucketIndexToVector
+    }
+    tempTable.map(table =>
+      table.par.groupBy(_._1).map{case (bucketIndex, array) => (bucketIndex, array.size)})
+  }
+
+  private def calculateOffSetForAllVectors(
+      bucketIndexOfAllVectors: ParIterable[Array[(ByteArrayWrapper, Int)]]): Unit = {
+
+    assert(bucketOffsetTable != null)
+
+    val tableIndex = new AtomicInteger(0)
+    tableIndex.set(0)
+    val inBucketOffsetArray =
+      Array.fill[mutable.HashMap[ByteArrayWrapper, AtomicInteger]](tableNum)(null)
+    //initialize the offset counter for each bucket in all tables
+    for (i <- 0 until tableNum) {
+      bucketOffsetTable(i).foreach{case (bucketIndex, offset) =>
+        inBucketOffsetArray(i) += bucketIndex -> new AtomicInteger(0)}
+    }
+    for (bucketIndexToVector <- bucketIndexOfAllVectors) {
+      bucketIndexToVector.par.foreach{case (bucketIndex, vectorId) =>
+        // compute offset
+        val offset = bucketOffsetTable(tableIndex.get())(bucketIndex) +
+          inBucketOffsetArray(tableIndex.get())(bucketIndex).getAndIncrement
+        twoLevelPartitionTable(tableIndex.get())(offset) = (vectorId, bucketIndex)
       }
     }
   }
@@ -136,75 +119,34 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * @param queryVector the query vector
    */
   private def handleSearchRequestWithTwoLevelParittionTable(queryVector: SparseVector): Unit = {
-    val selectedPartitionIDs = new mutable.HashMap[ByteArrayWrapper,
-      mutable.HashSet[ByteArrayWrapper]]
-    for (partitioner <- partitionersInPrecalculatedChain) {
-      val firstLevelIndex = ByteArrayWrapper(partitioner.computeFirstLevelIndex(queryVector))
-      val secondLevelIndex = ByteArrayWrapper(partitioner.computeSecondLevelIndex(queryVector))
-      selectedPartitionIDs.getOrElseUpdate(firstLevelIndex,
-        new mutable.HashSet[ByteArrayWrapper]) += secondLevelIndex
-    }
-    // get all candidates
-    val candidateIndices = new mutable.HashSet[Int]
-    for ((firstLevelIndex, secondLevelIndices) <- selectedPartitionIDs) {
-      twoLevelPartitionTable.synchronized {
-        val firstLevelSetOpt = twoLevelPartitionTable.get(firstLevelIndex)
-        firstLevelSetOpt.foreach(firstLevelSet => {
-          secondLevelIndices.foreach(secondLevelIdx =>
-            firstLevelSet.get(secondLevelIdx).foreach(secondLevelSet =>
-              candidateIndices ++= secondLevelSet)
-          )
+    val similarCandidates = new util.BitSet
+    val queryIndexInAllTable = lshInstance.calculateIndex(queryVector)
+    for (i <- 0 until tableNum) {
+      val bucketIndex = ByteArrayWrapper(queryIndexInAllTable(i))
+      // initialize the vector offset to be the bucketoffset
+      if (bucketOffsetTable != null) {
+        val vectorOffsetOpt = bucketOffsetTable(i).get(bucketIndex)
+        vectorOffsetOpt.foreach(vectorOffset => {
+          var vectorOffsetWorkerPointer = vectorOffset
+          var candidateVectorAndBucketIndex = twoLevelPartitionTable(i)(vectorOffset)
+          while (candidateVectorAndBucketIndex._2 == bucketIndex) {
+            similarCandidates.set(vectorIdToVector(candidateVectorAndBucketIndex._1).vectorId)
+            vectorOffsetWorkerPointer += 1
+            candidateVectorAndBucketIndex = twoLevelPartitionTable(i)(vectorOffset)
+          }
         })
       }
     }
-    val candidateVectors = candidateIndices.toList.map(vectorId => vectorIdToVector(vectorId)).map(
-      sparseVector => (sparseVector.vectorId, SimilarityCalculator.fastCalculateSimilarity(
-          sparseVector, queryVector))).sortWith((v1, v2) => v1._2 > v2._2)
-    //save to table
-    saveVector(queryVector)
-    //return result
-    if (candidateVectors.size > 0) {
-      val bitmap = new LongBitSet
-      candidateVectors.map(_._1).foreach(similarVectorIdx => bitmap.set(similarVectorIdx))
-      sender ! SimilarityIntermediateOutput(queryVector.vectorId, bitmap, candidateVectors)
-    }
-  }
-
-  /**
-   * process the search request when the vectors are saved in a table which is only partitioned in
-   * the first level
-   * @param queryVector the query vector
-   */
-  private def handleSearchRequestWithSingleLevelPartition(queryVector: SparseVector): Unit = {
-    // PLSH needs to calculate similarity in all tables
-    val indexOnAllTable = lshInstance.calculateIndex(queryVector)
-    var similarVectors = List[(Int, Double)]()
-    for (i <- 0 until indexOnAllTable.length) {
-      val indexInCertainTable = indexOnAllTable(i)
-      val keyInTable = ByteArrayWrapper(indexInCertainTable)
-      // query the tables
-      val similarityResultOpt = {
-        singleLevelPartitionTable.synchronized {
-          singleLevelPartitionTable(i).get(keyInTable).map(
-            sparseVectors => sparseVectors.map {
-              existingVectorId => (existingVectorId, SimilarityCalculator.fastCalculateSimilarity(
-                vectorIdToVector(existingVectorId), queryVector))
-            })
-        }
+    if (similarCandidates.cardinality() > 0) {
+      var nextSimilarVectorID = similarCandidates.nextSetBit(0)
+      val similarVectors = new ListBuffer[(Int, Double)]
+      while (nextSimilarVectorID >= 0) {
+        similarVectors += nextSimilarVectorID -> SimilarityCalculator.fastCalculateSimilarity(
+          vectorIdToVector(nextSimilarVectorID), queryVector)
+        nextSimilarVectorID = similarCandidates.nextSetBit(nextSimilarVectorID + 1)
       }
-      val sortedSimilarityResult = similarityResultOpt.map(similarityResult =>
-        similarityResult.sortWith { case ((id1, similarity1), (id2, similarity2)) =>
-          similarity1 > similarity2
-        }).map(list => if (topK > 0) list.take(topK) else list.filter(_._2 > similarityThreshold))
-      sortedSimilarityResult.foreach(sortedSimilarVectorList =>
-        similarVectors = similarVectors ++ sortedSimilarVectorList)
-      // update the local tables
-      saveVectorToSinglePartitionTable(queryVector, i, keyInTable)
-    }
-    if (similarVectors.size > 0) {
-      val bitmap = new LongBitSet
-      similarVectors.map(_._1).foreach(similarVectorIdx => bitmap.set(similarVectorIdx))
-      sender ! SimilarityIntermediateOutput(queryVector.vectorId, bitmap, similarVectors)
+      //send
+      sender ! SimilarityIntermediateOutput(queryVector.vectorId, null, similarVectors.toList)
     }
   }
 
@@ -212,11 +154,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       (implicit executorService: ExecutionContext): Unit = {
     executorService.execute(new Runnable {
       override def run(): Unit = {
-        if (partitionSwitch) {
-          handleSearchRequestWithTwoLevelParittionTable(vector)
-        } else {
-          handleSearchRequestWithSingleLevelPartition(vector)
-        }
+        handleSearchRequestWithTwoLevelParittionTable(vector)
       }
     })
   }
