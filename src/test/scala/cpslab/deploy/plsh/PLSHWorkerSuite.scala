@@ -1,42 +1,109 @@
 package cpslab.deploy.plsh
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestActorRef, TestKit}
+import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
-import cpslab.deploy.SearchRequest
+import cpslab.deploy.{SimilarityIntermediateOutput, SearchRequest}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
-class PLSHWorkerSuite extends TestKit(ActorSystem())
-    with FunSuiteLike with BeforeAndAfterAll {
+class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem) with ImplicitSender
+  with FunSuiteLike with BeforeAndAfterAll {
+
+  def this() = this({
+    val familyFile = s"${getClass.getClassLoader.getResource("testprecalculated").getFile}," +
+      s"${getClass.getClassLoader.getResource("testprecalculated_pstable").getFile}"
+    val plshWorkerSuiteConf = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.plsh.maxWorkerNum=1
+         |cpslab.lsh.plsh.mergeThreshold=2
+         |cpslab.lsh.name=precalculated
+         |cpslab.lsh.familyFilePath="$familyFile"
+         |cpslab.lsh.generateMethod=fromfile
+         |cpslab.lsh.tableNum = 9
+      """.stripMargin).withFallback(TestSettings.testBaseConf)
+    ActorSystem("LSH", plshWorkerSuiteConf)
+  })
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 
   test("PLSHWorker saves and fetches data with two-level partitioned table correctly") {
-    val familyFile = s"${getClass.getClassLoader.getResource("testprecalculated").getFile}," +
-      s"${getClass.getClassLoader.getResource("testprecalculated_pstable").getFile}"
-    val plshWorkerSuiteConf = ConfigFactory.parseString(
-      s"""
-         |cpslab.lsh.name=precalculated
-         |cpslab.lsh.familyFilePath="$familyFile"
-         |cpslab.lsh.generateMethod=fromfile
-         |akka.remote.netty.tcp.port = 2557
-         |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:2557"]
-         |cpslab.lsh.tableNum = 9
-      """.stripMargin).withFallback(TestSettings.testBaseConf)
+    val plshWorkerSuiteConf = system.settings.config
     val lsh = new LSH(plshWorkerSuiteConf)
-    val plshWorker = TestActorRef[PLSHWorker](PLSHWorker.props(1, plshWorkerSuiteConf, lsh))
+    val plshWorker = TestActorRef[PLSHWorker](PLSHWorker.props(0, plshWorkerSuiteConf, lsh))
+    val staticTableLength = plshWorker.underlyingActor.twoLevelPartitionTable.length
+    val deltaTableLength = plshWorker.underlyingActor.deltaTable.length
+    val bucketOffsetTableLength = plshWorker.underlyingActor.bucketOffsetTable.length
+    assert(staticTableLength === 9)
+    assert(deltaTableLength === 9)
+    assert(bucketOffsetTableLength === 9)
+    assert(staticTableLength === deltaTableLength)
+    assert(staticTableLength === bucketOffsetTableLength)
     //vector 1
-    val vector1 = new SparseVector(4, 2, Array(0, 1), Array(0.1, 0.2))
-    //index 1
+    val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
+    //index vector 1
     plshWorker.underlyingActor.receive(SearchRequest(vector1))
     Thread.sleep(5000)
     //check the internal data structure
-    assert(plshWorker.underlyingActor.twoLevelPartitionTable.length === 9)
-    //TODO: wait for merge happen; check bucketIndexOffsetTable; check twoLevelPartitionTable
+    //static table
+    for (i <- 0 until staticTableLength) {
+      assert(plshWorker.underlyingActor.twoLevelPartitionTable(i) === null)
+      assert(plshWorker.underlyingActor.deltaTable(i).size === 1)
+      assert(plshWorker.underlyingActor.bucketOffsetTable(i) === null)
+    }
+    assert(plshWorker.underlyingActor.elementCountInDeltaTable.get() === 1)
+    //vector 2
+    val vector2 = new SparseVector(5, 2, Array(0, 1), Array(0.1, 0.2))
+    //index vector 2
+    plshWorker.underlyingActor.receive(SearchRequest(vector2))
+    Thread.sleep(5000)
+    for (i <- 0 until staticTableLength) {
+      assert(plshWorker.underlyingActor.twoLevelPartitionTable(i).length === 2)
+      assert(plshWorker.underlyingActor.deltaTable(i).size === 0)
+      assert(plshWorker.underlyingActor.bucketOffsetTable(i).size === 1)
+    }
+    plshWorker.stop()
+  }
+
+  test("PLSHWorker responses similarity vectors correctly") {
+    val plshWorkerSuiteConf = system.settings.config
+    val lsh = new LSH(plshWorkerSuiteConf)
+    val plshWorker = system.actorOf(PLSHWorker.props(0, plshWorkerSuiteConf, lsh))
+    Thread.sleep(5000)
+    //vector 1
+    val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
+    //index vector 1
+    plshWorker ! SearchRequest(vector1)
+    Thread.sleep(5000)
+    //vector 2
+    val vector2 = new SparseVector(2, 2, Array(0, 1), Array(0.1, 0.2))
+    //index vector 2
+    plshWorker ! SearchRequest(vector2)
+    Thread.sleep(5000)
+    val receivedMessages = receiveN(1)
+    for (receivedMessage <- receivedMessages) {
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput])
+      val simOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(simOutput.queryVectorID === 2)
+      assert(simOutput.similarVectorPairs.length === 1)
+      assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
+    }
+    val vector3 = new SparseVector(3, 2, Array(0, 1), Array(0.1, 0.2))
+    //index vector 2
+    plshWorker ! SearchRequest(vector3)
+    Thread.sleep(5000)
+    val receivedMessages2 = receiveN(1)
+    for (receivedMessage <- receivedMessages2) {
+      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput])
+      val simOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(simOutput.queryVectorID === 3)
+      assert(simOutput.similarVectorPairs.length === 2)
+      assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
+      assert(simOutput.similarVectorPairs(1) === Tuple2(2, 0.05000000000000001))
+    }
   }
 }

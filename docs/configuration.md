@@ -182,4 +182,9 @@
   <td>(none)</td>
   <td>root directory path of the input vectors for each actor; the actior will read all files under the directory recursively</td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.mergeThreshold</code></td>
+  <td>(none)</td>
+  <td>Threshold for merging the delta table to static table.</td>
+</tr>
 </table>
