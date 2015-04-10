@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
-import cpslab.deploy.{SimilarityIntermediateOutput, SearchRequest}
+import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}

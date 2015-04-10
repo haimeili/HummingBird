@@ -2,7 +2,6 @@ package cpslab.lsh
 
 import java.nio.ByteBuffer
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.util.Random

@@ -1,16 +1,14 @@
 package cpslab.deploy.plsh
 
 import java.util
-import java.util.concurrent.atomic.{AtomicLong, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.immutable.ParMap
-import scala.collection.parallel.mutable.ParIterable
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
-import akka.actor.{ActorRef, Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
 import cpslab.deploy.plsh.PLSHExecutionContext._
