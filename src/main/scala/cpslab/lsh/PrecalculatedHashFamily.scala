@@ -160,7 +160,6 @@ private[cpslab] class PrecalculatedHashChain(
    * @return the index of the vector
    */
   override def compute(vector: SparseVector): Array[Byte] = {
-    import LSHHashValueCache._
     // generate integer typed index
     val indexInATable = chainedFunctions.foldLeft(Array.fill[Byte](0)(0))(
       (existingByteArray, ps) => {
@@ -168,14 +167,8 @@ private[cpslab] class PrecalculatedHashChain(
           // calculate new Byte Array
           // assuming normalized vector
           // TODO: optimize the efficiency with bit vector
-          if (!cache.contains(vector.vectorId) ||
-            !cache(vector.vectorId).contains(ps.functionIdx)) {
-            val pStablePS = concatenatedChains(ps.functionIdx)
-            val indexValue = pStablePS.compute(vector)
-            cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
-              ps.functionIdx -> indexValue
-          }
-          cache(vector.vectorId)(ps.functionIdx)
+          val pStablePS = concatenatedChains(ps.functionIdx)
+          pStablePS.compute(vector)
         }
         existingByteArray ++ newByteArray
       })
@@ -185,15 +178,6 @@ private[cpslab] class PrecalculatedHashChain(
       existingByteArray ++ newByteArray)
   }
 }
-
-/**
- * the class storing the hash function value for sparse vectors
- */
-private object LSHHashValueCache {
-  // vectorId => (function index => value)
-  val cache = new mutable.HashMap[Int, mutable.HashMap[Int, Array[Byte]]]
-}
-
 
 /**
  * parameter set for the precalculated hash family;
