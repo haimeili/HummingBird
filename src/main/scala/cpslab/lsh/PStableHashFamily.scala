@@ -7,7 +7,7 @@ import scala.io.Source
 import scala.util.Random
 
 import breeze.stats.distributions.Gaussian
-import cpslab.lsh.vector.{SparseVector, Vectors}
+import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 
 /**
  * a hash family containing functions H(v) = FLOOR((a * v  + b) / W)
@@ -124,14 +124,7 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
       val newByteArray = {
         // calculate new Byte Array
         // assuming normalized vector
-        // TODO: optimize the efficiency with bit vector
-        var sum = 0.0
-        for (idx <- vector.indices) {
-          if (ps2.a.indices.contains(idx)) {
-            sum += ps2.a.values(ps2.a.indices.indexOf(idx)) * 
-              vector.values(vector.indices.indexOf(idx))      
-          }
-        }
+        val sum = SimilarityCalculator.fastCalculateSimilarity(ps2.a, vector)
         Array(((sum + ps2.b) / ps2.w).toInt)
       }
       existingByteArray ++ newByteArray

@@ -45,7 +45,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     assert(staticTableLength === bucketOffsetTableLength)
     plshWorker.underlyingActor.receive(WindowUpdate(0, 0))
     //vector 1
-    val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
+    val vector1 = new SparseVector(1, 3, Array(0, 1), Array(0.1, 0.2))
     //index vector 1
     plshWorker.underlyingActor.receive(SearchRequest(vector1))
     Thread.sleep(5000)
@@ -58,7 +58,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     }
     assert(plshWorker.underlyingActor.elementCountInDeltaTable.get() === 1)
     //vector 2
-    val vector2 = new SparseVector(5, 2, Array(0, 1), Array(0.1, 0.2))
+    val vector2 = new SparseVector(5, 3, Array(0, 1), Array(0.1, 0.2))
     //index vector 2
     plshWorker.underlyingActor.receive(SearchRequest(vector2))
     Thread.sleep(5000)
@@ -81,12 +81,12 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     val windowUpdateNotice = receivedWindowUpdateNotice(0).asInstanceOf[WindowUpdateNotification]
     assert(windowUpdateNotice.id == 0)
     //vector 1
-    val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
+    val vector1 = new SparseVector(1, 3, Array(0, 1), Array(0.1, 0.2))
     //index vector 1
     plshWorker ! SearchRequest(vector1)
     Thread.sleep(5000)
     //vector 2
-    val vector2 = new SparseVector(2, 2, Array(0, 1), Array(0.1, 0.2))
+    val vector2 = new SparseVector(2, 3, Array(0, 1), Array(0.1, 0.2))
     //index vector 2
     plshWorker ! SearchRequest(vector2)
     Thread.sleep(5000)
@@ -97,7 +97,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     assert(simOutput.similarVectorPairs.length === 1)
     assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
     //index vector 3
-    val vector3 = new SparseVector(3, 2, Array(0, 1), Array(0.1, 0.2))
+    val vector3 = new SparseVector(3, 3, Array(0, 1), Array(0.1, 0.2))
     plshWorker ! SearchRequest(vector3)
     Thread.sleep(5000)
     val receivedMessages2 = receiveN(1)
