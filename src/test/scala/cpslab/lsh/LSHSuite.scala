@@ -14,7 +14,7 @@ class LSHSuite extends FunSuite with BeforeAndAfterAll {
       s"""
          |cpslab.lsh.familySize = 10
          |cpslab.lsh.tableNum = 100
-         |cpslab.lsh.vectorDim = 1024
+         |cpslab.lsh.vectorDim = 3
          |cpslab.lsh.chainLength = 2
       """.stripMargin).withFallback(TestSettings.testBaseConf)
   }
