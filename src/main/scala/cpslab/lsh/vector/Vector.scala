@@ -217,6 +217,9 @@ class SparseVector(
     val indices: Array[Int],
     val values: Array[Double]) extends Vector {
 
+  def this(paraTuple: (Int, Array[Int], Array[Double], Int)) =
+    this(paraTuple._4, paraTuple._1, paraTuple._2, paraTuple._3)
+
   require(indices.length == values.length)
   
   val indexToMap = new mutable.HashMap[Int, Double]()

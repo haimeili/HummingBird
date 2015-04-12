@@ -30,16 +30,17 @@ private[cpslab] object LSHServer {
     system.actorOf(props, name = s"PLSHWorker")
 
     //start clientRequestHandler
+    val clientHandlerNumber = conf.getInt("cpslab.lsh.deploy.maxNodeNum")
     val routeePath = List(s"/user/PLSHWorker")
 
     system.actorOf(
       props = ClusterRouterGroup(
         local = BroadcastGroup(routeePath),
         settings = ClusterRouterGroupSettings(
-            totalInstances = 1, 
-            routeesPaths = routeePath, 
-            allowLocalRoutees = true, 
-            useRole = Some("compute"))).props(),
+          totalInstances = clientHandlerNumber,
+          routeesPaths = routeePath,
+          allowLocalRoutees = true,
+          useRole = Some("compute"))).props(),
       name = "clientRequestHandler")
     system
   }
@@ -55,13 +56,7 @@ private[cpslab] object LSHServer {
 
     val shardRegionActorPath = ClusterSharding(system).shardRegion(ShardDatabaseWorker.
       shardDatabaseWorkerActorName).path.toStringWithoutAddress
-    val clientHandlerNumber = {
-      try {
-        conf.getInt("cpslab.lsh.deploy.clientHandlerInstanceNumber")
-      } catch {
-        case e: Exception => 10
-      }
-    }
+    val clientHandlerNumber = conf.getInt("cpslab.lsh.deploy.maxNodeNum")
     // start the router
     val router = system.actorOf(
       ClusterRouterGroup(

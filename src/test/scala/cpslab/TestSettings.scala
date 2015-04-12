@@ -10,14 +10,16 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.chainLength = 10
        |cpslab.lsh.familySize = 100
        |cpslab.lsh.topK = 2
-       |cpslab.lsh.plsh.maxWorkerNum = 10
+       |cpslab.lsh.plsh.updateWindowSize = 10
        |cpslab.lsh.plsh.partitionSwitch=false
+       |cpslab.lsh.plsh.maxNumberOfVector=100
        |cpslab.lsh.inputFilePath=""
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"
        |cpslab.lsh.generateMethod = default
        |cpslab.lsh.nodeID = 0
        |cpslab.lsh.name = pStable
+       |cpslab.lsh.deploy.maxNodeNum=100
        |cpslab.lsh.familySize = 10
        |cpslab.lsh.family.pstable.mu = 0.0
        |cpslab.lsh.family.pstable.sigma = 0.02
@@ -48,6 +50,14 @@ private[cpslab] object TestSettings {
       |cpslab.lsh.nodeID = 0
     """.stripMargin)
 
+  private val clientConf = ConfigFactory.parseString(
+    """
+      |cpslab.lsh.plsh.benchmark.inputSource=""
+      |cpslab.lsh.plsh.benchmark.remoteProxyList=["akka.tcp://LSH@127.0.0.1:3000/user/clientRequestHandler", "akka.tcp://LSH@127.0.0.1:3001/user/clientRequestHandler"]
+      |cpslab.lsh.plsh.benchmark.messageInterval=200
+    """.stripMargin)
+
   val testBaseConf = appConf.withFallback(akkaConf)
   val testShardingConf = appConf.withFallback(akkaConf).withFallback(shardingConf)
+  val testClientConf = appConf.withFallback(akkaConf).withFallback(clientConf)
 }

@@ -17,7 +17,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
       s"${getClass.getClassLoader.getResource("testprecalculated_pstable").getFile}"
     val plshWorkerSuiteConf = ConfigFactory.parseString(
       s"""
-         |cpslab.lsh.plsh.maxWorkerNum=1
+         |cpslab.lsh.plsh.updateWindowSize=1
          |cpslab.lsh.plsh.mergeThreshold=2
          |cpslab.lsh.name=precalculated
          |cpslab.lsh.familyFilePath="$familyFile"
@@ -43,6 +43,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     assert(bucketOffsetTableLength === 9)
     assert(staticTableLength === deltaTableLength)
     assert(staticTableLength === bucketOffsetTableLength)
+    plshWorker.underlyingActor.receive(WindowUpdate(0, 0))
     //vector 1
     val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
     //index vector 1
@@ -73,7 +74,12 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     val plshWorkerSuiteConf = system.settings.config
     val lsh = new LSH(plshWorkerSuiteConf)
     val plshWorker = system.actorOf(PLSHWorker.props(0, plshWorkerSuiteConf, lsh))
-    Thread.sleep(5000)
+    plshWorker ! WindowUpdate(0, 0)
+    Thread.sleep(3000)
+    val receivedWindowUpdateNotice = receiveN(1)
+    assert(receivedWindowUpdateNotice(0).isInstanceOf[WindowUpdateNotification])
+    val windowUpdateNotice = receivedWindowUpdateNotice(0).asInstanceOf[WindowUpdateNotification]
+    assert(windowUpdateNotice.id == 0)
     //vector 1
     val vector1 = new SparseVector(1, 2, Array(0, 1), Array(0.1, 0.2))
     //index vector 1
@@ -85,15 +91,13 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     plshWorker ! SearchRequest(vector2)
     Thread.sleep(5000)
     val receivedMessages = receiveN(1)
-    for (receivedMessage <- receivedMessages) {
-      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput])
-      val simOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
-      assert(simOutput.queryVectorID === 2)
-      assert(simOutput.similarVectorPairs.length === 1)
-      assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
-    }
+    assert(receivedMessages(0).isInstanceOf[SimilarityIntermediateOutput])
+    val simOutput = receivedMessages(0).asInstanceOf[SimilarityIntermediateOutput]
+    assert(simOutput.queryVectorID === 2)
+    assert(simOutput.similarVectorPairs.length === 1)
+    assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
+    //index vector 3
     val vector3 = new SparseVector(3, 2, Array(0, 1), Array(0.1, 0.2))
-    //index vector 2
     plshWorker ! SearchRequest(vector3)
     Thread.sleep(5000)
     val receivedMessages2 = receiveN(1)
