@@ -16,7 +16,7 @@
   </td>  
 </tr>
 <tr>
-  <td><code>cpslab.lsh.deploy.clientHandlerInstanceNumber</code></td>
+  <td><code>cpslab.lsh.deploy.maxNodeNum</code></td>
   <td>10</td>
   <td>
 	The number of handlers per machine.
@@ -94,10 +94,10 @@
   </td>  
 </tr>
 <tr>
-  <td><code>cpslab.lsh.plsh.maxWorkerNum</code></td>
+  <td><code>cpslab.lsh.plsh.updateWindowSize</code></td>
   <td>(none)</td>
   <td>
-	The total number of worker started in PLSH schema.
+	The maximum number of workers in update window.
   </td>  
 </tr>
 <tr>
@@ -186,5 +186,20 @@
   <td><code>cpslab.lsh.plsh.mergeThreshold</code></td>
   <td>(none)</td>
   <td>Threshold for merging the delta table to static table.</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.benchmark.inputSource</code></td>
+  <td>(none)</td>
+  <td>input source of the benchmark input</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.benchmark.remoteProxyList</code></td>
+  <td>(none)</td>
+  <td>the list of the remote proxies for benchmarking</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.benchmark.messageInterval</code></td>
+  <td>(none)</td>
+  <td>the interval between two messages, in milliseconds</td>
 </tr>
 </table>

@@ -12,7 +12,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
 import cpslab.deploy.plsh.PLSHExecutionContext._
-import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
+import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 import cpslab.storage.ByteArrayWrapper
@@ -21,8 +21,10 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
 
   // general setup
   private val tableNum = conf.getInt("cpslab.lsh.tableNum")
-  private val maxWorkerNumber = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
+  private val updateWindowSize = conf.getInt("cpslab.lsh.plsh.updateWindowSize")
+  private var withinUpdateWindow = false
   private val mergeThreshold = conf.getLong("cpslab.lsh.plsh.mergeThreshold")
+  private val maxNumberOfVector = conf.getLong("cpslab.lsh.plsh.maxNumberOfVector")
   private[plsh] val elementCountInDeltaTable = new AtomicLong(0)
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
@@ -232,12 +234,13 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    */
   private def saveQueryVectorToDeltaTable(
       queryVector: SparseVector,
-      bucketIndices: Array[Array[Byte]]): Unit = {
+      bucketIndices: Array[Array[Byte]],
+      client: ActorRef): Unit = {
     elementCountInDeltaTable.getAndIncrement
     for (i <- 0 until bucketIndices.length) {
       val bucketIndex = bucketIndices(i)
       val bucketIndexWrapper = ByteArrayWrapper(bucketIndex)
-      if (math.abs(bucketIndexWrapper.hashCode()) % maxWorkerNumber == id) {
+      if (withinUpdateWindow && math.abs(bucketIndexWrapper.hashCode()) % updateWindowSize == id) {
         vectorIdToVector.synchronized {
           vectorIdToVector += queryVector.vectorId -> queryVector
         }
@@ -246,6 +249,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
             queryVector.vectorId
         }
       }
+    }
+    if (vectorIdToVector.size >= maxNumberOfVector) {
+      client ! CapacityFullNotification(id)
     }
     tryToMergeDeltaAndStaticTable()
   }
@@ -289,7 +295,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     //select similar candidates and send back to the sender
     selectAndResponseSimilarCandidates(similarCandidates, queryVector, clientActor)
     //save the query vector to delta table
-    saveQueryVectorToDeltaTable(queryVector, queryIndexInAllTable)
+    saveQueryVectorToDeltaTable(queryVector, queryIndexInAllTable, clientActor)
     workerThreadCount.getAndDecrement
   }
 
@@ -304,10 +310,32 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     })
   }
 
-  override def receive: Receive = {
+  private def handleSimilaritySearchMessages(similarityMessages: SimilaritySearchMessages): Unit =
+    similarityMessages match {
     case SearchRequest(vector: SparseVector) =>
       while (mergingThreadCount.get() > 0) {Thread.sleep(100)}
       handleSearchRequest(vector, sender())
+    case other =>
+      logger.error(s"unrecognizable message: $other")
+  }
+
+  private def handlePLSHMessages(plshMessage: PLSHMessage): Unit = plshMessage match {
+    case WindowUpdate(lowerBound, upperBound) =>
+      val client = new ThreadLocal[ActorRef]
+      client.set(sender())
+      if (id >= lowerBound && id <= upperBound) {
+        withinUpdateWindow = true
+      } else {
+        withinUpdateWindow = false
+      }
+      client.get() ! WindowUpdateNotification(id)
+  }
+
+  override def receive: Receive = {
+    case simSearchMsg: SimilaritySearchMessages =>
+      handleSimilaritySearchMessages(simSearchMsg)
+    case plshMsg: PLSHMessage =>
+      handlePLSHMessages(plshMsg)
   }
 }
 
