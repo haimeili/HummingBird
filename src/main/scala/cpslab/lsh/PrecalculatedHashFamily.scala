@@ -165,14 +165,16 @@ private[cpslab] class PrecalculatedHashChain(
         val newByteArray = {
           // calculate new Byte Array
           // assuming normalized vector
-          if (cache.contains(vector.vectorId) && cache(vector.vectorId).contains(ps.functionIdx)) {
-            cache(vector.vectorId)(ps.functionIdx)
-          } else {
-            val pStablePS = concatenatedChains(ps.functionIdx)
-            val key = pStablePS.compute(vector)
-            cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
-              ps.functionIdx -> key
-            key
+          cache.synchronized {
+            if (cache.contains(vector.vectorId) && cache(vector.vectorId).contains(ps.functionIdx)) {
+              cache(vector.vectorId)(ps.functionIdx)
+            } else {
+              val pStablePS = concatenatedChains(ps.functionIdx)
+              val key = pStablePS.compute(vector)
+              cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
+                ps.functionIdx -> key
+              key
+            }
           }
         }
         existingByteArray ++ newByteArray
