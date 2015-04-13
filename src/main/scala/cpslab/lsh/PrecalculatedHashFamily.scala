@@ -44,10 +44,8 @@ class PrecalculatedHashFamily(
    * @return the list of LSHTableHashChain
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[PrecalculatedParameterSet]] = {
-    require(math.sqrt(tableNum) - familySize <= 0.00001,
-      "PrecalculatedHashFamily requires that Sqrt(tableNum) == familySize")
     val uniformRandomizer = new Random(System.currentTimeMillis())
-    val underlyingFunctions = underlyingHashFamily.pick(math.sqrt(tableNum).toInt)
+    val underlyingFunctions = underlyingHashFamily.pick(familySize)
     val generatedHashChains = new Array[LSHTableHashChain[PrecalculatedParameterSet]](tableNum)
     // generate the hash chain
     for (i <- 0 until tableNum) {
