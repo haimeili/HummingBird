@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -29,7 +28,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private[plsh] val elementCountInDeltaTable = new AtomicLong(0)
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
-  private lazy val inputFilePaths = conf.getStringList("cpslab.lsh.inputFilePaths")
+  private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
   private val logger = Logging(context.system, this)
 
   // vector storage
@@ -53,20 +52,20 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     // read files and save to the hash table
     try {
       //initialize the vector
-      initVectorStorage(inputFilePaths)
+      initVectorStorage(inputFilePath)
       logger.info("Finished loading data from file system ")
     } catch {
       case e: Exception =>
         e.printStackTrace()
-        logger.error(s"Cannot initialize the storage space at $inputFilePaths")
+        logger.error(s"Cannot initialize the storage space at $inputFilePath")
     }
   }
 
-  private def initVectorStorage(filePaths: util.List[String])(
-      implicit executorService: ExecutionContext): Unit = {
-    if (filePaths.length > 0) {
+  private def initVectorStorage(filePath: String)(implicit executorService: ExecutionContext):
+      Unit = {
+    if (filePath != "") {
       // read all files
-      for (filePath <- filePaths; line <- Source.fromFile(filePath).getLines()) {
+      for (line <- Source.fromFile(filePath).getLines()) {
         val (size, indices, values, id) = Vectors.fromString(line)
         val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector += vector.vectorId -> vector
@@ -267,7 +266,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       executorService.execute {
         new Runnable() {
           override def run() {
-            initVectorStorage(List[String]())
+            initVectorStorage("")
             for (i <- 0 until deltaTable.length) {
               deltaTable(i).clear()
             }

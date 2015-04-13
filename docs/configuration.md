@@ -178,9 +178,9 @@
   <td>The name of sharding system.</td>
 </tr>
 <tr>
-  <td><code>cpslab.lsh.inputFilePaths</code></td>
+  <td><code>cpslab.lsh.inputFilePath</code></td>
   <td>(none)</td>
-  <td>file paths of the input vector file; </td>
+  <td>root directory path of the input vectors for each actor; the actior will read all files under the directory recursively</td>
 </tr>
 <tr>
   <td><code>cpslab.lsh.plsh.mergeThreshold</code></td>
