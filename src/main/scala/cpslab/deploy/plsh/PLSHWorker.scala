@@ -244,7 +244,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     for (i <- 0 until bucketIndices.length) {
       val bucketIndex = bucketIndices(i)
       val bucketIndexWrapper = ByteArrayWrapper(bucketIndex)
-      if (withinUpdateWindow && math.abs(bucketIndexWrapper.hashCode()) % updateWindowSize == id) {
+      if (withinUpdateWindow &&
+        math.abs(bucketIndexWrapper.hashCode()) % updateWindowSize ==
+          (id - updateWindowSize * (id / updateWindowSize))) {
         vectorIdToVector.synchronized {
           vectorIdToVector += queryVector.vectorId -> queryVector
         }
