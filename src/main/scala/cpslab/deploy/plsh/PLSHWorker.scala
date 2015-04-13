@@ -82,6 +82,8 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * NOTE: we need to ensure that at any moment, at most one thread is calling this function
    */
   private def initTwoLevelPartitionTable(): Unit = {
+    val startTime = System.nanoTime()
+    logger.info("Initializing Static Table ")
     // initialize tables
     for (i <- 0 until tableNum) {
       twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
@@ -96,6 +98,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     bucketOffsetTable = calculateOffsetofAllBuckets(bucketIndexOfAllVectors)
     // calculate offset of each vector
     calculateOffSetForAllVectors(bucketIndexOfAllVectors)
+    logger.info(s"Finished Static Table Building, take time ${System.nanoTime() - startTime}")
   }
 
   /**
