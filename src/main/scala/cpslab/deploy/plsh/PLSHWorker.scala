@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.ThreadPoolTaskSupport
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -48,6 +49,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
 
   private val vectorIdToVector = new mutable.HashMap[Int, SparseVector]
 
+  //parallel task support
+  private val parallelTaskSupport = new ThreadPoolTaskSupport()
+
   override def preStart(): Unit = {
     // read files and save to the hash table
     try {
@@ -88,9 +92,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     for (i <- 0 until tableNum) {
       twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
     }
+    val parVectorIdToVector = vectorIdToVector.par
+    parVectorIdToVector.tasksupport = parallelTaskSupport
     // calculate the bucket index for all vectors in all tables
     val bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]] =
-      vectorIdToVector.par.map { case (vectorId, sparseVector) =>
+      parVectorIdToVector.map { case (vectorId, sparseVector) =>
         lshInstance.calculateIndex(sparseVector).map(bucketIndex =>
           (ByteArrayWrapper(bucketIndex), sparseVector.vectorId))
       }.seq
@@ -109,7 +115,6 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private def calculateOffsetofAllBuckets(
       bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]]):
       Array[mutable.HashMap[ByteArrayWrapper, Int]] = {
-    val tableIndex = new AtomicInteger(0)
     val tempTable = Array.fill[mutable.HashMap[ByteArrayWrapper, Int]](tableNum)(
       new mutable.HashMap[ByteArrayWrapper, Int])
     var tableId = 0
@@ -121,8 +126,11 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         tableId = 0
       }
     }
-    val bucketCountArray = tempTable.map(table =>
-      table.par.groupBy(_._1).map{case (bucketIndex, array) => (bucketIndex, array.size)}.seq)
+    val bucketCountArray = tempTable.map(table => {
+      val parTable = table.par
+      parTable.tasksupport = parallelTaskSupport
+      parTable.groupBy(_._1).map { case (bucketIndex, array) => (bucketIndex, array.size) }.seq
+    })
     //translate from count to offset
     bucketCountArray.map(bucketCountMapPerTable => {
       var currentTotalCnt = 0
@@ -155,7 +163,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
     // update twoLevelPartitionTable with all vectors
     // parallel over vector instances
-    bucketIndexOfAllVectors.par.foreach(bucketIndicesOfVector => {
+    val parBucketIndexOfAllVectors = bucketIndexOfAllVectors.par
+    parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
+    parBucketIndexOfAllVectors.foreach(bucketIndicesOfVector => {
       var tableId = 0
       bucketIndicesOfVector.foreach{case (bucketIndex, vectorId) =>
         // compute offset
