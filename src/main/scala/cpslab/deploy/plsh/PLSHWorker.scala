@@ -12,7 +12,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
 import cpslab.deploy.plsh.PLSHExecutionContext._
-import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages}
+import cpslab.deploy.{Utils, SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 import cpslab.storage.ByteArrayWrapper
@@ -65,7 +65,8 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       Unit = {
     if (filePath != "") {
       // read all files
-      for (line <- Source.fromFile(filePath).getLines()) {
+      val allFiles = Utils.buildFileListUnderDirectory(filePath)
+      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
         val (size, indices, values, id) = Vectors.fromString(line)
         val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector += vector.vectorId -> vector
