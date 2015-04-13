@@ -13,7 +13,7 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.plsh.updateWindowSize = 10
        |cpslab.lsh.plsh.partitionSwitch=false
        |cpslab.lsh.plsh.maxNumberOfVector=100
-       |cpslab.lsh.inputFilePath=""
+       |cpslab.lsh.inputFilePaths=[]
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"
        |cpslab.lsh.generateMethod = default
