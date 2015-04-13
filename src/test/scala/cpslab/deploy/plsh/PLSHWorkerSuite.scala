@@ -63,7 +63,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     plshWorker.underlyingActor.receive(SearchRequest(vector2))
     Thread.sleep(5000)
     for (i <- 0 until staticTableLength) {
-      assert(plshWorker.underlyingActor.twoLevelPartitionTable(i).length === 2)
+      assert(plshWorker.underlyingActor.twoLevelPartitionTable(i).length === 16)
       assert(plshWorker.underlyingActor.deltaTable(i).size === 0)
       assert(plshWorker.underlyingActor.bucketOffsetTable(i).size === 1)
     }
