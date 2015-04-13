@@ -2,6 +2,7 @@ package cpslab.lsh
 
 import java.nio.ByteBuffer
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.util.Random
@@ -33,7 +34,7 @@ class PrecalculatedHashFamily(
   require(chainLength % 2 == 0,
     "PrecalculatedHashFamily requires hash funciton chain length to be even number")
 
-  // TODO: make it type parameterized
+  // TODO: make it type-parameterized
   private val underlyingHashFamily =
     new PStableHashFamily(familySize, vectorDim, pStableMu, pStableSigma, w, chainLength / 2)
 
@@ -159,15 +160,22 @@ private[cpslab] class PrecalculatedHashChain(
    * @return the index of the vector
    */
   override def compute(vector: SparseVector): Array[Byte] = {
+    import PrecalculateCache._
     // generate integer typed index
     val indexInATable = chainedFunctions.foldLeft(Array.fill[Byte](0)(0))(
       (existingByteArray, ps) => {
         val newByteArray = {
           // calculate new Byte Array
           // assuming normalized vector
-          // TODO: optimize the efficiency with bit vector
-          val pStablePS = concatenatedChains(ps.functionIdx)
-          pStablePS.compute(vector)
+          if (cache.contains(vector.vectorId) && cache(vector.vectorId).contains(ps.functionIdx)) {
+            cache(vector.vectorId)(ps.functionIdx)
+          } else {
+            val pStablePS = concatenatedChains(ps.functionIdx)
+            val key = pStablePS.compute(vector)
+            cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
+              ps.functionIdx -> key
+            key
+          }
         }
         existingByteArray ++ newByteArray
       })
@@ -176,6 +184,11 @@ private[cpslab] class PrecalculatedHashChain(
       foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) =>
       existingByteArray ++ newByteArray)
   }
+}
+
+private object PrecalculateCache {
+  //vectorId -> (underlying hash function id -> value)
+  val cache = new mutable.HashMap[Int, mutable.HashMap[Int, Array[Byte]]]
 }
 
 /**
