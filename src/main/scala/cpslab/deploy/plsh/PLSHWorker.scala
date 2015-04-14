@@ -52,7 +52,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private val initVectorNumber = conf.getInt("cpslab.lsh.initVectorNumber")
 
   //parallel task support
-  private val parallelTaskSupport = new ThreadPoolTaskSupport()
+  //private val parallelTaskSupport = new ThreadPoolTaskSupport()
 
   override def preStart(): Unit = {
     // read files and save to the hash table
@@ -97,7 +97,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
     }
     val parVectorIdToVector = vectorIdToVector.par
-    parVectorIdToVector.tasksupport = parallelTaskSupport
+    //parVectorIdToVector.tasksupport = parallelTaskSupport
     // calculate the bucket index for all vectors in all tables
     val bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]] =
       parVectorIdToVector.view.filter(_ != null).map(sparseVector =>
@@ -131,7 +131,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
     val bucketCountArray = tempTable.map(table => {
       val parTable = table.par
-      parTable.tasksupport = parallelTaskSupport
+      //parTable.tasksupport = parallelTaskSupport
       parTable.groupBy(_._1).map { case (bucketIndex, array) => (bucketIndex, array.size) }.seq
     })
     //translate from count to offset
@@ -167,7 +167,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     // update twoLevelPartitionTable with all vectors
     // parallel over vector instances
     val parBucketIndexOfAllVectors = bucketIndexOfAllVectors.par
-    parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
+    //parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
     parBucketIndexOfAllVectors.foreach(bucketIndicesOfVector => {
       var tableId = 0
       bucketIndicesOfVector.foreach{case (bucketIndex, vectorId) =>
