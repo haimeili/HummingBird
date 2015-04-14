@@ -1,11 +1,13 @@
 package cpslab.deploy.plsh
 
 import java.util
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.parallel.ThreadPoolTaskSupport
+import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -118,24 +120,27 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private def calculateOffsetofAllBuckets(
       bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]]):
       Array[mutable.HashMap[ByteArrayWrapper, Int]] = {
-    val tempTable = Array.fill[mutable.HashMap[ByteArrayWrapper, Int]](tableNum)(
-      new mutable.HashMap[ByteArrayWrapper, Int])
-    var tableId = 0
-    for (indicesOfVectorsInTables <- bucketIndexOfAllVectors.seq;
-         bucketIndexOfVectorInTable <- indicesOfVectorsInTables) {
-      tempTable(tableId) += bucketIndexOfVectorInTable._1 -> bucketIndexOfVectorInTable._2
-      tableId += 1
-      if (tableId == tableNum) {
-        tableId = 0
+    val tempTable = Array.fill[ConcurrentHashMap[ByteArrayWrapper, Int]](tableNum)(
+      new ConcurrentHashMap[ByteArrayWrapper, Int])
+    bucketIndexOfAllVectors.par.foreach(indicesOfVectorInAllTables => {
+      var tableId = 0
+      for (bucketIndexOfVectorInThisTable <- indicesOfVectorInAllTables) {
+        tempTable(tableId) += bucketIndexOfVectorInThisTable._1 -> bucketIndexOfVectorInThisTable._2
+        tableId += 1
+        if (tableId == tableNum) {
+          tableId = 0
+        }
       }
-    }
+    })
+
     val bucketCountArray = tempTable.map(table => {
       val parTable = table.par
       //parTable.tasksupport = parallelTaskSupport
+      //group by bucket index
       parTable.groupBy(_._1).map { case (bucketIndex, array) => (bucketIndex, array.size) }.seq
     })
     //translate from count to offset
-    bucketCountArray.map(bucketCountMapPerTable => {
+    bucketCountArray.par.map(bucketCountMapPerTable => {
       var currentTotalCnt = 0
       var bucketOffsetPerTable = new mutable.HashMap[ByteArrayWrapper, Int]
       for ((bucketIndex, cnt) <- bucketCountMapPerTable) {
@@ -143,7 +148,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
         currentTotalCnt += cnt
       }
       bucketOffsetPerTable
-    })
+    }).toArray
   }
 
   /**
