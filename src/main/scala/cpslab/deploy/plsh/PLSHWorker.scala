@@ -120,12 +120,13 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private def calculateOffsetofAllBuckets(
       bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]]):
       Array[mutable.HashMap[ByteArrayWrapper, Int]] = {
-    val tempTable = Array.fill[ConcurrentHashMap[ByteArrayWrapper, Int]](tableNum)(
-      new ConcurrentHashMap[ByteArrayWrapper, Int])
+    val tempTable = Array.fill[ConcurrentHashMap[ByteArrayWrapper, AtomicInteger]](tableNum)(
+      new ConcurrentHashMap[ByteArrayWrapper, AtomicInteger])
     bucketIndexOfAllVectors.par.foreach(indicesOfVectorInAllTables => {
       var tableId = 0
       for (bucketIndexOfVectorInThisTable <- indicesOfVectorInAllTables) {
-        tempTable(tableId) += bucketIndexOfVectorInThisTable._1 -> bucketIndexOfVectorInThisTable._2
+        tempTable(tableId).getOrElseUpdate(bucketIndexOfVectorInThisTable._1, new AtomicInteger(0))
+        tempTable(tableId)(bucketIndexOfVectorInThisTable._1).getAndAdd(1)
         tableId += 1
         if (tableId == tableNum) {
           tableId = 0
@@ -137,7 +138,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       val parTable = table.par
       //parTable.tasksupport = parallelTaskSupport
       //group by bucket index
-      parTable.groupBy(_._1).map { case (bucketIndex, array) => (bucketIndex, array.size) }.seq
+      parTable.map { case (bucketIndex, cnt) => (bucketIndex, cnt.get()) }.seq
     })
     //translate from count to offset
     bucketCountArray.par.map(bucketCountMapPerTable => {
