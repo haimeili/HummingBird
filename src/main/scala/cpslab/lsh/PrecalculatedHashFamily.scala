@@ -1,8 +1,10 @@
 package cpslab.lsh
 
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.util.Random
@@ -170,10 +172,8 @@ private[cpslab] class PrecalculatedHashChain(
           } else {
             val pStablePS = concatenatedChains(ps.functionIdx)
             val key = pStablePS.compute(vector)
-            cache.synchronized {
-              cache.getOrElseUpdate(vector.vectorId, new mutable.HashMap[Int, Array[Byte]]) +=
-                ps.functionIdx -> key
-            }
+            cache.getOrElseUpdate(vector.vectorId, new ConcurrentHashMap[Int, Array[Byte]]) +=
+              ps.functionIdx -> key
             key
           }
         }
@@ -188,7 +188,7 @@ private[cpslab] class PrecalculatedHashChain(
 
 private object PrecalculateCache {
   //vectorId -> (underlying hash function id -> value)
-  val cache = new mutable.HashMap[Int, mutable.HashMap[Int, Array[Byte]]]
+  val cache = new ConcurrentHashMap[Int, ConcurrentHashMap[Int, Array[Byte]]]
 }
 
 /**
