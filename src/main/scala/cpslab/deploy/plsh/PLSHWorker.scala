@@ -1,21 +1,22 @@
 package cpslab.deploy.plsh
 
 import java.util
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
-import cpslab.deploy.plsh.PLSHExecutionContext._
-import cpslab.deploy.{Utils, SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages}
+import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages, Utils}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
-import cpslab.storage.ByteArrayWrapper
 
 private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends Actor {
 
@@ -36,17 +37,22 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   // 2d array
   // tableID => (vectorID, bucketIndex)
   private[plsh] var twoLevelPartitionTable =
-    Array.fill[Array[(Int, ByteArrayWrapper)]](tableNum)(null)
-  private[plsh] var bucketOffsetTable: Array[mutable.HashMap[ByteArrayWrapper, Int]] =
-    Array.fill[mutable.HashMap[ByteArrayWrapper, Int]](tableNum)(null)
-  private[plsh] val deltaTable = Array.fill(tableNum)(new mutable.HashMap[ByteArrayWrapper,
+    Array.fill[Array[(Int, Int)]](tableNum)(null)
+  private[plsh] var bucketOffsetTable: Array[mutable.HashMap[Int, Int]] =
+    Array.fill[mutable.HashMap[Int, Int]](tableNum)(null)
+  private[plsh] val deltaTable = Array.fill(tableNum)(new mutable.HashMap[Int,
     ListBuffer[Int]])
 
   //variables controlling the merge thread
   private val workerThreadCount: AtomicInteger = new AtomicInteger(0)
   private val mergingThreadCount: AtomicInteger = new AtomicInteger(0)
 
-  private val vectorIdToVector = new mutable.HashMap[Int, SparseVector]
+  private var vectorIdToVector: Array[SparseVector] = new Array[SparseVector](0)
+  private var totalVectorCount = 0
+  private val initVectorNumber = conf.getInt("cpslab.lsh.initVectorNumber")
+
+  //parallel task support
+  //private val parallelTaskSupport = new ThreadPoolTaskSupport()
 
   override def preStart(): Unit = {
     // read files and save to the hash table
@@ -65,14 +71,16 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       Unit = {
     if (filePath != "") {
       // read all files
+      vectorIdToVector = new Array[SparseVector](initVectorNumber)
       val allFiles = Utils.buildFileListUnderDirectory(filePath)
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
         val (size, indices, values, id) = Vectors.fromString(line)
         val vector = new SparseVector(id, size, indices, values)
-        vectorIdToVector += vector.vectorId -> vector
+        vectorIdToVector(vector.vectorId) = vector
+        totalVectorCount += 1
       }
     }
-    if (vectorIdToVector.size > 0) {
+    if (vectorIdToVector.length > 0) {
       initTwoLevelPartitionTable()
     }
   }
@@ -82,20 +90,23 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * NOTE: we need to ensure that at any moment, at most one thread is calling this function
    */
   private def initTwoLevelPartitionTable(): Unit = {
+    val startTime = System.nanoTime()
+    logger.info("Initializing Static Table ")
     // initialize tables
     for (i <- 0 until tableNum) {
-      twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
+      twoLevelPartitionTable(i) = new Array[(Int, Int)](vectorIdToVector.size)
     }
+    val parVectorIdToVector = vectorIdToVector.par
     // calculate the bucket index for all vectors in all tables
-    val bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]] =
-      vectorIdToVector.par.map { case (vectorId, sparseVector) =>
+    val bucketIndexOfAllVectors: Iterable[Array[(Int, Int)]] =
+      parVectorIdToVector.filter(_ != null).map(sparseVector =>
         lshInstance.calculateIndex(sparseVector).map(bucketIndex =>
-          (ByteArrayWrapper(bucketIndex), sparseVector.vectorId))
-      }.seq
+          (bucketIndex, sparseVector.vectorId))).seq
     // calculate the offset of each bucket in all tables
     bucketOffsetTable = calculateOffsetofAllBuckets(bucketIndexOfAllVectors)
     // calculate offset of each vector
     calculateOffSetForAllVectors(bucketIndexOfAllVectors)
+    logger.info(s"Finished Static Table Building, take time ${System.nanoTime() - startTime}")
   }
 
   /**
@@ -104,32 +115,37 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * @return the offset of all bucket index in all tables
    */
   private def calculateOffsetofAllBuckets(
-      bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]]):
-      Array[mutable.HashMap[ByteArrayWrapper, Int]] = {
-    val tableIndex = new AtomicInteger(0)
-    val tempTable = Array.fill[mutable.HashMap[ByteArrayWrapper, Int]](tableNum)(
-      new mutable.HashMap[ByteArrayWrapper, Int])
-    var tableId = 0
-    for (indicesOfVectorsInTables <- bucketIndexOfAllVectors.seq;
-         bucketIndexOfVectorInTable <- indicesOfVectorsInTables) {
-      tempTable(tableId) += bucketIndexOfVectorInTable._1 -> bucketIndexOfVectorInTable._2
-      tableId += 1
-      if (tableId == tableNum) {
-        tableId = 0
+      bucketIndexOfAllVectors: Iterable[Array[(Int, Int)]]):
+      Array[mutable.HashMap[Int, Int]] = {
+    val tempTable = Array.fill[ConcurrentHashMap[Int, AtomicInteger]](tableNum)(
+      new ConcurrentHashMap[Int, AtomicInteger])
+    bucketIndexOfAllVectors.par.foreach(indicesOfVectorInAllTables => {
+      var tableId = 0
+      for (bucketIndexOfVectorInThisTable <- indicesOfVectorInAllTables) {
+        tempTable(tableId).getOrElseUpdate(bucketIndexOfVectorInThisTable._1, new AtomicInteger(0))
+        tempTable(tableId)(bucketIndexOfVectorInThisTable._1).getAndAdd(1)
+        tableId += 1
+        if (tableId == tableNum) {
+          tableId = 0
+        }
       }
-    }
-    val bucketCountArray = tempTable.map(table =>
-      table.par.groupBy(_._1).map{case (bucketIndex, array) => (bucketIndex, array.size)}.seq)
+    })
+
+    val bucketCountArray = tempTable.map(table => {
+      val parTable = table.par
+      //group by bucket index
+      parTable.map { case (bucketIndex, cnt) => (bucketIndex, cnt.get()) }.seq
+    })
     //translate from count to offset
-    bucketCountArray.map(bucketCountMapPerTable => {
+    bucketCountArray.par.map(bucketCountMapPerTable => {
       var currentTotalCnt = 0
-      var bucketOffsetPerTable = new mutable.HashMap[ByteArrayWrapper, Int]
+      var bucketOffsetPerTable = new mutable.HashMap[Int, Int]
       for ((bucketIndex, cnt) <- bucketCountMapPerTable) {
         bucketOffsetPerTable += bucketIndex -> currentTotalCnt
         currentTotalCnt += cnt
       }
       bucketOffsetPerTable
-    })
+    }).toArray
   }
 
   /**
@@ -138,13 +154,13 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * @param bucketIndexOfAllVectors bucket index of all vectors
    */
   private def calculateOffSetForAllVectors(
-      bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]]): Unit = {
+      bucketIndexOfAllVectors: Iterable[Array[(Int, Int)]]): Unit = {
 
     assert(bucketOffsetTable != null)
 
     val inBucketOffsetArray =
-      Array.fill[mutable.HashMap[ByteArrayWrapper, AtomicInteger]](tableNum)(
-        new mutable.HashMap[ByteArrayWrapper, AtomicInteger])
+      Array.fill[mutable.HashMap[Int, AtomicInteger]](tableNum)(
+        new mutable.HashMap[Int, AtomicInteger])
     //initialize the offset counter for each bucket in all tables
     for (i <- 0 until tableNum) {
       bucketOffsetTable(i).foreach{case (bucketIndex, _) =>
@@ -152,7 +168,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     }
     // update twoLevelPartitionTable with all vectors
     // parallel over vector instances
-    bucketIndexOfAllVectors.par.foreach(bucketIndicesOfVector => {
+    val parBucketIndexOfAllVectors = bucketIndexOfAllVectors.par
+    //parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
+    parBucketIndexOfAllVectors.foreach(bucketIndicesOfVector => {
       var tableId = 0
       bucketIndicesOfVector.foreach{case (bucketIndex, vectorId) =>
         // compute offset
@@ -196,31 +214,38 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * @param bucketIndicesOfQuery the bucket indices of the query vectors
    * @return BitSet representing the similar candidates
    */
-  private def queryTablesForSimilarCandidates(bucketIndicesOfQuery: Array[Array[Byte]]):
+  private def queryTablesForSimilarCandidates(bucketIndicesOfQuery: Array[Int]):
       util.BitSet = {
     val similarCandidates = new util.BitSet
-    for (i <- 0 until tableNum) {
+    for (tableId <- 0 until tableNum) {
       //calculate the query vector offset within the bucket
-      val bucketIndex = ByteArrayWrapper(bucketIndicesOfQuery(i))
+      val bucketIndex = bucketIndicesOfQuery(tableId)
       //query static table
       // we need to guard to handle the case that the node starts without initialization of
       // anything from the local file system and handle the search request directly
-      if (bucketOffsetTable(i) != null) {
-        val vectorOffsetOpt = bucketOffsetTable(i).get(bucketIndex)
+      if (bucketOffsetTable(tableId) != null) {
+        val vectorOffsetOpt = bucketOffsetTable(tableId).get(bucketIndex)
         vectorOffsetOpt.foreach(vectorOffset => {
           var vectorOffsetWorkerPointer = vectorOffset
-          var candidateVectorAndBucketIndex = twoLevelPartitionTable(i)(vectorOffsetWorkerPointer)
-          while (candidateVectorAndBucketIndex._2 == bucketIndex &&
-            vectorOffsetWorkerPointer < twoLevelPartitionTable(i).length) {
-            candidateVectorAndBucketIndex = twoLevelPartitionTable(i)(vectorOffsetWorkerPointer)
-            similarCandidates.set(vectorIdToVector(candidateVectorAndBucketIndex._1).vectorId)
+          var candidateVectorAndBucketIndex = twoLevelPartitionTable(tableId)(
+            vectorOffsetWorkerPointer)
+          while (
+              candidateVectorAndBucketIndex != null &&
+              candidateVectorAndBucketIndex._2 == bucketIndex &&
+              vectorOffsetWorkerPointer < twoLevelPartitionTable(tableId).length
+          ) {
+            candidateVectorAndBucketIndex = twoLevelPartitionTable(tableId)(
+              vectorOffsetWorkerPointer)
+            if (candidateVectorAndBucketIndex != null) {
+              similarCandidates.set(vectorIdToVector(candidateVectorAndBucketIndex._1).vectorId)
+            }
             vectorOffsetWorkerPointer += 1
           }
         })
       }
       //query delta table
-      deltaTable(i).synchronized {
-        val candidatesOpt = deltaTable(i).get(bucketIndex)
+      deltaTable(tableId).synchronized {
+        val candidatesOpt = deltaTable(tableId).get(bucketIndex)
         candidatesOpt.foreach(candidate =>
           candidate.foreach(candidateInt => similarCandidates.set(candidateInt)))
       }
@@ -232,26 +257,33 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * save query vector to the delta table
    * @param queryVector query vector
    * @param bucketIndices the bucket indices of the query vector in all tables
+   * @param client the client address to receive notification when the table is full (client should
+   *               update the sliding window range)
    */
   private def saveQueryVectorToDeltaTable(
       queryVector: SparseVector,
-      bucketIndices: Array[Array[Byte]],
+      bucketIndices: Array[Int],
       client: ActorRef): Unit = {
     elementCountInDeltaTable.getAndIncrement
-    for (i <- 0 until bucketIndices.length) {
-      val bucketIndex = bucketIndices(i)
-      val bucketIndexWrapper = ByteArrayWrapper(bucketIndex)
-      if (withinUpdateWindow && math.abs(bucketIndexWrapper.hashCode()) % updateWindowSize == id) {
+    totalVectorCount += 1
+    for (tableId <- 0 until bucketIndices.length) {
+      val bucketIndex = bucketIndices(tableId)
+      if (withinUpdateWindow && bucketIndex % updateWindowSize ==
+          (id - updateWindowSize * (id / updateWindowSize))) {
         vectorIdToVector.synchronized {
-          vectorIdToVector += queryVector.vectorId -> queryVector
+          if (vectorIdToVector.length < totalVectorCount) {
+            //TODO: pooling memory space
+            vectorIdToVector = vectorIdToVector ++ new Array[SparseVector](16)
+          }
+          vectorIdToVector(queryVector.vectorId) = queryVector
         }
-        deltaTable(i).synchronized {
-          deltaTable(i).getOrElseUpdate(bucketIndexWrapper, new ListBuffer[Int]) +=
+        deltaTable(tableId).synchronized {
+          deltaTable(tableId).getOrElseUpdate(bucketIndex, new ListBuffer[Int]) +=
             queryVector.vectorId
         }
       }
     }
-    if (vectorIdToVector.size >= maxNumberOfVector) {
+    if (vectorIdToVector.length >= maxNumberOfVector) {
       client ! CapacityFullNotification(id)
     }
     tryToMergeDeltaAndStaticTable()
@@ -261,6 +293,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * check if need to merge and delta table
    */
   private def tryToMergeDeltaAndStaticTable(): Unit = {
+    import PLSHExecutionContext._
     if (workerThreadCount.get() <= 1 && mergingThreadCount.get() == 0 &&
       elementCountInDeltaTable.get() >= mergeThreshold) {
       mergingThreadCount.incrementAndGet()

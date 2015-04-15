@@ -25,8 +25,5 @@ class LSHSuite extends FunSuite with BeforeAndAfterAll {
       asInstanceOf[SparseVector]
     val keyArray = lsh.calculateIndex(testVector)
     assert(keyArray.length === 100)
-    for (key <- keyArray) {
-      assert(key.length === 8)
-    }
   }
 }

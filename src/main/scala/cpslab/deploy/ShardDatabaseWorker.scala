@@ -1,7 +1,5 @@
 package cpslab.deploy
 
-import java.util
-
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -13,7 +11,7 @@ import com.typesafe.config.Config
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVectorWrapper
 
-private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor{
+private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
 
   private val maxShardNumPerTable = conf.getInt("cpslab.lsh.sharding.maxShardNumPerTable")
   private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
@@ -51,9 +49,9 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[Int, List[SparseVectorWrapper]]]
     for (i <- 0 until indexInAllTables.length) {
-      val indexInTable = new Array[Array[Byte]](indexInAllTables.length)
-      val bucketIndex = util.Arrays.hashCode(indexInAllTables(i)) % maxShardNumPerTable
+      val indexInTable = new Array[Int](indexInAllTables.length)
       indexInTable(i) = indexInAllTables(i)
+      val bucketIndex = indexInAllTables(i) % maxShardNumPerTable
       val vectorInList =
         List(SparseVectorWrapper(indexInTable, searchRequest.vector))
       shardingNamespace match {
@@ -69,8 +67,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   }
 
   private def sendOrBatchShardAllocation(
-      outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]):
-    Unit = {
+      outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[Int, List[SparseVectorWrapper]]]
+      ): Unit = {
     for ((shardId, tableMap) <- outputShardMap) {
       shardingNamespace match {
         case "independent" =>

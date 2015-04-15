@@ -101,6 +101,17 @@ object Vectors {
     new SparseVector(Vectors.nextVectorID, size, indices, values)
 
   /**
+   * Creates a sparse vector providing its index array and value array.
+   *
+   * @param id vector Id
+   * @param size vector size.
+   * @param indices index array, must be strictly increasing.
+   * @param values value array, must have the same length as indices.
+   */
+  def sparse(id: Int, size: Int, indices: Array[Int], values: Array[Double]): Vector =
+    new SparseVector(id, size, indices, values)
+
+  /**
    * Creates a sparse vector using unordered (index, value) pairs.
    *
    * @param size vector size.
@@ -237,7 +248,8 @@ class SparseVector(
   }
   
   override def toString: String =
-    "(%s,%s,%s)".format(size, indices.mkString("[", ",", "]"), values.mkString("[", ",", "]"))
+    "(%s,%s,%s,%s)".format(vectorId, size, indices.mkString("[", ",", "]"),
+      values.mkString("[", ",", "]"))
 
   override def toArray: Array[Double] = {
     val data = new Array[Double](size)

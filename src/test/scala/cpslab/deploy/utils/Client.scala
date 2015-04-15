@@ -6,10 +6,12 @@ import akka.actor.Actor
 import cpslab.deploy.SimilarityOutput
 
 private[deploy] class Client extends Actor {
-  val state = new mutable.HashMap[Int, Array[Long]]
+  val state = new mutable.HashMap[Int, mutable.HashSet[Int]]
 
   override def receive = {
     case SimilarityOutput(vectorId, bitmap, similarIDs) =>
-      state.getOrElseUpdate(vectorId, similarIDs.map(_._1.toLong).toArray)
+      for (similarId <- similarIDs) {
+        state.getOrElseUpdate(vectorId, new mutable.HashSet[Int]) += similarId._1
+      }
   }
 }

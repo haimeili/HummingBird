@@ -178,9 +178,9 @@
   <td>The name of sharding system.</td>
 </tr>
 <tr>
-  <td><code>cpslab.lsh.inputFilePath</code></td>
+  <td><code>cpslab.lsh.inputFilePaths</code></td>
   <td>(none)</td>
-  <td>root directory path of the input vectors for each actor; the actior will read all files under the directory recursively</td>
+  <td>file paths of the input vector file; </td>
 </tr>
 <tr>
   <td><code>cpslab.lsh.plsh.mergeThreshold</code></td>
@@ -201,5 +201,10 @@
   <td><code>cpslab.lsh.plsh.benchmark.messageInterval</code></td>
   <td>(none)</td>
   <td>the interval between two messages, in milliseconds</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.initVectorNumber</code></td>
+  <td>(none)</td>
+  <td>init space size for storing vector</td>
 </tr>
 </table>

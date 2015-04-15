@@ -1,6 +1,6 @@
 package cpslab.lsh
 
-import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -16,26 +16,19 @@ import cpslab.lsh.vector.{SparseVector, Vectors}
  *
  * @param familySize total number of functions in this family
  * @param vectorDim the vector dimensionality supported by this family
- * @param pStableMu the mu value of the Gaussian distribution
- * @param pStableSigma the sigma value of Gaussian distribution
- * @param w W selected
  * @param chainLength the length of the hash function chain
  */
 class PrecalculatedHashFamily(
     familySize: Int,
     vectorDim: Int,
-    pStableMu: Double,
-    pStableSigma: Double,
-    w: Int,
     chainLength: Int)
   extends LSHHashFamily[PrecalculatedParameterSet] {
 
   require(chainLength % 2 == 0,
     "PrecalculatedHashFamily requires hash funciton chain length to be even number")
 
-  // TODO: make it type parameterized
-  private val underlyingHashFamily =
-    new PStableHashFamily(familySize, vectorDim, pStableMu, pStableSigma, w, chainLength / 2)
+  // TODO: make it type-parameterized
+  private val underlyingHashFamily = new AngleHashFamily(familySize, vectorDim, chainLength / 2)
 
   /**
    * get a set of parameters of the lsh function; essentially the user calls this method to get a
@@ -43,10 +36,8 @@ class PrecalculatedHashFamily(
    * @return the list of LSHTableHashChain
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[PrecalculatedParameterSet]] = {
-    require(math.sqrt(tableNum) - familySize <= 0.00001,
-      "PrecalculatedHashFamily requires that Sqrt(tableNum) == familySize")
     val uniformRandomizer = new Random(System.currentTimeMillis())
-    val underlyingFunctions = underlyingHashFamily.pick(math.sqrt(tableNum).toInt)
+    val underlyingFunctions = underlyingHashFamily.pick(familySize)
     val generatedHashChains = new Array[LSHTableHashChain[PrecalculatedParameterSet]](tableNum)
     // generate the hash chain
     for (i <- 0 until tableNum) {
@@ -66,26 +57,21 @@ class PrecalculatedHashFamily(
    * @return the list of p-stable hash chain, essentially they are u functions, each of which
    *         contains k /2 hashes. (k is the length of the index on each table)
    */
-  private def generatePStableHashChainsFromFile(filePath: String, hashTableNum: Int):
-      List[PStableHashChain] = {
-    val underlyingHashesList = new ListBuffer[PStableParameterSet]
+  private def generateAngleHashChainsFromFile(filePath: String, hashTableNum: Int):
+      List[AngleHashChain] = {
+    val underlyingHashesList = new ListBuffer[AngleParameterSet]
     // generate all pstable hash functions
-    for (line <- Source.fromFile(filePath).getLines()) {
-      val Array(vectorString, bInStr, wInStr) = line.split(";")
+    for (vectorString <- Source.fromFile(filePath).getLines()) {
       val vectorA = Vectors.fromString(vectorString)
-      val b = bInStr.toDouble
-      val w = wInStr.toInt
-      underlyingHashesList += new PStableParameterSet(
-        Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
-        b, w)
+      underlyingHashesList += new AngleParameterSet(
+        Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector])
     }
     // the length of each u function chain
-    val pStableChainLength = math.sqrt(hashTableNum).toInt
+    val angleChainLength = math.sqrt(hashTableNum).toInt
     // u
-    val pStableHashFunctionsSet = underlyingHashesList.grouped(pStableChainLength).
+    val angleHashFunctionsSet = underlyingHashesList.grouped(angleChainLength).
       map(_.toList).toList
-    pStableHashFunctionsSet.map(pStableParams =>
-      new PStableHashChain(pStableParams.size, pStableParams))
+    angleHashFunctionsSet.map(angleParams => new AngleHashChain(angleParams.size, angleParams))
   }
 
   /**
@@ -99,8 +85,7 @@ class PrecalculatedHashFamily(
       List[LSHTableHashChain[PrecalculatedParameterSet]] = {
     val Array(precalculatedFilePath, pStableFilePath) = filePaths.split(",")
     try {
-      // pStable chain number == sqrt(tableNumber)
-      val pStableHashChains = generatePStableHashChainsFromFile(pStableFilePath,
+      val pStableHashChains = generateAngleHashChainsFromFile(pStableFilePath,
         math.sqrt(tableNum).toInt)
       // generate precalculated hash family
       val precalculatedHashFileLines = Source.fromFile(precalculatedFilePath).getLines().toList
@@ -131,24 +116,12 @@ class PrecalculatedHashFamily(
 //TODO: this class is not supposed to be private[cpslab], instead, we should limit it in lsh
 // currently, we only relax the restriction to implement two-level partition in PLSH
 private[cpslab] class PrecalculatedHashChain(
-    concatenatedChains: List[LSHTableHashChain[PStableParameterSet]],
+    concatenatedChains: List[LSHTableHashChain[AngleParameterSet]],
     chainSize: Int,
     chainedFunctions: List[PrecalculatedParameterSet])
   extends LSHTableHashChain[PrecalculatedParameterSet](chainSize, chainedFunctions) {
 
   require(chainedFunctions.size == 2)
-
-  def firstPartitionerID = chainedFunctions.head.functionIdx
-
-  def secondPartitionerID = chainedFunctions(1).functionIdx
-
-  def computeFirstLevelIndex(vector:SparseVector): Array[Byte] = {
-    concatenatedChains(chainedFunctions(0).functionIdx).compute(vector)
-  }
-
-  def computeSecondLevelIndex(vector: SparseVector): Array[Byte] = {
-    concatenatedChains(chainedFunctions(1).functionIdx).compute(vector)
-  }
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
@@ -158,24 +131,17 @@ private[cpslab] class PrecalculatedHashChain(
    * @param vector the vector to be indexed
    * @return the index of the vector
    */
-  override def compute(vector: SparseVector): Array[Byte] = {
+  override def compute(vector: SparseVector): Int = {
     // generate integer typed index
-    val indexInATable = chainedFunctions.foldLeft(Array.fill[Byte](0)(0))(
-      (existingByteArray, ps) => {
-        val newByteArray = {
-          // calculate new Byte Array
-          // assuming normalized vector
-          // TODO: optimize the efficiency with bit vector
-          val pStablePS = concatenatedChains(ps.functionIdx)
-          pStablePS.compute(vector)
-        }
-        existingByteArray ++ newByteArray
-      })
-    // generate byte array typed index
-    indexInATable.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).
-      foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) =>
-      existingByteArray ++ newByteArray)
+    val bucketIndex1 = concatenatedChains(chainedFunctions(0).functionIdx).compute(vector)
+    val bucketIndex2 = concatenatedChains(chainedFunctions(1).functionIdx).compute(vector)
+    bucketIndex1 << 16| bucketIndex2
   }
+}
+
+private object PrecalculateCache {
+  //vectorId -> (underlying hash function id -> value)
+  val cache = new ConcurrentHashMap[Int, ConcurrentHashMap[Int, Int]]
 }
 
 /**

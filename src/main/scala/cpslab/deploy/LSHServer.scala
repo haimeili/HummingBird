@@ -89,10 +89,6 @@ private[cpslab] object LSHServer {
         println(s"Unsupported Distributed Schema $x")
         null
     }
-    
-    val regionActor = ClusterSharding(system).shardRegion(
-      ShardDatabaseWorker.shardDatabaseWorkerActorName)
-    //regionActor ! SearchRequest("vector0", new SparseVector(3, Array(0, 1), Array(1.0, 1.0)))
   }
 }
 

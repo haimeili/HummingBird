@@ -31,13 +31,8 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
           chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
         pickUpHashChains(family)
       case "precalculated" =>
-        val mu = conf.getDouble("cpslab.lsh.family.pstable.mu")
-        val sigma = conf.getDouble("cpslab.lsh.family.pstable.sigma")
-        val w = conf.getInt("cpslab.lsh.family.pstable.w")
-
         val family = Some(new PrecalculatedHashFamily(
-          familySize = familySize, vectorDim = vectorDim,
-          chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
+          familySize = familySize, vectorDim = vectorDim, chainLength = chainLength))
         pickUpHashChains(family)
       case x => None
     }
@@ -70,13 +65,10 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
    * calculate the index of the vector in tables, the index in each table is represented as a 
    * byte array
    * @param vector the vector to be indexed
-   * @param validTableIDs the tables where this vector to be put in. If not passing this parameter
-   *                      in, the index of the vector in all tables will be calculated
    * @return the index of the vector in tables, the order corresponds to the validTableIDs parameter
    */
-  def calculateIndex(vector: SparseVector, validTableIDs: Seq[Int] = 
-    0 until tableIndexGenerators.size): Array[Array[Byte]] = {
-    (for (i <- 0 until tableIndexGenerators.size if validTableIDs.contains(i))
+  def calculateIndex(vector: SparseVector): Array[Int] = {
+    (for (i <- 0 until tableIndexGenerators.size)
       yield tableIndexGenerators(i).compute(vector)).toArray
   }
 }
