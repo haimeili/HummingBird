@@ -6,9 +6,10 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.collection.parallel.ThreadPoolTaskSupport
+import scala.collection.parallel.{ForkJoinTaskSupport, ThreadPoolTaskSupport}
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.forkjoin.ForkJoinPool
 import scala.io.Source
 
 import akka.actor.{Actor, ActorRef, Props}
@@ -99,7 +100,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
     }
     val parVectorIdToVector = vectorIdToVector.par
-    //parVectorIdToVector.tasksupport = parallelTaskSupport
+    parVectorIdToVector.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
     // calculate the bucket index for all vectors in all tables
     val bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]] =
       parVectorIdToVector.view.filter(_ != null).map(sparseVector =>
@@ -136,7 +137,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
 
     val bucketCountArray = tempTable.map(table => {
       val parTable = table.par
-      //parTable.tasksupport = parallelTaskSupport
+      parTable.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
       //group by bucket index
       parTable.map { case (bucketIndex, cnt) => (bucketIndex, cnt.get()) }.seq
     })
@@ -173,6 +174,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     // update twoLevelPartitionTable with all vectors
     // parallel over vector instances
     val parBucketIndexOfAllVectors = bucketIndexOfAllVectors.par
+    parBucketIndexOfAllVectors.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
     //parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
     parBucketIndexOfAllVectors.foreach(bucketIndicesOfVector => {
       var tableId = 0
