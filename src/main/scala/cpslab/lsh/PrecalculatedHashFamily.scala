@@ -3,7 +3,6 @@ package cpslab.lsh
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 
-import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -19,17 +18,11 @@ import cpslab.lsh.vector.{SparseVector, Vectors}
  *
  * @param familySize total number of functions in this family
  * @param vectorDim the vector dimensionality supported by this family
- * @param pStableMu the mu value of the Gaussian distribution
- * @param pStableSigma the sigma value of Gaussian distribution
- * @param w W selected
  * @param chainLength the length of the hash function chain
  */
 class PrecalculatedHashFamily(
     familySize: Int,
     vectorDim: Int,
-    pStableMu: Double,
-    pStableSigma: Double,
-    w: Int,
     chainLength: Int)
   extends LSHHashFamily[PrecalculatedParameterSet] {
 
@@ -37,8 +30,7 @@ class PrecalculatedHashFamily(
     "PrecalculatedHashFamily requires hash funciton chain length to be even number")
 
   // TODO: make it type-parameterized
-  private val underlyingHashFamily =
-    new PStableHashFamily(familySize, vectorDim, pStableMu, pStableSigma, w, chainLength / 2)
+  private val underlyingHashFamily = new AngleHashFamily(familySize, vectorDim, chainLength / 2)
 
   /**
    * get a set of parameters of the lsh function; essentially the user calls this method to get a
@@ -67,26 +59,21 @@ class PrecalculatedHashFamily(
    * @return the list of p-stable hash chain, essentially they are u functions, each of which
    *         contains k /2 hashes. (k is the length of the index on each table)
    */
-  private def generatePStableHashChainsFromFile(filePath: String, hashTableNum: Int):
-      List[PStableHashChain] = {
-    val underlyingHashesList = new ListBuffer[PStableParameterSet]
+  private def generateAngleHashChainsFromFile(filePath: String, hashTableNum: Int):
+      List[AngleHashChain] = {
+    val underlyingHashesList = new ListBuffer[AngleParameterSet]
     // generate all pstable hash functions
-    for (line <- Source.fromFile(filePath).getLines()) {
-      val Array(vectorString, bInStr, wInStr) = line.split(";")
+    for (vectorString <- Source.fromFile(filePath).getLines()) {
       val vectorA = Vectors.fromString(vectorString)
-      val b = bInStr.toDouble
-      val w = wInStr.toInt
-      underlyingHashesList += new PStableParameterSet(
-        Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
-        b, w)
+      underlyingHashesList += new AngleParameterSet(
+        Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector])
     }
     // the length of each u function chain
-    val pStableChainLength = math.sqrt(hashTableNum).toInt
+    val angleChainLength = math.sqrt(hashTableNum).toInt
     // u
-    val pStableHashFunctionsSet = underlyingHashesList.grouped(pStableChainLength).
+    val angleHashFunctionsSet = underlyingHashesList.grouped(angleChainLength).
       map(_.toList).toList
-    pStableHashFunctionsSet.map(pStableParams =>
-      new PStableHashChain(pStableParams.size, pStableParams))
+    angleHashFunctionsSet.map(angleParams => new AngleHashChain(angleParams.size, angleParams))
   }
 
   /**
@@ -100,8 +87,7 @@ class PrecalculatedHashFamily(
       List[LSHTableHashChain[PrecalculatedParameterSet]] = {
     val Array(precalculatedFilePath, pStableFilePath) = filePaths.split(",")
     try {
-      // pStable chain number == sqrt(tableNumber)
-      val pStableHashChains = generatePStableHashChainsFromFile(pStableFilePath,
+      val pStableHashChains = generateAngleHashChainsFromFile(pStableFilePath,
         math.sqrt(tableNum).toInt)
       // generate precalculated hash family
       val precalculatedHashFileLines = Source.fromFile(precalculatedFilePath).getLines().toList
@@ -132,7 +118,7 @@ class PrecalculatedHashFamily(
 //TODO: this class is not supposed to be private[cpslab], instead, we should limit it in lsh
 // currently, we only relax the restriction to implement two-level partition in PLSH
 private[cpslab] class PrecalculatedHashChain(
-    concatenatedChains: List[LSHTableHashChain[PStableParameterSet]],
+    concatenatedChains: List[LSHTableHashChain[AngleParameterSet]],
     chainSize: Int,
     chainedFunctions: List[PrecalculatedParameterSet])
   extends LSHTableHashChain[PrecalculatedParameterSet](chainSize, chainedFunctions) {

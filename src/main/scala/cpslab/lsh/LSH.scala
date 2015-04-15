@@ -36,8 +36,7 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
         val w = conf.getInt("cpslab.lsh.family.pstable.w")
 
         val family = Some(new PrecalculatedHashFamily(
-          familySize = familySize, vectorDim = vectorDim,
-          chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
+          familySize = familySize, vectorDim = vectorDim, chainLength = chainLength))
         pickUpHashChains(family)
       case x => None
     }
