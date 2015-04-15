@@ -7,15 +7,13 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.ExecutionContext
-import scala.concurrent.forkjoin.ForkJoinPool
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
-import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages, Utils}
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
@@ -100,10 +98,9 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       twoLevelPartitionTable(i) = new Array[(Int, ByteArrayWrapper)](vectorIdToVector.size)
     }
     val parVectorIdToVector = vectorIdToVector.par
-    parVectorIdToVector.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
     // calculate the bucket index for all vectors in all tables
     val bucketIndexOfAllVectors: Iterable[Array[(ByteArrayWrapper, Int)]] =
-      parVectorIdToVector.view.filter(_ != null).map(sparseVector =>
+      parVectorIdToVector.filter(_ != null).map(sparseVector =>
         lshInstance.calculateIndex(sparseVector).map(bucketIndex =>
           (ByteArrayWrapper(bucketIndex), sparseVector.vectorId))).seq
     // calculate the offset of each bucket in all tables
@@ -137,7 +134,6 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
 
     val bucketCountArray = tempTable.map(table => {
       val parTable = table.par
-      parTable.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
       //group by bucket index
       parTable.map { case (bucketIndex, cnt) => (bucketIndex, cnt.get()) }.seq
     })
@@ -174,7 +170,6 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     // update twoLevelPartitionTable with all vectors
     // parallel over vector instances
     val parBucketIndexOfAllVectors = bucketIndexOfAllVectors.par
-    parBucketIndexOfAllVectors.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
     //parBucketIndexOfAllVectors.tasksupport = parallelTaskSupport
     parBucketIndexOfAllVectors.foreach(bucketIndicesOfVector => {
       var tableId = 0
@@ -301,6 +296,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
    * check if need to merge and delta table
    */
   private def tryToMergeDeltaAndStaticTable(): Unit = {
+    import PLSHExecutionContext._
     if (workerThreadCount.get() <= 1 && mergingThreadCount.get() == 0 &&
       elementCountInDeltaTable.get() >= mergeThreshold) {
       mergingThreadCount.incrementAndGet()
