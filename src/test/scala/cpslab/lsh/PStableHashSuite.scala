@@ -1,7 +1,5 @@
 package cpslab.lsh
 
-import java.nio.ByteBuffer
-
 import scala.util.Random
 
 import cpslab.lsh.vector.{SparseVector, Vectors}
@@ -16,7 +14,7 @@ class PStableHashSuite extends FunSuite {
     val hashChain = new PStableHashChain(1, List(hashParameterSet))
     val testVector = Vectors.sparse(3, Seq((0, 1.0), (1, 1.0), (2, 1.0))).
       asInstanceOf[SparseVector]
-    assert(ByteBuffer.wrap(hashChain.compute(testVector)).getInt === 4)
+    assert(hashChain.compute(testVector) === 923525)
   }
 
   test("PStableHashChain calculates the index correctly for multiple hash functions") {
@@ -30,9 +28,7 @@ class PStableHashSuite extends FunSuite {
     val testVector = Vectors.sparse(3, Seq((0, 1.0), (1, 1.0), (2, 1.0))).
       asInstanceOf[SparseVector]
     val indexBytes = hashChain.compute(testVector)
-    assert(indexBytes.length === 8)
-    assert(ByteBuffer.wrap(hashChain.compute(testVector)).getInt(0) === 4)
-    assert(ByteBuffer.wrap(hashChain.compute(testVector)).getInt(4) === 5)
+    assert(indexBytes === -1803760374)
   }
   
   test("Hash Family generates PStableHashChain correctly") {
@@ -61,21 +57,21 @@ class PStableHashSuite extends FunSuite {
     val firstChain = hashChain(0)
     assert(firstChain.chainedHashFunctions.size === 3)
     for (para <- firstChain.chainedHashFunctions) {
-      assert(para.a.toString === "(3,[0,1],[1.0,2.0])")
+      assert(para.a.toString === "(1,3,[0,1],[1.0,2.0])")
       assert(para.b === 0.1)
       assert(para.w === 5)
     }
     val secondChain = hashChain(1)
     assert(secondChain.chainedHashFunctions.size === 3)
     for (para <- secondChain.chainedHashFunctions) {
-      assert(para.a.toString === "(3,[0,1],[1.0,3.0])")
+      assert(para.a.toString === "(2,3,[0,1],[1.0,3.0])")
       assert(para.b === 0.2)
       assert(para.w === 6)
     }
     val thirdChain = hashChain(2)
     assert(thirdChain.chainedHashFunctions.size === 3)
     for (para <- thirdChain.chainedHashFunctions) {
-      assert(para.a.toString === "(3,[0,1],[1.0,4.0])")
+      assert(para.a.toString === "(3,3,[0,1],[1.0,4.0])")
       assert(para.b === 0.3)
       assert(para.w === 7)
     }

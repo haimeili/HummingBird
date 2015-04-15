@@ -6,4 +6,4 @@ package cpslab.lsh.vector
  * @param bucketIndex the index of the bucket this vector belongs to
  * @param sparseVector the vector data
  */
-case class SparseVectorWrapper(bucketIndex: Array[Array[Byte]], sparseVector: SparseVector)
+case class SparseVectorWrapper(bucketIndex: Array[Int], sparseVector: SparseVector)

@@ -1,7 +1,5 @@
 package cpslab.lsh
 
-import java.nio.ByteBuffer
-
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.util.Random
@@ -83,7 +81,7 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
    * @param vector the vector to be indexed
    * @return the index of the vector
    */
-  override def compute(vector: SparseVector): Array[Byte] = {
+  override def compute(vector: SparseVector): Int = {
     var result = 0
     for (hashFunctionId <- 0 until chainSize) {
       val signResult = sign(
@@ -91,7 +89,7 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
         vector))
       result = result << 1 | signResult
     }
-    ByteBuffer.allocate(4).putInt(result).array()
+    result
   }
 }
 

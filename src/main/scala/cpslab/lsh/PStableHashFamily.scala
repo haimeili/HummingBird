@@ -8,6 +8,7 @@ import scala.util.Random
 
 import breeze.stats.distributions.Gaussian
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
+import cpslab.storage.ByteArrayWrapper
 
 /**
  * a hash family containing functions H(v) = FLOOR((a * v  + b) / W)
@@ -58,7 +59,8 @@ private[lsh] class PStableHashFamily(
   override def pick(tableNum: Int): List[LSHTableHashChain[PStableParameterSet]] = {
     val uniformRandomizer = new Random(System.currentTimeMillis())
     val hashFamily = initHashFamily
-    val generatedHashChains = new Array[LSHTableHashChain[PStableParameterSet]](tableNum)
+    val generatedHashChains = new Array[LSHTableHashChain[PStableParameterSet]](
+      tableNum)
 
     // generate the hash chain
     for (i <- 0 until tableNum) {
@@ -87,7 +89,7 @@ private[lsh] class PStableHashFamily(
         val b = bInStr.toDouble
         val w = wInStr.toInt
         paraSetList += new PStableParameterSet(
-          Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
+          Vectors.sparse(vectorA._4, vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
           b, w)
       }
       val groupedParaSets = paraSetList.grouped(chainLength)
@@ -118,7 +120,7 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
    * @param vector the vector to be indexed
    * @return the index of the vector
    */
-  override def compute(vector: SparseVector): Array[Byte] = {
+  override def compute(vector: SparseVector): Int = {
     // generate integer typed index
     val indexInATable = chainedFunctions.foldLeft(Array.fill(0)(0))((existingByteArray, ps2) => {
       val newByteArray = {
@@ -130,10 +132,9 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
       existingByteArray ++ newByteArray
     })
     // generate byte array typed index
-    indexInATable.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).
-      foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) => 
-      existingByteArray ++ newByteArray
-    )
+    ByteArrayWrapper(indexInATable.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).
+      foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) =>
+      existingByteArray ++ newByteArray)).hashCode()
   }
 }
 

@@ -37,9 +37,9 @@ class IndependentShardingSuite(var actorSystem: ActorSystem)
     Thread.sleep(2000)
     val checkResult = {
       if (client.underlyingActor.state.contains(1)) {
-        client.underlyingActor.state(1).toList == List[Long](0L)
+        client.underlyingActor.state(1).toList == List[Int](0)
       } else if (client.underlyingActor.state.contains(0)) {
-        client.underlyingActor.state(0).toList == List[Long](1L)
+        client.underlyingActor.state(0).toList == List[Int](1)
       } else {
         false
       }

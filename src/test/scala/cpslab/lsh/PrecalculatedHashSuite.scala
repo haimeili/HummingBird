@@ -5,8 +5,7 @@ import org.scalatest.FunSuite
 class PrecalculatedHashSuite extends FunSuite {
 
   test("PrecalculatedHashChain calculates the index correctly for single hash function") {
-    val hashFamily = new PrecalculatedHashFamily(familySize = 10, vectorDim = 3, pStableMu = 0,
-      pStableSigma = 0.5, w = 3, chainLength = 2)
+    val hashFamily = new PrecalculatedHashFamily(familySize = 10, vectorDim = 3, chainLength = 2)
     val hashTableNum = 100
     val generatedHashChain = hashFamily.pick(hashTableNum)
     assert(generatedHashChain.size === hashTableNum)
@@ -17,8 +16,7 @@ class PrecalculatedHashSuite extends FunSuite {
 
 
   test("Precalculated HashFamily generates pStableParameterSet from file correctly") {
-    val hashFamily = new PrecalculatedHashFamily(familySize = 0, vectorDim = 3, pStableMu = 0,
-      pStableSigma = 0.5, w = 0, chainLength = 4)
+    val hashFamily = new PrecalculatedHashFamily(familySize = 0, vectorDim = 3, chainLength = 4)
     val hashChains = hashFamily.generateTableChainFromFile(
       s"${getClass.getClassLoader.getResource("testprecalculated").getFile}," +
         s"${getClass.getClassLoader.getResource("testprecalculated_pstable").getFile}",

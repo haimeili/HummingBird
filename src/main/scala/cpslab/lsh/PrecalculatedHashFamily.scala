@@ -1,9 +1,7 @@
 package cpslab.lsh
 
-import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 
-import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.util.Random
@@ -125,18 +123,6 @@ private[cpslab] class PrecalculatedHashChain(
 
   require(chainedFunctions.size == 2)
 
-  def firstPartitionerID = chainedFunctions.head.functionIdx
-
-  def secondPartitionerID = chainedFunctions(1).functionIdx
-
-  def computeFirstLevelIndex(vector:SparseVector): Array[Byte] = {
-    concatenatedChains(chainedFunctions(0).functionIdx).compute(vector)
-  }
-
-  def computeSecondLevelIndex(vector: SparseVector): Array[Byte] = {
-    concatenatedChains(chainedFunctions(1).functionIdx).compute(vector)
-  }
-
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
    * defined in this class
@@ -145,36 +131,17 @@ private[cpslab] class PrecalculatedHashChain(
    * @param vector the vector to be indexed
    * @return the index of the vector
    */
-  override def compute(vector: SparseVector): Array[Byte] = {
-    import PrecalculateCache._
+  override def compute(vector: SparseVector): Int = {
     // generate integer typed index
-    val indexInATable = chainedFunctions.foldLeft(Array.fill[Byte](0)(0))(
-      (existingByteArray, ps) => {
-        val newByteArray = {
-          // calculate new Byte Array
-          // assuming normalized vector
-          if (cache.contains(vector.vectorId) && cache(vector.vectorId).contains(ps.functionIdx)) {
-            cache(vector.vectorId)(ps.functionIdx)
-          } else {
-            val pStablePS = concatenatedChains(ps.functionIdx)
-            val key = pStablePS.compute(vector)
-            cache.getOrElseUpdate(vector.vectorId, new ConcurrentHashMap[Int, Array[Byte]]) +=
-              ps.functionIdx -> key
-            key
-          }
-        }
-        existingByteArray ++ newByteArray
-      })
-    // generate byte array typed index
-    indexInATable.map(idx => ByteBuffer.allocate(4).putInt(idx).array()).
-      foldLeft(Array.fill(0)(0.toByte))((existingByteArray, newByteArray) =>
-      existingByteArray ++ newByteArray)
+    val bucketIndex1 = concatenatedChains(chainedFunctions(0).functionIdx).compute(vector)
+    val bucketIndex2 = concatenatedChains(chainedFunctions(1).functionIdx).compute(vector)
+    bucketIndex1 << 16| bucketIndex2
   }
 }
 
 private object PrecalculateCache {
   //vectorId -> (underlying hash function id -> value)
-  val cache = new ConcurrentHashMap[Int, ConcurrentHashMap[Int, Array[Byte]]]
+  val cache = new ConcurrentHashMap[Int, ConcurrentHashMap[Int, Int]]
 }
 
 /**
