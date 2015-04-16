@@ -77,7 +77,7 @@ private[lsh] class AngleHashFamily(
 private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AngleParameterSet])
   extends LSHTableHashChain[AngleParameterSet](chainSize, chainedFunctions) {
 
-  private def sign(input: Double): Int = if (math.acos(input) <= 0) 0 else 1
+  private def sign(input: Double): Int = if (input <= 0) 0 else 1
 
   /**
    * calculate the index of the vector in the hash table corresponding to the set of functions
