@@ -12,8 +12,11 @@ private[lsh] class AngleHashFamily(
     chainLength: Int) extends LSHHashFamily[AngleParameterSet] {
 
   private def getNewUnitVector: SparseVector = {
-    val values = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
-    val indices = values.zipWithIndex.filter{case (value, index) => value > 0}.map(_._2)
+    val values = {
+      val arr = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
+      arr.map(value => if (Random.nextInt(2) > 0) value else -1 * value)
+    }
+    val indices = values.zipWithIndex.filter{case (value, index) => value != 0}.map(_._2)
     //normailization
     val sqrSum = math.sqrt(
       values.foldLeft(0.0){case (currentSum, newNum) => currentSum + newNum * newNum})

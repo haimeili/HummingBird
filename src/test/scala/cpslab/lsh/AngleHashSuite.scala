@@ -40,7 +40,7 @@ class AngleHashSuite extends FunSuite {
     }
   }
 
-  test("pStable HashFamily generates pStableParameterSet from file correctly") {
+  test("Angle HashFamily generates AngleParameterSet from file correctly") {
     val hashFamily = new AngleHashFamily(familySize = 0, vectorDim = 3, chainLength = 3)
     val hashChain = hashFamily.generateTableChainFromFile(
       getClass.getClassLoader.getResource("testanglefile").getFile, 3)
