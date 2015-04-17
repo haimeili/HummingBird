@@ -19,6 +19,7 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
       s"""
          |cpslab.lsh.plsh.updateWindowSize=1
          |cpslab.lsh.plsh.mergeThreshold=2
+         |cpslab.lsh.chainLength=2
          |cpslab.lsh.name=precalculated
          |cpslab.lsh.familyFilePath="$familyFile"
          |cpslab.lsh.generateMethod=fromfile

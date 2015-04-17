@@ -59,19 +59,23 @@ private[lsh] class PrecalculatedHashFamily(
    */
   private def generateAngleHashChainsFromFile(filePath: String, hashTableNum: Int):
       List[AngleHashChain] = {
-    val underlyingHashesList = new ListBuffer[AngleParameterSet]
-    // generate all pstable hash functions
-    for (vectorString <- Source.fromFile(filePath).getLines()) {
-      val vectorA = Vectors.fromString(vectorString)
-      underlyingHashesList += new AngleParameterSet(
-        Vectors.sparse(vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector])
+    val paraSetList = new ListBuffer[AngleParameterSet]
+    try {
+      for (vectorString <- Source.fromFile(filePath).getLines()) {
+        val unitVector = Vectors.fromString(vectorString)
+        paraSetList += new AngleParameterSet(
+          Vectors.sparse(unitVector._4, unitVector._1, unitVector._2, unitVector._3).
+            asInstanceOf[SparseVector])
+      }
+      val chainLengthOfUnderlyingFunc = chainLength / 2
+      val groupedParaSets = paraSetList.grouped(chainLengthOfUnderlyingFunc)
+      groupedParaSets.map(paraSet => new AngleHashChain(chainLengthOfUnderlyingFunc,
+        paraSet.toList)).toList
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+        null
     }
-    // the length of each u function chain
-    val angleChainLength = math.sqrt(hashTableNum).toInt
-    // u
-    val angleHashFunctionsSet = underlyingHashesList.grouped(angleChainLength).
-      map(_.toList).toList
-    angleHashFunctionsSet.map(angleParams => new AngleHashChain(angleParams.size, angleParams))
   }
 
   /**
@@ -83,10 +87,10 @@ private[lsh] class PrecalculatedHashFamily(
    */
   override def generateTableChainFromFile(filePaths: String, tableNum: Int):
       List[LSHTableHashChain[PrecalculatedParameterSet]] = {
-    val Array(precalculatedFilePath, pStableFilePath) = filePaths.split(",")
+    val Array(precalculatedFilePath, angleFilePath) = filePaths.split(",")
     try {
-      val pStableHashChains = generateAngleHashChainsFromFile(pStableFilePath,
-        math.sqrt(tableNum).toInt)
+      val angleHashChains = generateAngleHashChainsFromFile(angleFilePath,
+        hashTableNum = math.sqrt(tableNum).toInt)
       // generate precalculated hash family
       val precalculatedHashFileLines = Source.fromFile(precalculatedFilePath).getLines().toList
       require(precalculatedHashFileLines.length == tableNum, "table number must be equal to " +
@@ -94,7 +98,7 @@ private[lsh] class PrecalculatedHashFamily(
       val precalculatedChains = new ListBuffer[PrecalculatedHashChain]
       for (line <- precalculatedHashFileLines) {
         val Array(idx1, idx2) = line.split(";").map(_.toInt)
-        val chain = new PrecalculatedHashChain(pStableHashChains, chainLength,
+        val chain = new PrecalculatedHashChain(angleHashChains, chainLength,
           List(PrecalculatedParameterSet(idx1), PrecalculatedParameterSet(idx2)))
         precalculatedChains += chain
       }
@@ -150,4 +154,6 @@ private object PrecalculateCache {
  *                    functions in each hash table;
  */
 private case class PrecalculatedParameterSet(functionIdx: Int)
-  extends LSHFunctionParameterSet
+  extends LSHFunctionParameterSet {
+  override def toString = functionIdx.toString
+}

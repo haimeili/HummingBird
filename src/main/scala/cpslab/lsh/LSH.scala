@@ -1,6 +1,8 @@
 package cpslab.lsh
 
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Paths, Files}
 
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.lsh.vector.SparseVector
@@ -29,6 +31,10 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
         
         val family = Some(new PStableHashFamily(familySize = familySize, vectorDim = vectorDim,
           chainLength = chainLength, pStableMu = mu, pStableSigma = sigma, w = w))
+        pickUpHashChains(family)
+      case "angle" =>
+        val family = Some(new AngleHashFamily(familySize = familySize, vectorDim = vectorDim,
+          chainLength = chainLength))
         pickUpHashChains(family)
       case "precalculated" =>
         val family = Some(new PrecalculatedHashFamily(
@@ -92,6 +98,7 @@ private[lsh] object LSH {
       sys.exit(1)
     }
     val config = ConfigFactory.parseFile(new File(args(0)))
-    println(generateParameterSetString(config))
+    val str = generateParameterSetString(config)
+    Files.write(Paths.get("file.txt"), str.getBytes(StandardCharsets.UTF_8))
   }
 }

@@ -8,8 +8,7 @@ import cpslab.lsh.vector.SparseVector
  * @param chainedHashFunctions the parameter setup for one of the functions
  * @tparam T type of parameter set
  */
-//TODO: should limit it in lsh
-private[cpslab] abstract class LSHTableHashChain[+T <: LSHFunctionParameterSet](
+private[lsh] abstract class LSHTableHashChain[+T <: LSHFunctionParameterSet](
     private[lsh] val chainLength: Int,
     private[lsh] val chainedHashFunctions: List[T]) extends Serializable {
 
