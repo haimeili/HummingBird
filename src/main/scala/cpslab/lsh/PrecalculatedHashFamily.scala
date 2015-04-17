@@ -18,7 +18,7 @@ import cpslab.lsh.vector.{SparseVector, Vectors}
  * @param vectorDim the vector dimensionality supported by this family
  * @param chainLength the length of the hash function chain
  */
-class PrecalculatedHashFamily(
+private[lsh] class PrecalculatedHashFamily(
     familySize: Int,
     vectorDim: Int,
     chainLength: Int)
@@ -113,9 +113,8 @@ class PrecalculatedHashFamily(
  * @param chainSize the length of the chain
  * @param chainedFunctions the list of the funcitons used to calculate the index of the vector
  */
-//TODO: this class is not supposed to be private[cpslab], instead, we should limit it in lsh
 // currently, we only relax the restriction to implement two-level partition in PLSH
-private[cpslab] class PrecalculatedHashChain(
+private class PrecalculatedHashChain(
     concatenatedChains: List[LSHTableHashChain[AngleParameterSet]],
     chainSize: Int,
     chainedFunctions: List[PrecalculatedParameterSet])
@@ -150,5 +149,5 @@ private object PrecalculateCache {
  *                    supposed to be with the length of k / 2, where k is the total number of hash
  *                    functions in each hash table;
  */
-private[cpslab] case class PrecalculatedParameterSet(functionIdx: Int)
+private case class PrecalculatedParameterSet(functionIdx: Int)
   extends LSHFunctionParameterSet

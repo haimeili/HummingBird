@@ -107,7 +107,7 @@ private[lsh] class PStableHashFamily(
  * @param chainSize the length of the chain
  * @param chainedFunctions the list of the funcitons used to calculate the index of the vector
  */
-private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStableParameterSet]) 
+private class PStableHashChain(chainSize: Int, chainedFunctions: List[PStableParameterSet])
   extends LSHTableHashChain[PStableParameterSet](chainSize, chainedFunctions) {
   
   require(chainSize == chainedFunctions.size, s"$chainSize, ${chainedFunctions.size}")
@@ -148,8 +148,7 @@ private[lsh] class PStableHashChain(chainSize: Int, chainedFunctions: List[PStab
  * @param w W is an integer which should be large enough
  *
  */
-//TODO: should limit it in LSH
-private[cpslab] class PStableParameterSet(val a: SparseVector, val b: Double, val w: Int)
+private class PStableParameterSet(val a: SparseVector, val b: Double, val w: Int)
   extends LSHFunctionParameterSet {
   
   override def toString: String = s"$a;$b;$w"
