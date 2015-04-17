@@ -7,7 +7,7 @@ import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
 import cpslab.deploy.LSHServer
-import cpslab.deploy.utils.{DummyPLSHWorker, Ping, Pong}
+import cpslab.deploy.utils.DummyPLSHWorker
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
 /**

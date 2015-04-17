@@ -15,6 +15,7 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.plsh.partitionSwitch=false
        |cpslab.lsh.plsh.maxNumberOfVector=100
        |cpslab.lsh.initVectorNumber=0
+       |cpslab.lsh.plsh.maxWorkerNum=5
        |cpslab.lsh.inputFilePath=""
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"

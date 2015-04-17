@@ -217,4 +217,9 @@
   <td>(none)</td>
   <td>the ip:port address of the workers of the plsh</td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.plsh.maxWorkerNum</code></td>
+  <td>(none)</td>
+  <td>maximum number of workers in PLSH schema</td>
+</tr>
 </table>

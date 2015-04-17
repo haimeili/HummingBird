@@ -26,6 +26,7 @@ class PLSHSlidingWindowSuite(var actorSystemPair: (ActorSystem, ActorSystem))
          |akka.remote.netty.tcp.port=3000
          |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:3000"]
          |cpslab.lsh.plsh.maxNumberOfVector=2
+         |cpslab.lsh.plsh.maxWorkerNum=2
          |cpslab.lsh.plsh.updateWindowSize=1
          |cpslab.lsh.plsh.mergeThreshold=2
          |cpslab.lsh.name=precalculated
@@ -33,12 +34,14 @@ class PLSHSlidingWindowSuite(var actorSystemPair: (ActorSystem, ActorSystem))
          |cpslab.lsh.generateMethod=fromfile
          |cpslab.lsh.tableNum = 9
       """.stripMargin).withFallback(TestSettings.testBaseConf)
+
     val lsh = new LSH(conf)
     val conf1 = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.nodeID=1
          |akka.cluster.seed-nodes = ["akka.tcp://LSH@127.0.0.1:3000"]
          |akka.remote.netty.tcp.port=3001
+         |cpslab.lsh.plsh.maxWorkerNum=2
          |cpslab.lsh.plsh.maxNumberOfVector=2000
          |cpslab.lsh.plsh.updateWindowSize=1
          |cpslab.lsh.plsh.mergeThreshold=2
@@ -58,6 +61,7 @@ class PLSHSlidingWindowSuite(var actorSystemPair: (ActorSystem, ActorSystem))
     val slidingWindowVectorFilePath = getClass.getClassLoader.getResource("slidingwindowtestfile").getFile
     val conf = ConfigFactory.parseString(
       s"""
+        |cpslab.lsh.plsh.maxWorkerNum=2
         |cpslab.lsh.plsh.benchmark.inputSource=$slidingWindowVectorFilePath
       """.stripMargin).withFallback(TestSettings.testClientConf)
     //initialize update window

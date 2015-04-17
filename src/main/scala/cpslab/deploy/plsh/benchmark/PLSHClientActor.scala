@@ -25,6 +25,8 @@ private[plsh] class PLSHClientActor(conf: Config) extends Actor {
 
   private[plsh] var currentLowerBound = 0
   private[plsh] var currentUpperBound = 0
+  private val maxWorkerNum = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
+
   // vectorID -> Long
   private val readTimeMeasurementResults = new ListBuffer[(Int, Long)]
 
@@ -72,14 +74,36 @@ private[plsh] class PLSHClientActor(conf: Config) extends Actor {
     }
   }
 
+  private def isInUpdateWindow(lowerBound: Int, upperBound: Int, id: Int): Boolean = {
+    if (lowerBound < upperBound) {
+      id >= lowerBound && id <= upperBound
+    } else {
+      (id >= 0 && id <= upperBound) || (id >= lowerBound && id < maxWorkerNum)
+    }
+  }
+
+  private def slideUpdateWindowForward(): Unit = {
+    //lower bound
+    if (currentLowerBound < maxWorkerNum - 1) {
+      currentLowerBound += 1
+    } else {
+      currentLowerBound = 0
+    }
+    //upper bound
+    if (currentUpperBound < maxWorkerNum - 1) {
+      currentUpperBound += 1
+    } else {
+      currentUpperBound = 0
+    }
+  }
+
   override def receive: Receive = {
     case SimilarityOutput(queryID, bitmap, similarVectors, latency) =>
       latency.foreach(latency => readTimeMeasurementResults += queryID -> latency)
     case CapacityFullNotification(id) =>
-      if (id >= currentLowerBound && id <= currentUpperBound) {
-        actors.foreach(actor => actor ! WindowUpdate(currentLowerBound + 1, currentUpperBound + 1))
-        currentLowerBound += 1
-        currentUpperBound += 1
+      if (isInUpdateWindow(currentLowerBound, currentUpperBound, id)) {
+        slideUpdateWindowForward()
+        actors.foreach(actor => actor ! WindowUpdate(currentLowerBound, currentUpperBound))
       }
     case WindowUpdateNotification(id) =>
       if (!slidingWindowInitializedFlag(id)) {
