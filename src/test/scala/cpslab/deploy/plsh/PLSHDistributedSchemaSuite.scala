@@ -7,7 +7,7 @@ import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
 import cpslab.deploy.LSHServer
-import cpslab.deploy.utils.{DummyPLSHWorker, Ping, Pong}
+import cpslab.deploy.utils.DummyPLSHWorker
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
 /**
@@ -30,19 +30,6 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
     intercept[InvalidActorNameException] {
       actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
         name = s"PLSHWorker")
-    }
-    intercept[InvalidActorNameException] {
-      actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
-        name = "clientRequestHandler")
-    }
-  }
-  
-  test("PLSH clientRequestHandler can broadcast the request to all machines correctly ") {
-    val clientHandler = actorSystem.actorSelection("/user/clientRequestHandler")
-    clientHandler ! Ping
-    val receivedMessages = receiveN(1)
-    for (msg <- receivedMessages) {
-      assert(msg === Pong)
     }
   }
 }

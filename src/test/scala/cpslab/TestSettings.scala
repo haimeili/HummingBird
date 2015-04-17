@@ -5,6 +5,7 @@ import com.typesafe.config.ConfigFactory
 private[cpslab] object TestSettings {
   private val appConf = ConfigFactory.parseString(
     s"""
+       |cpslab.lsh.plsh.benchmark.expDuration=0
        |cpslab.lsh.similarityThreshold = 0.0
        |cpslab.lsh.vectorDim = 3
        |cpslab.lsh.chainLength = 10
@@ -14,6 +15,7 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.plsh.partitionSwitch=false
        |cpslab.lsh.plsh.maxNumberOfVector=100
        |cpslab.lsh.initVectorNumber=0
+       |cpslab.lsh.plsh.maxWorkerNum=5
        |cpslab.lsh.inputFilePath=""
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"
@@ -54,7 +56,8 @@ private[cpslab] object TestSettings {
   private val clientConf = ConfigFactory.parseString(
     """
       |cpslab.lsh.plsh.benchmark.inputSource=""
-      |cpslab.lsh.plsh.benchmark.remoteProxyList=["akka.tcp://LSH@127.0.0.1:3000/user/clientRequestHandler", "akka.tcp://LSH@127.0.0.1:3001/user/clientRequestHandler"]
+      |cpslab.lsh.plsh.benchmark.remoteProxyList=["akka.tcp://LSH@127.0.0.1:3000/user/clientRequestHandler"]
+      |cpslab.lsh.plsh.workerList=["akka.tcp://LSH@127.0.0.1:3000/user/PLSHWorker", "akka.tcp://LSH@127.0.0.1:3001/user/PLSHWorker"]
       |cpslab.lsh.plsh.benchmark.messageInterval=200
     """.stripMargin)
 

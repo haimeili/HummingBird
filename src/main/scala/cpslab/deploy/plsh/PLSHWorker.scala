@@ -31,6 +31,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
   private lazy val inputFilePath = conf.getString("cpslab.lsh.inputFilePath")
   private val logger = Logging(context.system, this)
+  private val maxWorkerNum = conf.getInt("cpslab.lsh.plsh.maxWorkerNum")
 
   // vector storage
   //two-level partition
@@ -353,11 +354,19 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       logger.error(s"unrecognizable message: $other")
   }
 
+  private def isInUpdateWindow(lowerBound: Int, upperBound: Int, id: Int): Boolean = {
+    if (lowerBound < upperBound) {
+      id >= lowerBound && id <= upperBound
+    } else {
+      (id >= 0 && id <= upperBound) || (id >= lowerBound && id < maxWorkerNum)
+    }
+  }
+
   private def handlePLSHMessages(plshMessage: PLSHMessage): Unit = plshMessage match {
     case WindowUpdate(lowerBound, upperBound) =>
       val client = new ThreadLocal[ActorRef]
       client.set(sender())
-      if (id >= lowerBound && id <= upperBound) {
+      if (isInUpdateWindow(lowerBound, upperBound, id)) {
         withinUpdateWindow = true
       } else {
         withinUpdateWindow = false
