@@ -36,8 +36,10 @@ case class SimilarityIntermediateOutput(
  * @param queryID the unique ID representing the query vector
  * @param bitmap the bitmap representing similarVectors             
  * @param similarVectors the ID of the similar vectors
+ * @param latency the optional latency parameter indicating the time cost to get this output
  */
-case class SimilarityOutput(queryID: Int, bitmap: LongBitSet, similarVectors: List[(Int, Double)])
+case class SimilarityOutput(queryID: Int, bitmap: LongBitSet, similarVectors: List[(Int, Double)],
+    latency: Option[Long] = None)
 
 // messages for the communication between nodes in the cluster sharding schema
 

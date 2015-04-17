@@ -31,18 +31,5 @@ class PLSHDistributedSchemaSuite(var actorSystem: ActorSystem)
       actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
         name = s"PLSHWorker")
     }
-    intercept[InvalidActorNameException] {
-      actorSystem.actorOf(Props(new DummyPLSHWorker(0, ConfigFactory.load(), null)),
-        name = "clientRequestHandler")
-    }
-  }
-  
-  test("PLSH clientRequestHandler can broadcast the request to all machines correctly ") {
-    val clientHandler = actorSystem.actorSelection("/user/clientRequestHandler")
-    clientHandler ! Ping
-    val receivedMessages = receiveN(1)
-    for (msg <- receivedMessages) {
-      assert(msg === Pong)
-    }
   }
 }

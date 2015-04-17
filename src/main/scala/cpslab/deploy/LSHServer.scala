@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.routing.{ClusterRouterGroup, ClusterRouterGroupSettings}
 import akka.contrib.pattern.ClusterSharding
-import akka.routing.{BroadcastGroup, RoundRobinGroup}
+import akka.routing.RoundRobinGroup
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.plsh.PLSHWorker
 import cpslab.lsh.LSH
@@ -33,15 +33,6 @@ private[cpslab] object LSHServer {
     val clientHandlerNumber = conf.getInt("cpslab.lsh.deploy.maxNodeNum")
     val routeePath = List(s"/user/PLSHWorker")
 
-    system.actorOf(
-      props = ClusterRouterGroup(
-        local = BroadcastGroup(routeePath),
-        settings = ClusterRouterGroupSettings(
-          totalInstances = clientHandlerNumber,
-          routeesPaths = routeePath,
-          allowLocalRoutees = true,
-          useRole = Some("compute"))).props(),
-      name = "clientRequestHandler")
     system
   }
 
