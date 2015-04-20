@@ -2,7 +2,7 @@ package cpslab.lsh
 
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.lsh.vector.SparseVector
