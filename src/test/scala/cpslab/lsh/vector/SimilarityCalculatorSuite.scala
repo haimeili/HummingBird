@@ -14,4 +14,11 @@ class SimilarityCalculatorSuite extends FunSuite {
     val sim1 = SimilarityCalculator.fastCalculateSimilarity(vector3, vector4)
     assert(sim1 === 0.0)
   }
+
+  test("fast similarity calculation when there is a mis-matched bit in the middle of the vector") {
+    val vector3 = Vectors.sparse(10, Seq((0, 1.0), (2, 1.0), (3, 1.0),(9, 1.0))).asInstanceOf[SparseVector]
+    val vector4 = Vectors.sparse(10, Seq((3, 1.0), (6, 1.0), (9, 1.0))).asInstanceOf[SparseVector]
+    val sim1 = SimilarityCalculator.fastCalculateSimilarity(vector3, vector4)
+    assert(sim1 === 2.0)
+  }
 }
