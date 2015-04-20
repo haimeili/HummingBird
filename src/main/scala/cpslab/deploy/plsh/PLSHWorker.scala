@@ -8,13 +8,14 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.io.Source
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
 import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput, SimilaritySearchMessages, Utils}
+import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 
