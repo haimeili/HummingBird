@@ -72,12 +72,13 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       Unit = {
     if (filePath != "") {
       // read all files
+      totalVectorCount = 0
       vectorIdToVector = new Array[SparseVector](initVectorNumber)
       val allFiles = Utils.buildFileListUnderDirectory(filePath)
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
         val (size, indices, values, id) = Vectors.fromString(line)
         val vector = new SparseVector(id, size, indices, values)
-        vectorIdToVector(vector.vectorId) = vector
+        vectorIdToVector(totalVectorCount) = vector
         totalVectorCount += 1
       }
     }
@@ -95,7 +96,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
     logger.info("Initializing Static Table ")
     // initialize tables
     for (i <- 0 until tableNum) {
-      twoLevelPartitionTable(i) = new Array[(Int, Int)](vectorIdToVector.size)
+      twoLevelPartitionTable(i) = new Array[(Int, Int)](vectorIdToVector.length)
     }
     val parVectorIdToVector = vectorIdToVector.par
     // calculate the bucket index for all vectors in all tables
