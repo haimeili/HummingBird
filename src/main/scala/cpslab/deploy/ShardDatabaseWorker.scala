@@ -90,14 +90,6 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
 
   private def processShardAllocation(shardAllocation: ShardAllocation) {
     val shardMap = shardAllocation match {
-      case perTableAllocation @ PerTableShardAllocation(_) =>
-        perTableAllocation.shardsMap.map{
-          case (tableId, bucketAllocation) => {
-            val transformedAlloc = bucketAllocation.map{
-              case (bucketIndex, vectors) => (bucketIndex.toInt, vectors)}
-            (tableId, transformedAlloc)
-          }
-        }
       case flatAllocation @ FlatShardAllocation(_) =>
         flatAllocation.shardsMap
     }
