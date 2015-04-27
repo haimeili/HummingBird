@@ -48,20 +48,6 @@ case class SimilarityOutput(queryID: Int, bitmap: LongBitSet, similarVectors: Li
  * the message can be sent from the shardRegions to the entry actors (EntryResolver) and also can be
  * sent from the actors calculating the allocated shards to the local shardRegions
  *
- * NOTE: to correctly perform the funcitonality, we need to ensure that all shardids contained in 
- * this class belongs to the same ShardRegion
- *
- * @param shardsMap (TableID -> (ShardID, vectors))
- */
-case class PerTableShardAllocation(shardsMap: mutable.HashMap[Int,
-    mutable.HashMap[ShardId, List[SparseVectorWrapper]]]) extends ShardAllocation
-
-
-/**
- * this message represents the allocation of the shards of the vectors
- * the message can be sent from the shardRegions to the entry actors (EntryResolver) and also can be
- * sent from the actors calculating the allocated shards to the local shardRegions
- *
  * NOTE: to correctly perform the funcitonality, we need to ensure that all shardids contained in
  * this class belongs to the same ShardRegion
  *
