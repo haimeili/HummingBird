@@ -94,7 +94,7 @@ object Vectors {
    * Creates a dense vector from a double array and its ID
    * @param id the vector id
    * @param values the values in this dense vector
-   * @return the newly created vector 
+   * @return the newly created vector
    */
   def dense(id: Int, values: Array[Double]): Vector = new DenseVector(id, values)
 

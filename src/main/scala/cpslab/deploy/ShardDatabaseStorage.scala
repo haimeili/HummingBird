@@ -10,6 +10,7 @@ import cpslab.storage.LongBitSet
 
 private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
+  //table Id -> (bucketIndex -> vectors)
   private[deploy] lazy val elementsInFlatSpace =
     new mutable.HashMap[Int, mutable.HashMap[Int, ListBuffer[SparseVector]]]
   
