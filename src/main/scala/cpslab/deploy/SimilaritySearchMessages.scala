@@ -61,7 +61,7 @@ case class FlatShardAllocation(shardsMap: mutable.HashMap[ShardId,
  * this request also serves as the query request
  * NOTE: we need to ensure that, all sparse vectors represented in this class belongs to the same 
  * entry
- * @param indexMap shardID(independent)/tableID(flat) -> vectors
+ * @param indexMap tableID(flat) -> vectors
  */
 case class LSHTableIndexRequest(indexMap: mutable.HashMap[Int, List[SparseVectorWrapper]])
   extends SimilaritySearchMessages

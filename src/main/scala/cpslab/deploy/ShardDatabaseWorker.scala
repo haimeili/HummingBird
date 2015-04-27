@@ -93,16 +93,15 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       case flatAllocation @ FlatShardAllocation(_) =>
         flatAllocation.shardsMap
     }
-    for ((_, shardAllocationPerUnit) <- shardMap ;
-         (allocationId, vectors) <- shardAllocationPerUnit) {
-      val storageNodeIndex = allocationId % maxDatabaseNodeNum
+    for ((_, withinShardData) <- shardMap ; (tableId, vectors) <- withinShardData) {
+      val storageNodeIndex = tableId % maxDatabaseNodeNum
       if (shardDatabase(storageNodeIndex) == null) {
         val newActor = context.actorOf(ShardDatabaseStorage.props(conf),
           name = s"StorageNode-$storageNodeIndex")
         shardDatabase(storageNodeIndex) = newActor
       }
       val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
-      indexMap += allocationId -> vectors
+      indexMap += tableId -> vectors
       shardDatabase(storageNodeIndex).tell(LSHTableIndexRequest(indexMap), sender())
     }
   }
