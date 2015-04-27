@@ -16,24 +16,6 @@ private[cpslab] object ShardingUtils {
   private var lshInstance: LSH = _
   private var localShardingSystem: ActorSystem = _
 
-  private val independentNamespaceEntryResolver: ShardRegion.IdExtractor = {
-    case req @ SearchRequest(_) =>
-      (Random.nextInt(maxEntryNum).toString, req)
-    case shardAllocation @ PerTableShardAllocation(_) =>
-      ("1", shardAllocation)
-  }
-  
-  private val independentNamespaceShardResolver: ShardRegion.ShardResolver = {
-    case searchRequest@SearchRequest(_) =>
-      //TODO: assign to local shards
-      Random.nextInt(maxShardNum).toString
-    case shardAllocation@PerTableShardAllocation(_) =>
-      val tableID = shardAllocation.shardsMap.keys
-      // in independent namespace, we allow only one table in ShardAllocation Info
-      require(tableID.size == 1)
-      tableID.toList.head.toString
-  }
-  
   private val flatNamespaceNamespaceEntryResolver: ShardRegion.IdExtractor = {
     case req @ SearchRequest(_) =>
       (Random.nextInt(maxEntryNum).toString, req)
@@ -66,13 +48,8 @@ private[cpslab] object ShardingUtils {
       "please run ShardingUtils.initShardAllocation before you start Cluster Sharding System")
     
     // resolve different shard/entry resolver
-    val (shardResolver, entryResolver) = conf.getString("cpslab.lsh.sharding.namespace") match {
-      case "independent" => 
-        // allowing only one entryactor in independent namespace
-        (independentNamespaceShardResolver, independentNamespaceEntryResolver)
-      case "flat" => 
-        (flatNamespaceShardResolver, flatNamespaceNamespaceEntryResolver)
-    }
+    val (shardResolver, entryResolver) =
+      (flatNamespaceShardResolver, flatNamespaceNamespaceEntryResolver)
     
     ClusterSharding(localShardingSystem).start(
       typeName = ShardDatabaseWorker.shardDatabaseWorkerActorName,
