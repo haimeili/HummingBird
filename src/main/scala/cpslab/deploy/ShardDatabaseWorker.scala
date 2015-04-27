@@ -35,8 +35,18 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     if (loadBatchingDuration > 0) {
       val system = context.system
       import system.dispatcher
-      val batchSender = context.system.scheduler.schedule(
-        0 milliseconds, loadBatchingDuration milliseconds, self, IOTicket)
+      batchSender = context.system.scheduler.schedule(
+        0 milliseconds, loadBatchingDuration milliseconds, new Runnable {
+          override def run(): Unit = {
+            sendShardAllocation()
+          }
+        })
+    }
+  }
+
+  override def postStop(): Unit = {
+    if (batchSender != null) {
+      batchSender.cancel()
     }
   }
 
@@ -48,19 +58,19 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[Int, List[SparseVectorWrapper]]]
-    for (i <- 0 until indexInAllTables.length) {
+    for (tableId <- 0 until indexInAllTables.length) {
       val indexInTable = new Array[Int](indexInAllTables.length)
-      indexInTable(i) = indexInAllTables(i)
-      val bucketIndex = indexInAllTables(i) % maxShardNumPerTable
-      val vectorInList =
-        List(SparseVectorWrapper(indexInTable, searchRequest.vector))
+      indexInTable(tableId) = indexInAllTables(tableId)
+      val bucketIndex = indexInAllTables(tableId)
+      val vector = List(SparseVectorWrapper(indexInTable, searchRequest.vector))
       shardingNamespace match {
         case "independent" =>
-          outputShardMap.getOrElseUpdate(i.toString,
-            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += bucketIndex -> vectorInList
+          outputShardMap.getOrElseUpdate(tableId.toString,
+            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += bucketIndex -> vector
         case "flat" =>
-          outputShardMap.getOrElseUpdate(bucketIndex.toString,
-            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += i -> vectorInList
+          val shardId = bucketIndex % maxShardNumPerTable
+          outputShardMap.getOrElseUpdate(shardId.toString,
+            new mutable.HashMap[Int, List[SparseVectorWrapper]]) += tableId -> vector
       }
     }
     sendOrBatchShardAllocation(outputShardMap)
@@ -80,10 +90,12 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
                 new mutable.HashMap[ShardId, List[SparseVectorWrapper]]) += shardId -> vectors
               regionActor ! PerTableShardAllocation(shardMap)
             } else {
-              val vectorsInBatching = perTableAllocationWriteBuffer.getOrElseUpdate(tableId,
-                new mutable.HashMap[ShardId, List[SparseVectorWrapper]]).
-                getOrElseUpdate(shardId, List[SparseVectorWrapper]())
-              perTableAllocationWriteBuffer(tableId)(shardId) = vectorsInBatching ++ vectors
+              perTableAllocationWriteBuffer.synchronized {
+                val vectorsInBatching = perTableAllocationWriteBuffer.getOrElseUpdate(tableId,
+                  new mutable.HashMap[ShardId, List[SparseVectorWrapper]]).
+                  getOrElseUpdate(shardId, List[SparseVectorWrapper]())
+                perTableAllocationWriteBuffer(tableId)(shardId) = vectorsInBatching ++ vectors
+              }
             }
           }
         case "flat" =>
@@ -92,12 +104,14 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
             map.getOrElseUpdate(shardId, tableMap)
             regionActor ! FlatShardAllocation(map)
           } else {
-            val tableId = tableMap.keysIterator.toList.head
-            val vectors = tableMap.values.head
-            val vectorsInBatching = flatAllocationWriteBuffer.getOrElseUpdate(shardId,
-              new mutable.HashMap[Int, List[SparseVectorWrapper]]).
-              getOrElseUpdate(tableId, List[SparseVectorWrapper]())
-            flatAllocationWriteBuffer(shardId)(tableId) = vectorsInBatching ++ vectors
+            flatAllocationWriteBuffer.synchronized {
+              val tableId = tableMap.keysIterator.toList.head
+              val vectors = tableMap.values.head
+              val vectorsInBatching = flatAllocationWriteBuffer.
+                getOrElseUpdate(shardId, new mutable.HashMap[Int, List[SparseVectorWrapper]]).
+                getOrElseUpdate(tableId, List[SparseVectorWrapper]())
+              flatAllocationWriteBuffer(shardId)(tableId) = vectorsInBatching ++ vectors
+            }
           }
       }
     }
@@ -106,25 +120,26 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def processShardAllocation(shardAllocation: ShardAllocation) {
     val shardMap = shardAllocation match {
       case perTableAllocation @ PerTableShardAllocation(_) =>
-        perTableAllocation.shardsMap
+        perTableAllocation.shardsMap.map{
+          case (tableId, bucketAllocation) => {
+            val transformedAlloc = bucketAllocation.map{
+              case (bucketIndex, vectors) => (bucketIndex.toInt, vectors)}
+            (tableId, transformedAlloc)
+          }
+        }
       case flatAllocation @ FlatShardAllocation(_) =>
-        flatAllocation.shardsMap.map{case (shardId, perTableAllocation) => {
-          val transformedAlloc = perTableAllocation.map{
-            case (tableId, vectors) => (tableId.toString, vectors)}
-          (shardId, transformedAlloc)
-        }}
+        flatAllocation.shardsMap
     }
     for ((_, shardAllocationPerUnit) <- shardMap ;
-         (allocationIdStr, vectors) <- shardAllocationPerUnit) {
-      val id = allocationIdStr.toInt
-      val storageNodeIndex = id % maxDatabaseNodeNum
+         (allocationId, vectors) <- shardAllocationPerUnit) {
+      val storageNodeIndex = allocationId % maxDatabaseNodeNum
       if (shardDatabase(storageNodeIndex) == null) {
         val newActor = context.actorOf(ShardDatabaseStorage.props(conf),
           name = s"StorageNode-$storageNodeIndex")
         shardDatabase(storageNodeIndex) = newActor
       }
       val indexMap = new mutable.HashMap[Int, List[SparseVectorWrapper]]
-      indexMap += id -> vectors
+      indexMap += allocationId -> vectors
       shardDatabase(storageNodeIndex).tell(LSHTableIndexRequest(indexMap), sender())
     }
   }
@@ -132,21 +147,25 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def sendShardAllocation(): Unit = {
     shardingNamespace match {
       case "independent" =>
-        for ((tableId, perTableMap) <- perTableAllocationWriteBuffer) {
-          val sendMap = new mutable.HashMap[Int,
-            mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
-          sendMap += tableId -> perTableMap
-          regionActor ! PerTableShardAllocation(sendMap)
+        perTableAllocationWriteBuffer.synchronized {
+          for ((tableId, perTableMap) <- perTableAllocationWriteBuffer) {
+            val sendMap = new mutable.HashMap[Int,
+              mutable.HashMap[ShardId, List[SparseVectorWrapper]]]
+            sendMap += tableId -> perTableMap
+            regionActor ! PerTableShardAllocation(sendMap)
+          }
+          perTableAllocationWriteBuffer.clear()
         }
-        perTableAllocationWriteBuffer.clear()
       case "flat" =>
-        for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
-          val sendMap = new mutable.HashMap[ShardId,
-            mutable.HashMap[Int, List[SparseVectorWrapper]]]
-          sendMap += shardId -> perShardMap
-          regionActor ! FlatShardAllocation(sendMap)
+        flatAllocationWriteBuffer.synchronized {
+          for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
+            val sendMap = new mutable.HashMap[ShardId,
+              mutable.HashMap[Int, List[SparseVectorWrapper]]]
+            sendMap += shardId -> perShardMap
+            regionActor ! FlatShardAllocation(sendMap)
+          }
+          flatAllocationWriteBuffer.clear()
         }
-        flatAllocationWriteBuffer.clear()
     }
   }
 
@@ -155,8 +174,6 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       processSearchRequest(searchRequest)
     case shardAllocation: ShardAllocation =>
       processShardAllocation(shardAllocation)
-    case IOTicket =>
-      sendShardAllocation()
   }
 }
 

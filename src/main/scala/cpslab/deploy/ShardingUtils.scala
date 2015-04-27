@@ -42,10 +42,10 @@ private[cpslab] object ShardingUtils {
   }
 
   private val flatNamespaceShardResolver: ShardRegion.ShardResolver = {
-    case searchRequest@SearchRequest(_) =>
+    case searchRequest @ SearchRequest(_) =>
       Random.nextInt(maxShardNum).toString
-    case shardAllocation@FlatShardAllocation(_) =>
-      shardAllocation.shardsMap.keys.toList.head
+    case shardAllocation @ FlatShardAllocation(_) =>
+      shardAllocation.shardsMap.keys.head
   }
 
   private def initShardAllocation(conf: Config, lsh: LSH): Unit = {
