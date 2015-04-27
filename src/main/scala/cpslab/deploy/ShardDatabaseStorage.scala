@@ -10,14 +10,10 @@ import cpslab.storage.LongBitSet
 
 private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
 
-  // data structures for different sharding schema
-  private[deploy] lazy val elementsInIndependentSpace =
-    new mutable.HashMap[Int, ListBuffer[SparseVector]]
   private[deploy] lazy val elementsInFlatSpace =
     new mutable.HashMap[Int, mutable.HashMap[Int, ListBuffer[SparseVector]]]
   
   private lazy val similarityThreshold = conf.getDouble("cpslab.lsh.similarityThreshold")
-  private val shardingNamespace = conf.getString("cpslab.lsh.sharding.namespace")
   private lazy val topK = conf.getInt("cpslab.lsh.topK")
 
   private val writeActorsNum = conf.getInt("cpslab.lsh.writerActorNum")
@@ -51,13 +47,10 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
       val allVectorCandidates = new ListBuffer[SparseVector]
 
       for (bucketIndex <- vector.bucketIndex) {
-        val candidates = shardingNamespace match {
-          case "independent" =>
-            elementsInIndependentSpace.get(bucketIndex)
-          case "flat" =>
-            elementsInFlatSpace.getOrElseUpdate(tableId,
-              new mutable.HashMap[Int, ListBuffer[SparseVector]])
-            elementsInFlatSpace(tableId).get(bucketIndex)
+        val candidates = {
+          elementsInFlatSpace.getOrElseUpdate(tableId,
+            new mutable.HashMap[Int, ListBuffer[SparseVector]])
+          elementsInFlatSpace(tableId).get(bucketIndex)
         }
         candidates.foreach(vectors => allVectorCandidates ++= vectors)
       }
@@ -85,14 +78,8 @@ private[deploy] class ShardDatabaseStorage(conf: Config) extends Actor {
       bucketIndex: Int,
       vectorID: Int,
       vector: SparseVector): Unit = {
-    shardingNamespace match {
-      case "independent" =>
-        elementsInIndependentSpace.getOrElseUpdate(bucketIndex,
-          new ListBuffer[SparseVector]) += vector
-      case "flat" =>
-        elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex,
-          new ListBuffer[SparseVector]) += vector
-    }
+    elementsInFlatSpace(tableId).getOrElseUpdate(bucketIndex,
+      new ListBuffer[SparseVector]) += vector
   }
   
   override def receive: Receive = {

@@ -43,7 +43,6 @@ private[cpslab] object TestSettings {
   private val shardingConf = ConfigFactory.parseString(
     """
       |cpslab.lsh.distributedSchema = SHARDING
-      |cpslab.lsh.sharding.namespace = flat
       |cpslab.lsh.sharding.maxShardNumPerTable = 100
       |cpslab.lsh.sharding.maxShardDatabaseWorkerNum = 1
       |cpslab.lsh.sharding.loadBatchingDuration = 0
