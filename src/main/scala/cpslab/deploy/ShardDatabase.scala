@@ -1,5 +1,7 @@
 package cpslab.deploy
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import scala.concurrent.duration._
@@ -17,15 +19,20 @@ private[deploy] object ShardDatabase {
 
   var actors: Array[Seq[ActorRef]] = null
 
-  @volatile var totalTime = 0L
+  val totalTime = new AtomicInteger(0)
+  @volatile var vectorCountPerTable = Array.fill[Int](10)(0)
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
     context.setReceiveTimeout(20000 milliseconds)
 
     override def postStop(): Unit = {
-      println("table building cost " + totalTime + " milliseconds, " +
-        "vector count:" + vectorIdToVector.size())
+      println("table building cost " + totalTime + " milliseconds")
+      var str = ""
+      for (cnt <- vectorCountPerTable) {
+        str += (cnt.toString + ",")
+      }
+      println(str)
     }
 
     override def receive: Receive = {
@@ -37,16 +44,18 @@ private[deploy] object ShardDatabase {
           actors(i)(bucketIndices(i) % parallelism) !
             Tuple3(i, bucketIndices(i), sv.vectorId)
         }
-        totalTime += (System.currentTimeMillis() - startTime)
+        totalTime.addAndGet((System.currentTimeMillis() - startTime).toInt)
       case x @ (_, _, _) =>
         val startTime = System.currentTimeMillis()
-        val table = vectorDatabase(x._1.asInstanceOf[Int])
+        val tableId = x._1.asInstanceOf[Int]
+        val table = vectorDatabase(tableId)
         if (!table.containsKey(x._2)) {
           table.put(x._2.asInstanceOf[Int], new ListBuffer[Int])
         }
         val l = table.get(x._2)
         l += x._3.asInstanceOf[Int]
-        totalTime += (System.currentTimeMillis() - startTime)
+        vectorCountPerTable(tableId) += 1
+        totalTime.addAndGet((System.currentTimeMillis() - startTime).toInt)
       case ReceiveTimeout =>
         context.stop(self)
     }
