@@ -21,7 +21,6 @@ private[deploy] object ShardDatabase {
 
   @volatile var startTime = 0L
   @volatile var endTime = 0L
-  @volatile var vectorCountPerTable = Array.fill[Int](10)(0)
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
@@ -30,11 +29,6 @@ private[deploy] object ShardDatabase {
     override def postStop(): Unit = {
       val totalTime = endTime - startTime
       println("table building cost " + totalTime + " milliseconds")
-      var str = ""
-      for (cnt <- vectorCountPerTable) {
-        str += (cnt.toString + ",")
-      }
-      println(str)
     }
 
     override def receive: Receive = {
@@ -45,11 +39,9 @@ private[deploy] object ShardDatabase {
         val bucketIndices = lsh.calculateIndex(sv)
         for (i <- 0 until bucketIndices.length) {
           //need to ensure that certain part of bucketIndices are accessible for single thread/actor
-          actors(i)(bucketIndices(i) % parallelism) !
-            Tuple3(i, bucketIndices(i), sv.vectorId)
+          actors(i)(bucketIndices(i) % parallelism) ! Tuple3(i, bucketIndices(i), sv.vectorId)
         }
       case x @ (_, _, _) =>
-        val startTime = System.currentTimeMillis()
         val tableId = x._1.asInstanceOf[Int]
         val table = vectorDatabase(tableId)
         if (!table.containsKey(x._2)) {
@@ -57,7 +49,6 @@ private[deploy] object ShardDatabase {
         }
         val l = table.get(x._2)
         l += x._3.asInstanceOf[Int]
-        vectorCountPerTable(tableId) += 1
         val currentTime = System.currentTimeMillis()
         if (currentTime > endTime) {
           endTime = currentTime
