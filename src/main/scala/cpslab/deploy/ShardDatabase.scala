@@ -40,7 +40,7 @@ private[deploy] object ShardDatabase {
       case x @ (_, _, _) =>
         val startTime = System.currentTimeMillis()
         val table = vectorDatabase(x._1.asInstanceOf[Int])
-        if (table.containsKey(x._2)) {
+        if (!table.containsKey(x._2)) {
           table.put(x._2.asInstanceOf[Int], new ListBuffer[Int])
         }
         val l = table.get(x._2)
