@@ -22,7 +22,7 @@ private[deploy] object ShardDatabase {
     dbMaker
   }
 
-  def initializeMapDBHashMap(conf: Config) = {
+  def initializeMapDBHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     def initializeVectorDatabase(): HTreeMap[Int, ListBuffer[Int]] =  {
       val hashMapMaker = DBMaker.hashMapSegmented(initDBMaker(conf)).

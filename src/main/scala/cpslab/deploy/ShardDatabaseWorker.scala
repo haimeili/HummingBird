@@ -191,5 +191,5 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
 
 private[deploy] object ShardDatabaseWorker {
   val shardDatabaseWorkerActorName = "ShardDatabaseWorkerActor"
-  def props(conf: Config, lsh: LSH) = Props(new ShardDatabaseWorker(conf, lsh))
+  def props(conf: Config, lsh: LSH): Props = Props(new ShardDatabaseWorker(conf, lsh))
 }

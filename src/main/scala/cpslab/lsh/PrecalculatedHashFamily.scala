@@ -153,7 +153,6 @@ private object PrecalculateCache {
  *                    supposed to be with the length of k / 2, where k is the total number of hash
  *                    functions in each hash table;
  */
-private case class PrecalculatedParameterSet(functionIdx: Int)
-  extends LSHFunctionParameterSet {
-  override def toString = functionIdx.toString
+private case class PrecalculatedParameterSet(functionIdx: Int) extends LSHFunctionParameterSet {
+  override def toString: String = functionIdx.toString
 }
