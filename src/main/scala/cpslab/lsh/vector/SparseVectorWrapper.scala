@@ -3,7 +3,7 @@ package cpslab.lsh.vector
 /**
  * the class represents the vector as well as its ID and the index of bucket which it belongs to on 
  * each table
- * @param bucketIndex the index of the bucket this vector belongs to
+ * @param bucketIndices the index of the bucket this vector belongs to
  * @param sparseVector the vector data
  */
-case class SparseVectorWrapper(bucketIndex: Array[Int], sparseVector: SparseVector)
+case class SparseVectorWrapper(bucketIndices: Array[Int], sparseVector: SparseVector)

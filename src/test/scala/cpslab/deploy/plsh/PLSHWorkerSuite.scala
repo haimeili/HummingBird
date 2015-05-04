@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
-import cpslab.deploy.{SearchRequest, SimilarityIntermediateOutput}
+import cpslab.deploy.{SearchRequest, SimilarityOutput}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
@@ -92,8 +92,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     plshWorker ! SearchRequest(vector2)
     Thread.sleep(5000)
     val receivedMessages = receiveN(1)
-    assert(receivedMessages(0).isInstanceOf[SimilarityIntermediateOutput])
-    val simOutput = receivedMessages(0).asInstanceOf[SimilarityIntermediateOutput]
+    assert(receivedMessages(0).isInstanceOf[SimilarityOutput])
+    val simOutput = receivedMessages(0).asInstanceOf[SimilarityOutput]
     assert(simOutput.queryVectorID === 2)
     assert(simOutput.similarVectorPairs.length === 1)
     assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
@@ -103,8 +103,8 @@ class PLSHWorkerSuite(var actorSystem: ActorSystem) extends TestKit(actorSystem)
     Thread.sleep(5000)
     val receivedMessages2 = receiveN(1)
     for (receivedMessage <- receivedMessages2) {
-      assert(receivedMessage.isInstanceOf[SimilarityIntermediateOutput])
-      val simOutput = receivedMessage.asInstanceOf[SimilarityIntermediateOutput]
+      assert(receivedMessage.isInstanceOf[SimilarityOutput])
+      val simOutput = receivedMessage.asInstanceOf[SimilarityOutput]
       assert(simOutput.queryVectorID === 3)
       assert(simOutput.similarVectorPairs.length === 2)
       assert(simOutput.similarVectorPairs.head === Tuple2(1, 0.05000000000000001))
