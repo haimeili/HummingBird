@@ -1,6 +1,6 @@
 package cpslab.deploy
 
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -19,7 +19,8 @@ private[deploy] object ShardDatabase {
 
   var actors: Array[Seq[ActorRef]] = null
 
-  val totalTime = new AtomicInteger(0)
+  @volatile var startTime = 0L
+  @volatile var endTime = 0L
   @volatile var vectorCountPerTable = Array.fill[Int](10)(0)
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
@@ -27,6 +28,7 @@ private[deploy] object ShardDatabase {
     context.setReceiveTimeout(20000 milliseconds)
 
     override def postStop(): Unit = {
+      val totalTime = endTime - startTime
       println("table building cost " + totalTime + " milliseconds")
       var str = ""
       for (cnt <- vectorCountPerTable) {
@@ -37,14 +39,15 @@ private[deploy] object ShardDatabase {
 
     override def receive: Receive = {
       case sv: SparseVector =>
-        val startTime = System.currentTimeMillis()
+        if (startTime == 0) {
+          startTime = System.currentTimeMillis()
+        }
         val bucketIndices = lsh.calculateIndex(sv)
         for (i <- 0 until bucketIndices.length) {
           //need to ensure that certain part of bucketIndices are accessible for single thread/actor
           actors(i)(bucketIndices(i) % parallelism) !
             Tuple3(i, bucketIndices(i), sv.vectorId)
         }
-        totalTime.addAndGet((System.currentTimeMillis() - startTime).toInt)
       case x @ (_, _, _) =>
         val startTime = System.currentTimeMillis()
         val tableId = x._1.asInstanceOf[Int]
@@ -55,7 +58,10 @@ private[deploy] object ShardDatabase {
         val l = table.get(x._2)
         l += x._3.asInstanceOf[Int]
         vectorCountPerTable(tableId) += 1
-        totalTime.addAndGet((System.currentTimeMillis() - startTime).toInt)
+        val currentTime = System.currentTimeMillis()
+        if (currentTime > endTime) {
+          endTime = currentTime
+        }
       case ReceiveTimeout =>
         context.stop(self)
     }
