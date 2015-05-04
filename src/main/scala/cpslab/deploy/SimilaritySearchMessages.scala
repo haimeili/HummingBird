@@ -49,3 +49,5 @@ case class FlatShardAllocation(shardsMap: HashMap[ShardId,
  * message triggering the IO operation in ShardDatabaseWorker
  */
 case object IOTicket
+
+case object BenchmarkEnd
