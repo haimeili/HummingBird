@@ -237,4 +237,9 @@
   <td>(none)</td>
   <td>client Address</td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.init.parallism</code></td>
+  <td>(none)</td>
+  <td>number of actors per table when initialize tables</td>
+</tr>
 </table>

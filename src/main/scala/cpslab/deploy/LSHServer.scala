@@ -58,6 +58,12 @@ private[cpslab] object LSHServer {
           allowLocalRoutees = true,
           useRole = Some("compute"))).props(),
       name = "clientRequestHandler")
+
+    //initialize table
+    ShardDatabase.initializeMapDBHashMap(conf)
+    ShardDatabase.initVectorDatabaseFromFS(lsh, system, conf.getString("cpslab.lsh.inputFilePath"),
+      conf.getInt("cpslab.lsh.tableNum"), conf.getInt("cpslab.lsh.init.parallism"))
+
     system
   }
   

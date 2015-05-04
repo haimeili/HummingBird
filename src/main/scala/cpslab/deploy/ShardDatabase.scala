@@ -2,9 +2,11 @@ package cpslab.deploy
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.Random
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor._
 import com.typesafe.config.Config
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
@@ -15,24 +17,37 @@ private[deploy] object ShardDatabase {
 
   var actors: Array[Seq[ActorRef]] = null
 
-  class InitializeWorker(paralleismPerTable: Int, lsh: LSH) extends Actor {
+  @volatile var totalTime = 0L
+
+  class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
+
+    context.setReceiveTimeout(20000 milliseconds)
+
+    override def postStop(): Unit = {
+      println("table building cost " + totalTime + " milliseconds")
+    }
 
     override def receive: Receive = {
       case sv: SparseVector =>
+        val startTime = System.currentTimeMillis()
         val bucketIndices = lsh.calculateIndex(sv)
-        vectorIdToVector.put(sv.vectorId, sv)
         for (i <- 0 until bucketIndices.length) {
           //need to ensure that certain part of bucketIndices are accessible for single thread/actor
-          actors(i)(bucketIndices(i) % paralleismPerTable) !
+          actors(i)(bucketIndices(i) % parallelism) !
             Tuple3(i, bucketIndices(i), sv.vectorId)
         }
+        totalTime += (System.currentTimeMillis() - startTime)
       case x @ (_, _, _) =>
+        val startTime = System.currentTimeMillis()
         val table = vectorDatabase(x._1.asInstanceOf[Int])
         if (table.containsKey(x._2)) {
           table.put(x._2.asInstanceOf[Int], new ListBuffer[Int])
         }
         val l = table.get(x._2)
         l += x._3.asInstanceOf[Int]
+        totalTime += (System.currentTimeMillis() - startTime)
+      case ReceiveTimeout =>
+        context.stop(self)
     }
   }
 
@@ -84,9 +99,11 @@ private[deploy] object ShardDatabase {
         Props(new InitializeWorker(parallelism, lsh)))
     }
     val allFiles = Utils.buildFileListUnderDirectory(filePath)
+
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
       val (id, size, indices, values) = Vectors.fromString(line)
       val vector = new SparseVector(id, size, indices, values)
+      vectorIdToVector.put(vector.vectorId, vector)
       actors(Random.nextInt(tableNum))(Random.nextInt(parallelism)) ! vector
     }
   }
@@ -94,4 +111,5 @@ private[deploy] object ShardDatabase {
   private[deploy] var vectorDatabase: Array[HTreeMap[Int, ListBuffer[Int]]] = null
   private[deploy] var vectorIdToVector: HTreeMap[Int, SparseVector] = null
 
+  
 }
