@@ -1,10 +1,9 @@
 package cpslab.deploy
 
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.ConcurrentLinkedQueue
 
-import scala.collection.mutable.ListBuffer
-import scala.io.Source
 import scala.concurrent.duration._
+import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -17,7 +16,7 @@ import org.mapdb.{DBMaker, HTreeMap, Serializer}
 
 private[deploy] object ShardDatabase {
 
-  var actors: Array[Seq[ActorRef]] = null
+  var actors: Seq[ActorRef] = null
 
   @volatile var startTime = 0L
   @volatile var endTime = 0L
@@ -38,17 +37,10 @@ private[deploy] object ShardDatabase {
         }
         val bucketIndices = lsh.calculateIndex(sv)
         for (i <- 0 until bucketIndices.length) {
-          //need to ensure that certain part of bucketIndices are accessible for single thread/actor
-          actors(i)(bucketIndices(i) % parallelism) ! Tuple3(i, bucketIndices(i), sv.vectorId)
+          val bucketIndex = bucketIndices(i)
+          vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
+          vectorDatabase(i).get(bucketIndex).add(sv.vectorId)
         }
-      case x @ (_, _, _) =>
-        val tableId = x._1.asInstanceOf[Int]
-        val table = vectorDatabase(tableId)
-        if (!table.containsKey(x._2)) {
-          table.put(x._2.asInstanceOf[Int], new ListBuffer[Int])
-        }
-        val l = table.get(x._2)
-        l += x._3.asInstanceOf[Int]
         val currentTime = System.currentTimeMillis()
         if (currentTime > endTime) {
           endTime = currentTime
@@ -73,11 +65,11 @@ private[deploy] object ShardDatabase {
 
   def initializeMapDBHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    def initializeVectorDatabase(): HTreeMap[Int, ListBuffer[Int]] =  {
+    def initializeVectorDatabase(): HTreeMap[Int, ConcurrentLinkedQueue[Int]] =  {
       val hashMapMaker = DBMaker.hashMapSegmented(initDBMaker(conf)).
         counterEnable().
         keySerializer(Serializer.INTEGER)
-      hashMapMaker.make[Int, ListBuffer[Int]]()
+      hashMapMaker.make[Int, ConcurrentLinkedQueue[Int]]()
     }
     def initializeIdToVectorMap(): HTreeMap[Int, SparseVector] = {
       val hashMapMaker = DBMaker.hashMapSegmented(initDBMaker(conf)).
@@ -98,24 +90,21 @@ private[deploy] object ShardDatabase {
       lsh: LSH,
       actorSystem: ActorSystem,
       filePath: String,
-      tableNum: Int,
       parallelism: Int): Unit = {
-    actors = Array.fill[Seq[ActorRef]](tableNum)(null)
-    for (i <- 0 until tableNum) {
-      actors(i) = for (j <- 0 until parallelism) yield actorSystem.actorOf(
-        Props(new InitializeWorker(parallelism, lsh)))
+    actors = {
+      for (i <- 0 until parallelism)
+        yield actorSystem.actorOf(Props(new InitializeWorker(parallelism, lsh)))
     }
     val allFiles = Utils.buildFileListUnderDirectory(filePath)
-
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
       val (id, size, indices, values) = Vectors.fromString1(line)
       val vector = new SparseVector(id, size, indices, values)
       vectorIdToVector.put(vector.vectorId, vector)
-      actors(Random.nextInt(tableNum))(Random.nextInt(parallelism)) ! vector
+      actors(Random.nextInt(parallelism)) ! vector
     }
   }
 
-  private[deploy] var vectorDatabase: Array[HTreeMap[Int, ListBuffer[Int]]] = null
+  private[deploy] var vectorDatabase: Array[HTreeMap[Int, ConcurrentLinkedQueue[Int]]] = null
   private[deploy] var vectorIdToVector: HTreeMap[Int, SparseVector] = null
 
   

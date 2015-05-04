@@ -1,7 +1,7 @@
 package cpslab.deploy
 
 import java.util
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
@@ -171,12 +171,9 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         (vector, tableIds) <- vectorAndTableIDs) {
       vectorIdToVector.put(vector.sparseVector.vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        if (!vectorDatabase(tableId).containsKey(vector.bucketIndices(tableId))) {
-          vectorDatabase(tableId).put(vector.bucketIndices(tableId), new ListBuffer[Int])
-        }
-        val list = vectorDatabase(tableId)(vector.bucketIndices(tableId))
-        list += vector.sparseVector.vectorId
-        vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
+        vectorDatabase(tableId).putIfAbsent(vector.bucketIndices(tableId),
+          new ConcurrentLinkedQueue[Int])
+        vectorDatabase(tableId)(vector.bucketIndices(tableId)).add(vector.sparseVector.vectorId)
       }
     }
   }
