@@ -24,7 +24,8 @@ private[deploy] object ShardDatabase {
     context.setReceiveTimeout(20000 milliseconds)
 
     override def postStop(): Unit = {
-      println("table building cost " + totalTime + " milliseconds")
+      println("table building cost " + totalTime + " milliseconds, " +
+        "vector count:" + vectorIdToVector.size())
     }
 
     override def receive: Receive = {
