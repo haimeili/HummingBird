@@ -64,7 +64,7 @@ private[lsh] class PrecalculatedHashFamily(
       for (vectorString <- Source.fromFile(filePath).getLines()) {
         val unitVector = Vectors.fromString(vectorString)
         paraSetList += new AngleParameterSet(
-          Vectors.sparse(unitVector._4, unitVector._1, unitVector._2, unitVector._3).
+          Vectors.sparse(unitVector._1, unitVector._2, unitVector._3, unitVector._4).
             asInstanceOf[SparseVector])
       }
       val chainLengthOfUnderlyingFunc = chainLength / 2

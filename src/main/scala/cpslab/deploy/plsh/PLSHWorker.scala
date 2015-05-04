@@ -76,7 +76,7 @@ private[plsh] class PLSHWorker(id: Int, conf: Config, lshInstance: LSH) extends 
       vectorIdToVector = new Array[SparseVector](initVectorNumber)
       val allFiles = Utils.buildFileListUnderDirectory(filePath)
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        val (size, indices, values, id) = Vectors.fromString(line)
+        val (id, size, indices, values) = Vectors.fromString(line)
         val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector(totalVectorCount) = vector
         totalVectorCount += 1

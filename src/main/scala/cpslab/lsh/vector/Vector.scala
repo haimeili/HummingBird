@@ -161,17 +161,15 @@ object Vectors {
     new DenseVector(Vectors.nextVectorID, new Array[Double](size))
   }
 
-  private[cpslab] def fromString(inputString: String): (Int, Array[Int], Array[Double], Int) = {
+  private[cpslab] def fromString(inputString: String): (Int, Int, Array[Int], Array[Double]) = {
     val stringArray = inputString.split(",\\[")
     if (stringArray.length != 3) {
       throw new Exception(s"cannot parse $inputString")
     }
-    val size = stringArray(0).replace("(", "").toInt
+    val Array(id, size) = stringArray(0).replace("(", "").split(",").map(_.toInt)
     val indices = stringArray(1).replace("]", "").split(",").map(_.toInt)
-    val Array(valuesStr, idStr) = stringArray(2).split("\\]\\),")
-    val values = valuesStr.split(",").map(_.toDouble)
-    val id = idStr.replace(")", "").toInt
-    (size, indices, values, id)
+    val values = stringArray(2).replace("])", "").split(",").map(_.toDouble)
+    (id, size, indices, values)
   }
 
   private[cpslab] def parseNumeric(any: Any): Vector = {
@@ -183,7 +181,7 @@ object Vectors {
       case vectorString: String =>
         //only support sparseVectors for now
         val parsedResult = fromString(vectorString)
-        Vectors.sparse(parsedResult._1, parsedResult._2, parsedResult._3)
+        Vectors.sparse(parsedResult._1, parsedResult._2, parsedResult._3, parsedResult._4)
       case other =>
         throw new Exception(s"Cannot parse $other.")
     }
@@ -237,10 +235,11 @@ class SparseVector(
     val indices: Array[Int],
     val values: Array[Double]) extends Vector {
 
-  def this(paraTuple: (Int, Array[Int], Array[Double], Int)) =
-    this(paraTuple._4, paraTuple._1, paraTuple._2, paraTuple._3)
+  def this(paraTuple: (Int, Int, Array[Int], Array[Double])) =
+    this(paraTuple._1, paraTuple._2, paraTuple._3, paraTuple._4)
 
-  require(indices.length == values.length)
+  require(indices.length == values.length,
+    s"indices length: ${indices.length}, values length: ${values.length}")
   
   val indexToMap = new mutable.HashMap[Int, Double]()
   
