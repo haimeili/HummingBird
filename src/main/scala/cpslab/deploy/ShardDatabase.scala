@@ -1,13 +1,40 @@
 package cpslab.deploy
 
 import scala.collection.mutable.ListBuffer
+import scala.io.Source
+import scala.util.Random
 
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.config.Config
-import cpslab.lsh.vector.SparseVector
+import cpslab.lsh.LSH
+import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.mapdb.DBMaker.Maker
 import org.mapdb.{DBMaker, HTreeMap, Serializer}
 
 private[deploy] object ShardDatabase {
+
+  var actors: Array[Seq[ActorRef]] = null
+
+  class InitializeWorker(paralleismPerTable: Int, lsh: LSH) extends Actor {
+
+    override def receive: Receive = {
+      case sv: SparseVector =>
+        val bucketIndices = lsh.calculateIndex(sv)
+        vectorIdToVector.put(sv.vectorId, sv)
+        for (i <- 0 until bucketIndices.length) {
+          //need to ensure that certain part of bucketIndices are accessible for single thread/actor
+          actors(i)(bucketIndices(i) % paralleismPerTable) !
+            Tuple3(i, bucketIndices(i), sv.vectorId)
+        }
+      case x @ (_, _, _) =>
+        val table = vectorDatabase(x._1.asInstanceOf[Int])
+        if (table.containsKey(x._2)) {
+          table.put(x._2.asInstanceOf[Int], new ListBuffer[Int])
+        }
+        val l = table.get(x._2)
+        l += x._3.asInstanceOf[Int]
+    }
+  }
 
   private def initDBMaker(conf: Config): Maker = {
     var dbMaker = DBMaker.
@@ -38,6 +65,30 @@ private[deploy] object ShardDatabase {
     }
     vectorDatabase = Array.fill(tableNum)(initializeVectorDatabase())
     vectorIdToVector = initializeIdToVectorMap()
+  }
+
+  /**
+   * initialize the database by reading raw vector data from file system
+   * @param filePath the root path of the data directory
+   * @param parallelism the number of actors writing data
+   */
+  def initVectorDatabaseFromFS(
+      lsh: LSH,
+      actorSystem: ActorSystem,
+      filePath: String,
+      tableNum: Int,
+      parallelism: Int): Unit = {
+    actors = Array.fill[Seq[ActorRef]](tableNum)(null)
+    for (i <- 0 until tableNum) {
+      actors(i) = for (j <- 0 until parallelism) yield actorSystem.actorOf(
+        Props(new InitializeWorker(parallelism, lsh)))
+    }
+    val allFiles = Utils.buildFileListUnderDirectory(filePath)
+    for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+      val (id, size, indices, values) = Vectors.fromString(line)
+      val vector = new SparseVector(id, size, indices, values)
+      actors(Random.nextInt(tableNum))(Random.nextInt(parallelism)) ! vector
+    }
   }
 
   private[deploy] var vectorDatabase: Array[HTreeMap[Int, ListBuffer[Int]]] = null
