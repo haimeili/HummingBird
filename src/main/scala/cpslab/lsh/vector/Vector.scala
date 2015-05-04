@@ -161,6 +161,19 @@ object Vectors {
     new DenseVector(Vectors.nextVectorID, new Array[Double](size))
   }
 
+  private[cpslab] def fromString1(inputString: String): (Int, Int, Array[Int], Array[Double]) = {
+    val stringArray = inputString.split(",\\[")
+    if (stringArray.length != 3) {
+      throw new Exception(s"cannot parse $inputString")
+    }
+    val size = stringArray(0).replace("(", "").toInt
+    val indices = stringArray(1).replace("]", "").split(",").map(_.toInt)
+    val Array(valuesStr, idStr) = stringArray(2).split("\\]\\),")
+    val values = valuesStr.split(",").map(_.toDouble)
+    val id = idStr.replace(")", "").toInt
+    (id, size, indices, values)
+  }
+
   private[cpslab] def fromString(inputString: String): (Int, Int, Array[Int], Array[Double]) = {
     val stringArray = inputString.split(",\\[")
     if (stringArray.length != 3) {

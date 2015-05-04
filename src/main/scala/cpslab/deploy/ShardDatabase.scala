@@ -101,7 +101,7 @@ private[deploy] object ShardDatabase {
     val allFiles = Utils.buildFileListUnderDirectory(filePath)
 
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-      val (id, size, indices, values) = Vectors.fromString(line)
+      val (id, size, indices, values) = Vectors.fromString1(line)
       val vector = new SparseVector(id, size, indices, values)
       vectorIdToVector.put(vector.vectorId, vector)
       actors(Random.nextInt(tableNum))(Random.nextInt(parallelism)) ! vector
