@@ -89,7 +89,7 @@ private[lsh] class PStableHashFamily(
         val b = bInStr.toDouble
         val w = wInStr.toInt
         paraSetList += new PStableParameterSet(
-          Vectors.sparse(vectorA._4, vectorA._1, vectorA._2, vectorA._3).asInstanceOf[SparseVector],
+          Vectors.sparse(vectorA._1, vectorA._2, vectorA._3, vectorA._4).asInstanceOf[SparseVector],
           b, w)
       }
       val groupedParaSets = paraSetList.grouped(chainLength)

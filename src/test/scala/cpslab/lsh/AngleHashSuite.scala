@@ -42,20 +42,20 @@ class AngleHashSuite extends FunSuite {
 
   test("Angle HashFamily generates AngleParameterSet from file correctly") {
     val hashFamily = new AngleHashFamily(familySize = 0, vectorDim = 3, chainLength = 3)
-    val hashChain = hashFamily.generateTableChainFromFile(
-      getClass.getClassLoader.getResource("testanglefile").getFile, 3)
-    assert(hashChain.size === 3)
-    val firstChain = hashChain(0)
+    val hashChainForTables = hashFamily.generateTableChainFromFile(
+      getClass.getClassLoader.getResource("testanglefile").getFile, tableNum = 3)
+    assert(hashChainForTables.size === 3)
+    val firstChain = hashChainForTables(0)
     assert(firstChain.chainedHashFunctions.size === 3)
     for (para <- firstChain.chainedHashFunctions) {
       assert(para.a.toString === "(1,3,[0,1],[1.0,2.0])")
     }
-    val secondChain = hashChain(1)
+    val secondChain = hashChainForTables(1)
     assert(secondChain.chainedHashFunctions.size === 3)
     for (para <- secondChain.chainedHashFunctions) {
       assert(para.a.toString === "(2,3,[0,1],[1.0,3.0])")
     }
-    val thirdChain = hashChain(2)
+    val thirdChain = hashChainForTables(2)
     assert(thirdChain.chainedHashFunctions.size === 3)
     for (para <- thirdChain.chainedHashFunctions) {
       assert(para.a.toString === "(3,3,[0,1],[1.0,4.0])")

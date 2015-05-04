@@ -97,7 +97,10 @@ private[lsh] object LSH {
       println("usage: program configFilePath")
       sys.exit(1)
     }
-    val config = ConfigFactory.parseFile(new File(args(0)))
+    val config = ConfigFactory.parseString(
+      """
+        |cpslab.lsh.generateMethod=default
+      """.stripMargin).withFallback(ConfigFactory.parseFile(new File(args(0))))
     val str = generateParameterSetString(config)
     Files.write(Paths.get("file.txt"), str.getBytes(StandardCharsets.UTF_8))
   }
