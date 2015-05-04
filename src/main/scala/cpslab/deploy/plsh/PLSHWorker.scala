@@ -13,8 +13,8 @@ import scala.io.Source
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.Logging
 import com.typesafe.config.Config
-import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.deploy._
+import cpslab.deploy.plsh.PLSHExecutionContext._
 import cpslab.lsh._
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 

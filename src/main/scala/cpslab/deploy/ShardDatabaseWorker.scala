@@ -16,9 +16,9 @@ import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
 import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LSH
-import cpslab.lsh.vector.{SparseVector, SimilarityCalculator, SparseVectorWrapper}
+import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
 
-class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
+private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
 
   //sharding actors
   private val regionActor = ClusterSharding(context.system).shardRegion(
@@ -171,7 +171,7 @@ class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
         (vector, tableIds) <- vectorAndTableIDs) {
       vectorIdToVector.put(vector.sparseVector.vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        if (!vectorDatabase(tableId).contains(vector.bucketIndices(tableId))) {
+        if (!vectorDatabase(tableId).containsKey(vector.bucketIndices(tableId))) {
           vectorDatabase(tableId).put(vector.bucketIndices(tableId), new ListBuffer[Int])
         }
         val list = vectorDatabase(tableId)(vector.bucketIndices(tableId))
@@ -189,7 +189,7 @@ class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
   }
 }
 
-object ShardDatabaseWorker {
+private[deploy] object ShardDatabaseWorker {
   val shardDatabaseWorkerActorName = "ShardDatabaseWorkerActor"
   def props(conf: Config, lsh: LSH) = Props(new ShardDatabaseWorker(conf, lsh))
 }

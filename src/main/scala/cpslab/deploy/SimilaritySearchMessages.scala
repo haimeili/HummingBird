@@ -3,7 +3,6 @@ package cpslab.deploy
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
-import akka.actor.ActorRef
 import akka.contrib.pattern.ShardRegion.ShardId
 import cpslab.lsh.vector.{SparseVector, SparseVectorWrapper}
 import cpslab.storage.LongBitSet

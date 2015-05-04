@@ -9,7 +9,7 @@ import akka.contrib.pattern.{ClusterSharding, ShardRegion}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.lsh.LSH
 
-private[cpslab] object ShardingUtils {
+private[deploy] object ShardingUtils {
   
   private var maxShardNum = -1
   private var maxEntryNum = -1
