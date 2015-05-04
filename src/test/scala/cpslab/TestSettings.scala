@@ -49,7 +49,10 @@ private[cpslab] object TestSettings {
       |cpslab.lsh.sharding.maxDatabaseNodeNum = 1
       |cpslab.lsh.writerActorNum = 10
       |cpslab.lsh.sharding.loadBatchingDuration = 0
+      |cpslab.lsh.clientAddress="akka.tcp://FlatShardingSystem@127.0.0.1:2553/user/client"
       |cpslab.lsh.nodeID = 0
+      |cpslab.vectorDatabase.asyncDelay=0
+      |cpslab.vectorDatabase.asyncQueueSize=0
     """.stripMargin)
 
   private val clientConf = ConfigFactory.parseString(

@@ -12,6 +12,10 @@ import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 class FlatShardingSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfterAll {
 
+  override def beforeAll(): Unit = {
+    ShardDatabase.initializeMapDBHashMap(actorSystem.settings.config)
+  }
+
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }

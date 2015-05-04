@@ -222,4 +222,19 @@
   <td>(none)</td>
   <td>maximum number of workers in PLSH schema</td>
 </tr>
+<tr>
+  <td><code>cpslab.vectorDatabase.asyncDelay</code></td>
+  <td>(none)</td>
+  <td>async delay of vectorDatabase, set a value no larger than zero will disable asyncDelay</td>
+</tr>
+<tr>
+  <td><code>cpslab.vectorDatabase.asyncQueueSize</code></td>
+  <td>(none)</td>
+  <td>the maximum length of queue for buffering write operation</td>
+</tr>
+<tr>
+  <td><code>cpslab.lsh.clientAddress</code></td>
+  <td>(none)</td>
+  <td>client Address</td>
+</tr>
 </table>

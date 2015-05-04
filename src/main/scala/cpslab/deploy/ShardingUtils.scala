@@ -9,7 +9,7 @@ import akka.contrib.pattern.{ClusterSharding, ShardRegion}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.lsh.LSH
 
-private[cpslab] object ShardingUtils {
+private[deploy] object ShardingUtils {
   
   private var maxShardNum = -1
   private var maxEntryNum = -1
@@ -19,15 +19,15 @@ private[cpslab] object ShardingUtils {
   private val flatNamespaceNamespaceEntryResolver: ShardRegion.IdExtractor = {
     case req @ SearchRequest(_) =>
       (Random.nextInt(maxEntryNum).toString, req)
-    case shardAllocation @ FlatShardAllocation(_) => 
-      ("1", shardAllocation)
+    case shardAllocation @ FlatShardAllocation(_) =>
+      (Random.nextInt(maxEntryNum).toString, shardAllocation)
   }
 
   private val flatNamespaceShardResolver: ShardRegion.ShardResolver = {
     case searchRequest @ SearchRequest(_) =>
       Random.nextInt(maxShardNum).toString
     case shardAllocation @ FlatShardAllocation(_) =>
-      shardAllocation.shardsMap.keys.head
+      shardAllocation.shardsMap.head._1
   }
 
   private def initShardAllocation(conf: Config, lsh: LSH): Unit = {
@@ -57,12 +57,6 @@ private[cpslab] object ShardingUtils {
       idExtractor = entryResolver,
       shardResolver = shardResolver
     )
-    // start the writerActors
-    val writeActorsNum = conf.getInt("cpslab.lsh.writerActorNum")
-    for (i <- 0 until writeActorsNum) {
-      localShardingSystem.actorOf(Props(new SimilarityOutputWriter(conf)), s"writerActor-$i")
-    }
-    Thread.sleep(10000)
     (conf, localShardingSystem)
   }
 
