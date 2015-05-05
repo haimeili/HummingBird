@@ -6,7 +6,6 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
-import scala.util.Random
 
 import akka.actor._
 import com.typesafe.config.Config
@@ -18,13 +17,12 @@ import org.mapdb.{DBMaker, Serializer}
 private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
+  @volatile var startTime = -1L
 
   class MonitorActor extends Actor {
     var stoppedActorCount: mutable.HashSet[String] = new mutable.HashSet[String]
-    var startTime = 0L
 
     override def preStart(): Unit = {
-      startTime = System.currentTimeMillis()
       if (actors != null) {
         for (actor <- actors) context.watch(actor)
       }
@@ -52,6 +50,9 @@ private[deploy] object ShardDatabase {
 
     override def receive: Receive = {
       case sv: SparseVector =>
+        if (startTime == -1) {
+          startTime = System.currentTimeMillis()
+        }
         val bucketIndices = lsh.calculateIndex(sv)
         for (i <- 0 until bucketIndices.length) {
           val bucketIndex = bucketIndices(i)
@@ -124,8 +125,12 @@ private[deploy] object ShardDatabase {
         val (id, size, indices, values) = Vectors.fromString1(line)
         val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector.put(vector.vectorId, vector)
-        actors(Random.nextInt(parallelism)) ! vector
       }
+    }
+    val itr = vectorIdToVector.values().iterator()
+    while (itr.hasNext) {
+      val vector = itr.next()
+      actors(vector.vectorId % parallelism) ! vector
     }
     //start monitor actor
     actorSystem.actorOf(Props(new MonitorActor))
