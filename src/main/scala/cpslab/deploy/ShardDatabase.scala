@@ -61,6 +61,7 @@ private[deploy] object ShardDatabase {
       case ReceiveTimeout =>
         val monitor = context.actorSelection("/user/monitor")
         monitor ! Report(System.currentTimeMillis() - 60000)
+        context.stop(self)
     }
   }
 
