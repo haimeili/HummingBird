@@ -37,7 +37,7 @@ private[deploy] object ShardDatabase {
         stoppedActorCount += stoppedActor.path.toStringWithoutAddress
         if (stoppedActorCount.size >= actors.length) {
           val endTime = System.currentTimeMillis()
-          println(s"Finished Loading Data from File System, " +
+          println(s"Finished Building LSH from File System, " +
             s"taken ${endTime - startTime - 60000} milliseconds")
           context.stop(self)
         }
@@ -50,7 +50,7 @@ private[deploy] object ShardDatabase {
 
     override def receive: Receive = {
       case sv: SparseVector =>
-        if (startTime == -1) {
+        if (startTime == -1L) {
           startTime = System.currentTimeMillis()
         }
         val bucketIndices = lsh.calculateIndex(sv)
@@ -127,6 +127,7 @@ private[deploy] object ShardDatabase {
         vectorIdToVector.put(vector.vectorId, vector)
       }
     }
+    println("Finished Loading Data")
     val itr = vectorIdToVector.values().iterator()
     while (itr.hasNext) {
       val vector = itr.next()
