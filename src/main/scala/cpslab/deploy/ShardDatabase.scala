@@ -18,29 +18,27 @@ private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
+  private var endTime = 0L
+
+  case class Report(endMoment: Long)
 
   class MonitorActor extends Actor {
-    var stoppedActorCount: mutable.HashSet[String] = new mutable.HashSet[String]
 
-    override def preStart(): Unit = {
-      if (actors != null) {
-        for (actor <- actors) context.watch(actor)
-      }
-    }
+    context.setReceiveTimeout(60000 milliseconds)
 
     override def postStop(): Unit = {
+      println("Finished building table: " + (endTime - startTime) + " milliseconds")
       println("Monitor Actor Stopped")
     }
 
     override def receive: Receive = {
-      case Terminated(stoppedActor) =>
-        stoppedActorCount += stoppedActor.path.toStringWithoutAddress
-        if (stoppedActorCount.size >= actors.length) {
-          val endTime = System.currentTimeMillis()
-          println(s"Finished Building LSH from File System, " +
-            s"taken ${endTime - startTime - 60000} milliseconds")
-          context.stop(self)
+      case Report(endMoment) =>
+        println(s"Received Report($endMoment)")
+        if (endMoment > endTime) {
+          endTime = endMoment
         }
+      case ReceiveTimeout =>
+        context.stop(self)
     }
   }
 
@@ -61,7 +59,8 @@ private[deploy] object ShardDatabase {
           vectorDatabase(i).put(bucketIndex, l)
         }
       case ReceiveTimeout =>
-        context.stop(self)
+        val monitor = context.actorSelection("/user/monitor")
+        monitor ! Report(System.currentTimeMillis() - 60000)
     }
   }
 
@@ -129,7 +128,7 @@ private[deploy] object ShardDatabase {
     }
     println("Finished Loading Data")
     //start monitor actor
-    actorSystem.actorOf(Props(new MonitorActor))
+    actorSystem.actorOf(Props(new MonitorActor), name = "monitor")
     val itr = vectorIdToVector.values().iterator()
     while (itr.hasNext) {
       val vector = itr.next()
