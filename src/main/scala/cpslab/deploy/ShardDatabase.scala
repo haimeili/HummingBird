@@ -36,7 +36,7 @@ private[deploy] object ShardDatabase {
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
-    context.setReceiveTimeout(60000 milliseconds)
+    context.setReceiveTimeout(30000 milliseconds)
 
     private val monitor = context.actorSelection("/user/monitor")
     private var hasSentReport = false
