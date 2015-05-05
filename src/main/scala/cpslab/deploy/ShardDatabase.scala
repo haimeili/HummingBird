@@ -71,7 +71,7 @@ private[deploy] object ShardDatabase {
 
   private def initDBMaker(conf: Config): Maker = {
     var dbMaker = DBMaker.
-      memoryDirectDB().
+      memoryUnsafeDB().
       transactionDisable()
     val asyncDelay = conf.getInt("cpslab.vectorDatabase.asyncDelay")
     if (asyncDelay > 0) {
