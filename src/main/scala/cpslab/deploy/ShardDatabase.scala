@@ -33,7 +33,6 @@ private[deploy] object ShardDatabase {
 
     override def receive: Receive = {
       case Report(endMoment) =>
-        println(s"Received Report($endMoment)")
         if (endMoment > endTime) {
           endTime = endMoment
         }
