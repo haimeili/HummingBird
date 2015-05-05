@@ -18,27 +18,17 @@ private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
-
-  case class Report(endMoment: Long)
+  @volatile var endTime = -1L
 
   class MonitorActor extends Actor {
 
-    private var endTime = 0L
-
     context.setReceiveTimeout(60000 milliseconds)
 
-    override def postStop(): Unit = {
-      println("Finished building table: " + (endTime - startTime) + " milliseconds")
-      println("Monitor Actor Stopped")
-    }
-
     override def receive: Receive = {
-      case Report(endMoment) =>
-        if (endMoment > endTime) {
-          endTime = endMoment
-        }
       case ReceiveTimeout =>
-        context.stop(self)
+        println("Finished building table: " + (endTime - startTime) + " milliseconds")
+        println("Monitor Actor Stopped")
+        actors.foreach(actor => actor ! PoisonPill)
     }
   }
 
@@ -58,10 +48,10 @@ private[deploy] object ShardDatabase {
           val l = vectorDatabase(i).get(bucketIndex)
           vectorDatabase(i).put(bucketIndex, l)
         }
-      case ReceiveTimeout =>
-        val monitor = context.actorSelection("/user/monitor")
-        monitor ! Report(System.currentTimeMillis() - 60000)
-        context.stop(self)
+        val endMoment = System.currentTimeMillis()
+        if (endMoment > endTime) {
+          endTime = endMoment
+        }
     }
   }
 
