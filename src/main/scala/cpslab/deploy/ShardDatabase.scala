@@ -89,7 +89,7 @@ private[deploy] object ShardDatabase {
             keySerializer(Serializer.INTEGER)
           hashMapMaker.make[Int, ConcurrentLinkedQueue[Int]]()
         case "ConcurrentHashMap" =>
-          new ConcurrentHashMap[Int, ConcurrentLinkedQueue[Int]](170000, 0.75f, 196)
+          new ConcurrentHashMap[Int, ConcurrentLinkedQueue[Int]](16, 0.75f, 196)
       }
     def initializeIdToVectorMap(): ConcurrentMap[Int, SparseVector] =
       concurrentCollectionType match {
@@ -99,7 +99,7 @@ private[deploy] object ShardDatabase {
             keySerializer(Serializer.INTEGER)
           hashMapMaker.make[Int, SparseVector]()
         case "ConcurrentHashMap" =>
-          new ConcurrentHashMap[Int, SparseVector](170000, 0.75f, 196)
+          new ConcurrentHashMap[Int, SparseVector](16, 0.75f, 196)
       }
     vectorDatabase = Array.fill(tableNum)(initializeVectorDatabase())
     vectorIdToVector = initializeIdToVectorMap()
