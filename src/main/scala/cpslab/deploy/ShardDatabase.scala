@@ -18,32 +18,17 @@ private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
 
-  @volatile var startTime = 0L
-  @volatile var endTime = 0L
-
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
     context.setReceiveTimeout(30000 milliseconds)
 
-    override def postStop(): Unit = {
-      val totalTime = endTime - startTime
-      println("table building cost " + totalTime + " milliseconds")
-    }
-
     override def receive: Receive = {
       case sv: SparseVector =>
-        if (startTime == 0) {
-          startTime = System.currentTimeMillis()
-        }
         val bucketIndices = lsh.calculateIndex(sv)
         for (i <- 0 until bucketIndices.length) {
           val bucketIndex = bucketIndices(i)
           vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
           vectorDatabase(i).get(bucketIndex).add(sv.vectorId)
-        }
-        val currentTime = System.currentTimeMillis()
-        if (currentTime > endTime) {
-          endTime = currentTime
         }
       case ReceiveTimeout =>
         context.stop(self)
@@ -90,6 +75,8 @@ private[deploy] object ShardDatabase {
     vectorIdToVector = initializeIdToVectorMap()
   }
 
+
+
   /**
    * initialize the database by reading raw vector data from file system
    * @param filePath the root path of the data directory
@@ -99,6 +86,8 @@ private[deploy] object ShardDatabase {
       lsh: LSH,
       actorSystem: ActorSystem,
       filePath: String,
+      tableNum: Int,
+      totalVectorNum: Int,
       parallelism: Int): Unit = {
     actors = {
       for (i <- 0 until parallelism)
@@ -111,6 +100,19 @@ private[deploy] object ShardDatabase {
         val vector = new SparseVector(id, size, indices, values)
         vectorIdToVector.put(vector.vectorId, vector)
         actors(Random.nextInt(parallelism)) ! vector
+      }
+    }
+    new Thread() {
+      override def run(): Unit = {
+        var stopSign = false
+        val startTime = System.currentTimeMillis()
+        while (!stopSign) {
+          Thread.sleep(100)
+          for (i <- 0 until tableNum) {
+            stopSign = vectorDatabase(i).size() >= totalVectorNum
+          }
+        }
+        println(s"total Time: ${System.currentTimeMillis() - startTime}")
       }
     }
   }
