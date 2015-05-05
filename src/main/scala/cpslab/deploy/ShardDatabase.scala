@@ -23,7 +23,7 @@ private[deploy] object ShardDatabase {
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
-    context.setReceiveTimeout(20000 milliseconds)
+    context.setReceiveTimeout(30000 milliseconds)
 
     override def postStop(): Unit = {
       val totalTime = endTime - startTime
