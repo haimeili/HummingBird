@@ -1,6 +1,6 @@
 package cpslab.deploy
 
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, ConcurrentLinkedQueue}
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, ConcurrentMap}
 
 import scala.concurrent.duration._
 import scala.io.Source
@@ -12,7 +12,7 @@ import com.typesafe.config.Config
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import org.mapdb.DBMaker.Maker
-import org.mapdb.{DBMaker, HTreeMap, Serializer}
+import org.mapdb.{DBMaker, Serializer}
 
 private[deploy] object ShardDatabase {
 
