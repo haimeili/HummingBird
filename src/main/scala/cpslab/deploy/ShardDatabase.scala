@@ -31,20 +31,21 @@ private[deploy] object ShardDatabase {
         println("Finished building table: " + (endTime - startTime) + " milliseconds")
         println("Monitor Actor Stopped")
         actors.foreach(actor => actor ! PoisonPill)
-      case Report => 
+      case Report =>
     }
   }
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
-    var msgCnt = 0
-    val monitor = context.actorSelection("/user/monitor")
+    context.setReceiveTimeout(60000 milliseconds)
+
+    private val monitor = context.actorSelection("/user/monitor")
+    private var hasSentReport = false
 
     override def receive: Receive = {
       case sv: SparseVector =>
-        msgCnt += 1
-        if (msgCnt % 100 == 0) {
-          monitor ! Report
+        if (hasSentReport) {
+          hasSentReport = false
         }
         if (startTime == -1L) {
           startTime = System.currentTimeMillis()
@@ -59,6 +60,11 @@ private[deploy] object ShardDatabase {
         val endMoment = System.currentTimeMillis()
         if (endMoment > endTime) {
           endTime = endMoment
+        }
+      case ReceiveTimeout =>
+        if (!hasSentReport) {
+          monitor ! Report
+          hasSentReport = true
         }
     }
   }
