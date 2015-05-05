@@ -30,7 +30,6 @@ private[deploy] object ShardDatabase {
       case ReceiveTimeout =>
         println("Finished building table: " + (endTime - startTime) + " milliseconds")
         println("Monitor Actor Stopped")
-        actors.foreach(actor => actor ! PoisonPill)
       case Report =>
     }
   }
