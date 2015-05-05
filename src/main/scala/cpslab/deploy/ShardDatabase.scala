@@ -34,8 +34,6 @@ private[deploy] object ShardDatabase {
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
-    context.setReceiveTimeout(60000 milliseconds)
-
     override def receive: Receive = {
       case sv: SparseVector =>
         if (startTime == -1L) {
