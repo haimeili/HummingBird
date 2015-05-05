@@ -110,7 +110,7 @@ private[deploy] object ShardDatabase {
         }
         println(s"total Time: ${System.currentTimeMillis() - startTime}")
       }
-    }
+    }.start()
   }
 
   private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, ConcurrentLinkedQueue[Int]]] = null
