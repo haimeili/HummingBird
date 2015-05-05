@@ -128,13 +128,13 @@ private[deploy] object ShardDatabase {
       }
     }
     println("Finished Loading Data")
+    //start monitor actor
+    actorSystem.actorOf(Props(new MonitorActor))
     val itr = vectorIdToVector.values().iterator()
     while (itr.hasNext) {
       val vector = itr.next()
       actors(vector.vectorId % parallelism) ! vector
     }
-    //start monitor actor
-    actorSystem.actorOf(Props(new MonitorActor))
   }
 
   private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, ConcurrentLinkedQueue[Int]]] = null
