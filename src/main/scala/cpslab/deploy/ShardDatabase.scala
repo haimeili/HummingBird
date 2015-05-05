@@ -18,11 +18,12 @@ private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
-  private var endTime = 0L
 
   case class Report(endMoment: Long)
 
   class MonitorActor extends Actor {
+
+    private var endTime = 0L
 
     context.setReceiveTimeout(60000 milliseconds)
 
