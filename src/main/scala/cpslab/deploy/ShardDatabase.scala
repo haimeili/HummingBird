@@ -44,6 +44,7 @@ private[deploy] object ShardDatabase {
     override def receive: Receive = {
       case sv: SparseVector =>
         if (hasSentReport) {
+          monitor ! Report
           hasSentReport = false
         }
         if (startTime == -1L) {
