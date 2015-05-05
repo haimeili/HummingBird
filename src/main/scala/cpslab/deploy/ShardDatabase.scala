@@ -19,6 +19,8 @@ private[deploy] object ShardDatabase {
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
 
+  var measureMistake = 0L
+
   class MonitorActor extends Actor {
     var stoppedActorCount: mutable.HashSet[String] = new mutable.HashSet[String]
 
@@ -38,7 +40,7 @@ private[deploy] object ShardDatabase {
         if (stoppedActorCount.size >= actors.length) {
           val endTime = System.currentTimeMillis()
           println(s"Finished Loading Data from File System, " +
-            s"taken ${endTime - startTime}")
+            s"taken ${endTime - startTime - measureMistake}")
           context.stop(self)
         }
     }
@@ -127,7 +129,14 @@ private[deploy] object ShardDatabase {
         vectorIdToVector.put(vector.vectorId, vector)
       }
     }
-    val itr = vectorIdToVector.values().iterator()
+    val startTime = 0L
+    var itr = vectorIdToVector.values().iterator()
+    while (itr.hasNext) {
+      itr.next()
+    }
+    val endTime = 0L
+    measureMistake = endTime - startTime
+    itr = vectorIdToVector.values().iterator()
     while (itr.hasNext) {
       val vector = itr.next()
       actors(vector.vectorId % parallelism) ! vector
