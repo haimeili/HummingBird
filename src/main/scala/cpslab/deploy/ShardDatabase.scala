@@ -58,7 +58,7 @@ private[deploy] object ShardDatabase {
           val bucketIndex = bucketIndices(i)
           vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
           val l = vectorDatabase(i).get(bucketIndex)
-          vectorDatabase(i).putIfAbsent(bucketIndex, l)
+          vectorDatabase(i).put(bucketIndex, l)
         }
       case ReceiveTimeout =>
         context.stop(self)
