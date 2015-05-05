@@ -20,8 +20,6 @@ private[deploy] object ShardDatabase {
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
-    context.setReceiveTimeout(30000 milliseconds)
-
     override def receive: Receive = {
       case sv: SparseVector =>
         val bucketIndices = lsh.calculateIndex(sv)
@@ -30,8 +28,6 @@ private[deploy] object ShardDatabase {
           vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
           vectorDatabase(i).get(bucketIndex).add(sv.vectorId)
         }
-      case ReceiveTimeout =>
-        context.stop(self)
     }
   }
 
