@@ -18,7 +18,36 @@ private[deploy] object ShardDatabase {
 
   var actors: Seq[ActorRef] = null
 
+  class MonitorActor extends Actor {
+    var stoppedActorCount = 0
+    var startTime = 0L
+
+    override def preStart(): Unit = {
+      startTime = System.currentTimeMillis()
+      if (actors != null) {
+        for (actor <- actors) context.watch(actor)
+      }
+    }
+
+    override def postStop(): Unit = {
+      println("Monitor Actor Stopped")
+    }
+
+    override def receive: Receive = {
+      case Terminated(stoppedActor) =>
+        stoppedActorCount += 1
+        if (stoppedActorCount >= actors.length) {
+          val endTime = System.currentTimeMillis()
+          println(s"Finished Loading Data from File System, " +
+            s"taken ${endTime - startTime}")
+          context.stop(self)
+        }
+    }
+  }
+
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
+
+    context.setReceiveTimeout(60000 milliseconds)
 
     override def receive: Receive = {
       case sv: SparseVector =>
@@ -26,8 +55,11 @@ private[deploy] object ShardDatabase {
         for (i <- 0 until bucketIndices.length) {
           val bucketIndex = bucketIndices(i)
           vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
-          vectorDatabase(i).get(bucketIndex).add(sv.vectorId)
+          val l = vectorDatabase(i).get(bucketIndex)
+          vectorDatabase(i).putIfAbsent(bucketIndex, l)
         }
+      case ReceiveTimeout =>
+        context.stop(self)
     }
   }
 
@@ -71,8 +103,6 @@ private[deploy] object ShardDatabase {
     vectorIdToVector = initializeIdToVectorMap()
   }
 
-
-
   /**
    * initialize the database by reading raw vector data from file system
    * @param filePath the root path of the data directory
@@ -98,19 +128,8 @@ private[deploy] object ShardDatabase {
         actors(Random.nextInt(parallelism)) ! vector
       }
     }
-    new Thread() {
-      override def run(): Unit = {
-        var stopSign = false
-        val startTime = System.currentTimeMillis()
-        while (!stopSign) {
-          Thread.sleep(100)
-          for (i <- 0 until tableNum) {
-            stopSign = vectorDatabase(i).size() >= totalVectorNum
-          }
-        }
-        println(s"total Time: ${System.currentTimeMillis() - startTime}")
-      }
-    }.start()
+    //start monitor actor
+    actorSystem.actorOf(Props(new MonitorActor))
   }
 
   private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, ConcurrentLinkedQueue[Int]]] = null
