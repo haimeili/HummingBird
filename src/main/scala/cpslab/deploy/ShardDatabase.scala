@@ -2,6 +2,7 @@ package cpslab.deploy
 
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, ConcurrentMap}
 
+import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
@@ -19,7 +20,7 @@ private[deploy] object ShardDatabase {
   var actors: Seq[ActorRef] = null
 
   class MonitorActor extends Actor {
-    var stoppedActorCount = 0
+    var stoppedActorCount: mutable.HashSet[String] = new mutable.HashSet[String]
     var startTime = 0L
 
     override def preStart(): Unit = {
@@ -35,8 +36,8 @@ private[deploy] object ShardDatabase {
 
     override def receive: Receive = {
       case Terminated(stoppedActor) =>
-        stoppedActorCount += 1
-        if (stoppedActorCount >= actors.length) {
+        stoppedActorCount += stoppedActor.path.toStringWithoutAddress
+        if (stoppedActorCount.size >= actors.length) {
           val endTime = System.currentTimeMillis()
           println(s"Finished Loading Data from File System, " +
             s"taken ${endTime - startTime}")
@@ -112,8 +113,6 @@ private[deploy] object ShardDatabase {
       lsh: LSH,
       actorSystem: ActorSystem,
       filePath: String,
-      tableNum: Int,
-      totalVectorNum: Int,
       parallelism: Int): Unit = {
     actors = {
       for (i <- 0 until parallelism)
