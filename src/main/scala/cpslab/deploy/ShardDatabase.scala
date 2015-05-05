@@ -20,6 +20,8 @@ private[deploy] object ShardDatabase {
   @volatile var startTime = -1L
   @volatile var endTime = -1L
 
+  case object Report
+
   class MonitorActor extends Actor {
 
     context.setReceiveTimeout(60000 milliseconds)
@@ -29,13 +31,21 @@ private[deploy] object ShardDatabase {
         println("Finished building table: " + (endTime - startTime) + " milliseconds")
         println("Monitor Actor Stopped")
         actors.foreach(actor => actor ! PoisonPill)
+      case Report => 
     }
   }
 
   class InitializeWorker(parallelism: Int, lsh: LSH) extends Actor {
 
+    var msgCnt = 0
+    val monitor = context.actorSelection("/user/monitor")
+
     override def receive: Receive = {
       case sv: SparseVector =>
+        msgCnt += 1
+        if (msgCnt % 100 == 0) {
+          monitor ! Report
+        }
         if (startTime == -1L) {
           startTime = System.currentTimeMillis()
         }
