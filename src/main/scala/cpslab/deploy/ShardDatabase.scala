@@ -54,6 +54,7 @@ private[deploy] object ShardDatabase extends DataSetLoader {
           val bucketIndex = bucketIndices(i)
           vectorDatabase(i).putIfAbsent(bucketIndex, new ConcurrentLinkedQueue[Int]())
           val l = vectorDatabase(i).get(bucketIndex)
+          l.add(sv.vectorId)
           vectorDatabase(i).put(bucketIndex, l)
         }
         val endMoment = System.currentTimeMillis()
@@ -146,7 +147,6 @@ private[deploy] object ShardDatabase extends DataSetLoader {
               while (entrySetItr.hasNext) {
                 val a = entrySetItr.next()
                 totalCnt += a.getValue.size()
-                println(s"totalCnt: $totalCnt")
               }
             }
             println(s"Writing Update ${totalCnt - lastAmount}, at ${System.currentTimeMillis()}")
