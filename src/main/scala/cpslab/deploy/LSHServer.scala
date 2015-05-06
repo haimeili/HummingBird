@@ -61,8 +61,13 @@ private[cpslab] object LSHServer {
 
     //initialize table
     ShardDatabase.initializeMapDBHashMap(conf)
-    ShardDatabase.initVectorDatabaseFromFS(lsh, system, conf.getString("cpslab.lsh.inputFilePath"),
-      conf.getInt("cpslab.lsh.sharding.initParallism"))
+    ShardDatabase.initVectorDatabaseFromFS(
+      lsh,
+      system,
+      conf.getString("cpslab.lsh.inputFilePath"),
+      conf.getInt("cpslab.lsh.sharding.initParallism"),
+      conf.getInt("cpslab.lsh.benchmark.replica"),
+      conf.getInt("cpslab.lsh.benchmark.offset"))
     system
   }
   

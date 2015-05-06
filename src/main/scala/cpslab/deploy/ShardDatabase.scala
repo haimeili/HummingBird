@@ -2,19 +2,18 @@ package cpslab.deploy
 
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, ConcurrentMap}
 
-import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.io.Source
 import scala.language.postfixOps
 
 import akka.actor._
 import com.typesafe.config.Config
+import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
-import cpslab.lsh.vector.{SparseVector, Vectors}
+import cpslab.lsh.vector.SparseVector
 import org.mapdb.DBMaker.Maker
 import org.mapdb.{DBMaker, Serializer}
 
-private[deploy] object ShardDatabase {
+private[deploy] object ShardDatabase extends DataSetLoader {
 
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
@@ -123,20 +122,14 @@ private[deploy] object ShardDatabase {
       lsh: LSH,
       actorSystem: ActorSystem,
       filePath: String,
-      parallelism: Int): Unit = {
+      parallelism: Int,
+      replica: Int,
+      offset: Int): Unit = {
     actors = {
       for (i <- 0 until parallelism)
         yield actorSystem.actorOf(Props(new InitializeWorker(parallelism, lsh)))
     }
-    if (filePath != "") {
-      val allFiles = Utils.buildFileListUnderDirectory(filePath)
-      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        val (id, size, indices, values) = Vectors.fromString1(line)
-        val vector = new SparseVector(id, size, indices, values)
-        vectorIdToVector.put(vector.vectorId, vector)
-      }
-    }
-    println("Finished Loading Data")
+    initVectorDatabaseFromFS(filePath, replica, offset)
     //start monitor actor
     actorSystem.actorOf(Props(new MonitorActor), name = "monitor")
     val itr = vectorIdToVector.values().iterator()
