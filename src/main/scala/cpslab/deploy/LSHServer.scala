@@ -67,7 +67,8 @@ private[cpslab] object LSHServer {
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.sharding.initParallism"),
       conf.getInt("cpslab.lsh.benchmark.replica"),
-      conf.getInt("cpslab.lsh.benchmark.offset"))
+      conf.getInt("cpslab.lsh.benchmark.offset"),
+      conf.getInt("cpslab.lsh.benchmark.cap"))
     system
   }
   

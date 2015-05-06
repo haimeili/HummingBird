@@ -124,12 +124,13 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       filePath: String,
       parallelism: Int,
       replica: Int,
-      offset: Int): Unit = {
+      offset: Int,
+      cap: Int): Unit = {
     actors = {
       for (i <- 0 until parallelism)
         yield actorSystem.actorOf(Props(new InitializeWorker(parallelism, lsh)))
     }
-    initVectorDatabaseFromFS(filePath, replica, offset)
+    initVectorDatabaseFromFS(filePath, replica, offset, cap)
     //start monitor actor
     actorSystem.actorOf(Props(new MonitorActor), name = "monitor")
     val itr = vectorIdToVector.values().iterator()
