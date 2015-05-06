@@ -17,21 +17,24 @@ trait DataSetLoader {
       offset: Int,
       cap: Int): Unit = {
     import ShardDatabase._
-    if (filePath != "") {
-      val allFiles = Utils.buildFileListUnderDirectory(filePath)
-      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        val (id, size, indices, values) = Vectors.fromString1(line)
-        var currentOffset = 0
-        for (i <- 0 until replica) {
-          val vector = new SparseVector(id + currentOffset, size, indices, values)
-          if (vectorIdToVector.size() > cap) {
-            return
+    def loadDataFromFS() {
+      if (filePath != "") {
+        val allFiles = Utils.buildFileListUnderDirectory(filePath)
+        for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+          val (id, size, indices, values) = Vectors.fromString1(line)
+          var currentOffset = 0
+          for (i <- 0 until replica) {
+            val vector = new SparseVector(id + currentOffset, size, indices, values)
+            if (vectorIdToVector.size() > cap) {
+              return
+            }
+            vectorIdToVector.put(vector.vectorId, vector)
+            currentOffset += offset
           }
-          vectorIdToVector.put(vector.vectorId, vector)
-          currentOffset += offset
         }
       }
     }
+    loadDataFromFS()
     println(s"Finished Loading Data, containing ${vectorIdToVector.size()} vectors")
   }
 }
