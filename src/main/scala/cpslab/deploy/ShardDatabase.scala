@@ -123,6 +123,7 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       actorSystem: ActorSystem,
       filePath: String,
       parallelism: Int,
+      tableNum: Int,
       replica: Int,
       offset: Int,
       cap: Int): Unit = {
@@ -131,8 +132,30 @@ private[deploy] object ShardDatabase extends DataSetLoader {
         yield actorSystem.actorOf(Props(new InitializeWorker(parallelism, lsh)))
     }
     initVectorDatabaseFromFS(filePath, replica, offset, cap)
-    //start monitor actor
+    // start monitor actor
     actorSystem.actorOf(Props(new MonitorActor), name = "monitor")
+    //start writing rate monitor thread
+    new Thread(
+      new Runnable {
+        override def run(): Unit = {
+          var lastAmount = 0
+          while (true) {
+            var totalCnt = 0
+            for (i <- 0 until vectorDatabase.length) {
+              val entrySetItr = vectorDatabase(i).entrySet().iterator()
+              while (entrySetItr.hasNext) {
+                val a = entrySetItr.next()
+                totalCnt += a.getValue.size()
+                println(s"totalCnt: $totalCnt")
+              }
+            }
+            println(s"Writing Update ${totalCnt - lastAmount}, at ${System.currentTimeMillis()}")
+            lastAmount = totalCnt
+            Thread.sleep(1000)
+          }
+        }
+      }
+    ).start()
     val itr = vectorIdToVector.values().iterator()
     while (itr.hasNext) {
       val vector = itr.next()
