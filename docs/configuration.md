@@ -237,4 +237,14 @@
   <td>(none)</td>
   <td>client Address</td>
 </tr>
+<tr>
+  <td><code>cpslab.lsh.init.parallism</code></td>
+  <td>(none)</td>
+  <td>number of actors per table when initialize tables</td>
+</tr>
+<tr>
+  <td><code>cpslab.vectorDatabase.memoryModel</code></td>
+  <td>(none)</td>
+  <td>onheap - allocate on memory, offheap - use unsafe API</td>
+</tr>
 </table>

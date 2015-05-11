@@ -1,9 +1,8 @@
 package cpslab.deploy
 
 import java.util
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -65,6 +64,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    * send ShardAllocation to regionActors
    */
   private def sendShardAllocation(): Unit = {
+    import scala.collection.JavaConversions._
     for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
       regionActor ! FlatShardAllocation(
         HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
@@ -80,6 +80,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def sendOrBatchShardAllocation(
       outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]):
       Unit = {
+    import scala.collection.JavaConversions._
     for ((shardId, tableMap) <- outputShardMap) {
       if (loadBatchingDuration <= 0) {
         regionActor ! FlatShardAllocation(
@@ -128,7 +129,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val allSimilarCandidates = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
       val bitMap = deduplicateBitmap.getOrElseUpdate(vector.sparseVector, new util.BitSet)
       if (allSimilarCandidates != null) {
-        allSimilarCandidates.foreach(candidateVectorID => bitMap.set(candidateVectorID))
+        val itr = allSimilarCandidates.iterator()
+        while (itr.hasNext) {
+          bitMap.set(itr.next())
+        }
       }
     }
     deduplicateBitmap.map {case (queryVector, bitmap) =>
@@ -171,11 +175,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         (vector, tableIds) <- vectorAndTableIDs) {
       vectorIdToVector.put(vector.sparseVector.vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        if (!vectorDatabase(tableId).containsKey(vector.bucketIndices(tableId))) {
-          vectorDatabase(tableId).put(vector.bucketIndices(tableId), new ListBuffer[Int])
-        }
-        val list = vectorDatabase(tableId)(vector.bucketIndices(tableId))
-        list += vector.sparseVector.vectorId
+        vectorDatabase(tableId).putIfAbsent(vector.bucketIndices(tableId),
+          new ConcurrentLinkedQueue[Int])
+        val list = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
+        list.add(vector.sparseVector.vectorId)
         vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
       }
     }
