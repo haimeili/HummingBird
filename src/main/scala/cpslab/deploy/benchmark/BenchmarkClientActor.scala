@@ -102,6 +102,7 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
     case ReceiveTimeout =>
       context.stop(self)
     case PerformanceReport(overrallCost, searchCost, writeCost) =>
+      println(s"received performance report from ${sender().path.toStringWithoutAddress}")
       //overall
       overallAverage += overrallCost._3
       overallMax = math.max(overallMax, overrallCost._1)
