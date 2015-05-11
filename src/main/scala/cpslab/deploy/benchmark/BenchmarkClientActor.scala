@@ -1,4 +1,4 @@
-package cpslab.benchmark
+package cpslab.deploy.benchmark
 
 import java.io.File
 
@@ -12,7 +12,7 @@ import scala.util.Random
 
 import akka.actor._
 import com.typesafe.config.{Config, ConfigFactory}
-import cpslab.deploy.{BenchmarkEnd, IOTicket, SearchRequest, SimilarityOutput}
+import cpslab.deploy._
 import cpslab.lsh.vector.{SparseVector, Vectors}
 
 private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
@@ -44,7 +44,8 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
     val system = context.system
     import system.dispatcher
     // load the actors
-    for (line <- Source.fromFile(inputSource).getLines()) {
+    val filePaths = Utils.buildFileListUnderDirectory(inputSource)
+    for (inputFile <- filePaths; line <- Source.fromFile(inputFile).getLines()) {
       queries += new SparseVector(Vectors.fromString(line))
     }
     benchmarkTask = system.scheduler.schedule(0 milliseconds, sendInterval milliseconds, self,
