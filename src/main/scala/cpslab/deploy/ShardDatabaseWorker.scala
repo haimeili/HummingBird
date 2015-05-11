@@ -265,6 +265,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       processShardAllocation(shardAllocation)
     case ReceiveTimeout =>
       sendPerformanceReport()
+      context.stop(self)
   }
 }
 
