@@ -151,8 +151,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
               }
             }
             val currentTime = System.currentTimeMillis()
-            println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
-              ((currentTime - lastAmount) * 1000)}")
+            /*println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
+              ((currentTime - lastTime) * 1000)}")*/
             lastAmount = totalCnt
             lastTime = currentTime
             Thread.sleep(1000)
