@@ -215,7 +215,9 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val endMoment = System.nanoTime()
     for (vectorAndTableIDs <- withInShardData; (vector, tableIds) <- vectorAndTableIDs) {
       val vectorId = vector.sparseVector.vectorId
-      endTime += vectorId -> endMoment
+      if (startTime.containsKey(vectorId)) {
+        endTime += vectorId -> endMoment
+      }
     }
   }
 
