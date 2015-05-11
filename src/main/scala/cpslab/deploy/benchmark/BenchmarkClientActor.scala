@@ -99,6 +99,6 @@ private[benchmark] object BenchmarkClientActor {
     }
     val conf = ConfigFactory.parseFile(new File(args(0)))
     val actorSystem = ActorSystem("benchmarkSystem", conf)
-    actorSystem.actorOf(Props(new BenchmarkClientActor(conf)))
+    actorSystem.actorOf(Props(new BenchmarkClientActor(conf)), name = "benchmarkClient")
   }
 }
