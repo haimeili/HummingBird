@@ -6,6 +6,10 @@ private[cpslab] object TestSettings {
   private val appConf = ConfigFactory.parseString(
     s"""
        |cpslab.lsh.plsh.benchmark.expDuration=0
+       |cpslab.lsh.benchmark.replica=1
+       |cpslab.lsh.benchmark.offset=0
+       |cpslab.lsh.benchmark.cap=1000000
+       |cpslab.vectorDatabase.memoryModel=offheap
        |cpslab.lsh.similarityThreshold = 0.0
        |cpslab.lsh.vectorDim = 3
        |cpslab.lsh.chainLength = 10
@@ -15,7 +19,9 @@ private[cpslab] object TestSettings {
        |cpslab.lsh.plsh.partitionSwitch=false
        |cpslab.lsh.plsh.maxNumberOfVector=100
        |cpslab.lsh.initVectorNumber=0
+       |cpslab.lsh.sharding.initParallism=1
        |cpslab.lsh.plsh.maxWorkerNum=5
+       |cpslab.lsh.concurrentCollectionType=MapDBHashMap
        |cpslab.lsh.inputFilePath=""
        |cpslab.lsh.tableNum = 10
        |cpslab.lsh.deploy.client = "/user/client"

@@ -1,12 +1,12 @@
 package cpslab.deploy
 
 import java.util
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -15,11 +15,12 @@ import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
 import cpslab.deploy.ShardDatabase._
-import cpslab.deploy.ShardDatabaseWorker._
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
 
 private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
+
+  import ShardDatabaseWorker._
 
   //sharding actors
   private val regionActor = ClusterSharding(context.system).shardRegion(
@@ -66,6 +67,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    * send ShardAllocation to regionActors
    */
   private def sendShardAllocation(): Unit = {
+    import scala.collection.JavaConversions._
     for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
       regionActor ! FlatShardAllocation(
         HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
@@ -81,6 +83,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def sendOrBatchShardAllocation(
       outputShardMap: mutable.HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]):
       Unit = {
+    import scala.collection.JavaConversions._
     for ((shardId, tableMap) <- outputShardMap) {
       if (loadBatchingDuration <= 0) {
         regionActor ! FlatShardAllocation(
@@ -138,7 +141,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val allSimilarCandidates = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
       val bitMap = deduplicateBitmap.getOrElseUpdate(vector.sparseVector, new util.BitSet)
       if (allSimilarCandidates != null) {
-        allSimilarCandidates.foreach(candidateVectorID => bitMap.set(candidateVectorID))
+        val itr = allSimilarCandidates.iterator()
+        while (itr.hasNext) {
+          bitMap.set(itr.next())
+        }
       }
     }
     deduplicateBitmap.map {case (queryVector, bitmap) =>
@@ -189,11 +195,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val vectorId = vector.sparseVector.vectorId
       vectorIdToVector.put(vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        if (!vectorDatabase(tableId).containsKey(vector.bucketIndices(tableId))) {
-          vectorDatabase(tableId).put(vector.bucketIndices(tableId), new ListBuffer[Int])
-        }
-        val list = vectorDatabase(tableId)(vector.bucketIndices(tableId))
-        list += vectorId
+        vectorDatabase(tableId).putIfAbsent(vector.bucketIndices(tableId),
+          new ConcurrentLinkedQueue[Int])
+        val list = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
+        list.add(vector.sparseVector.vectorId)
         vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
       }
       if (indexCalculationCost.containsKey(vectorId)) {
