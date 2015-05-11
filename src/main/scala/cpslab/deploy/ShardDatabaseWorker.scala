@@ -220,7 +220,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     }
   }
 
-  private def printBenchmarkResult(): Unit = {
+  private def sendPerformanceReport(): Unit = {
     val result = new mutable.HashMap[Int, Long]
     for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
       result += vectorId -> (endMoment - startTime(vectorId))
@@ -264,7 +264,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     case shardAllocation: FlatShardAllocation =>
       processShardAllocation(shardAllocation)
     case ReceiveTimeout =>
-
+      sendPerformanceReport()
   }
 }
 
