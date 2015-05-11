@@ -46,7 +46,7 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
     // load the actors
     val filePaths = Utils.buildFileListUnderDirectory(inputSource)
     for (inputFile <- filePaths; line <- Source.fromFile(inputFile).getLines()) {
-      queries += new SparseVector(Vectors.fromString(line))
+      queries += new SparseVector(Vectors.fromString1(line))
     }
     benchmarkTask = system.scheduler.schedule(0 milliseconds, sendInterval milliseconds, self,
       IOTicket)
