@@ -110,7 +110,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    */
   private def processSearchRequest(searchRequest: SearchRequest): Unit = {
     //record start time
-    val startMoment = System.currentTimeMillis()
+    val startMoment = System.nanoTime()
     val queryId = searchRequest.vector.vectorId
     startTime += queryId -> startMoment
     val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
@@ -212,7 +212,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
           indexCalculationCost(vectorId))
       }
     }
-    val endMoment = System.currentTimeMillis()
+    val endMoment = System.nanoTime()
     for (vectorAndTableIDs <- withInShardData; (vector, tableIds) <- vectorAndTableIDs) {
       val vectorId = vector.sparseVector.vectorId
       endTime += vectorId -> endMoment
