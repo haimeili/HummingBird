@@ -33,7 +33,7 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
   //expiration duration setup
   private val expDuration = conf.getLong("cpslab.lsh.benchmark.expDuration")
   if (expDuration > 0) {
-    context.setReceiveTimeout((expDuration * 2) milliseconds)
+    context.setReceiveTimeout(expDuration milliseconds)
   }
 
   // vectorID -> Long
