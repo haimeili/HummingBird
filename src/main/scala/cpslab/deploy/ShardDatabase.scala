@@ -139,7 +139,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
     new Thread(
       new Runnable {
         override def run(): Unit = {
-          var lastAmount = 0
+          var lastAmount = 0L
+          var lastTime = 0L
           while (true) {
             var totalCnt = 0
             for (i <- 0 until vectorDatabase.length) {
@@ -149,8 +150,11 @@ private[deploy] object ShardDatabase extends DataSetLoader {
                 totalCnt += a.getValue.size()
               }
             }
-            println(s"Writing Update ${totalCnt - lastAmount}, at ${System.currentTimeMillis()}")
+            val currentTime = System.currentTimeMillis()
+            println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
+              ((currentTime - lastAmount) * 1000)}")
             lastAmount = totalCnt
+            lastTime = currentTime
             Thread.sleep(1000)
           }
         }
