@@ -160,7 +160,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       }
       if (selectedCandidates.size > 0) {
         val topKCandidate = selectedCandidates.sortWith((a, b) => a._2 < b._2).take(topK)
-        SimilarityOutput(queryVector.vectorId, null, topKCandidate.toList)
+        SimilarityOutput(queryVector.vectorId, null, topKCandidate.toList,
+          Some(System.currentTimeMillis()))
       } else {
         null
       }

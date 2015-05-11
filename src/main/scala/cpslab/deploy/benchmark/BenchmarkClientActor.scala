@@ -56,12 +56,8 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
     //grouped size
     actors.foreach(actor => actor ! BenchmarkEnd)
     val result = new mutable.HashMap[Int, Long]
-    endTime.synchronized {
-      startTime.synchronized {
-        for ((vectorId, endMoment) <- endTime if startTime.contains(vectorId)) {
-          result += vectorId -> (endTime(vectorId) - startTime(vectorId))
-        }
-      }
+    for ((vectorId, endMoment) <- endTime if startTime.contains(vectorId)) {
+      result += vectorId -> (endTime(vectorId) - startTime(vectorId))
     }
     if (result.nonEmpty) {
       val max = result.maxBy(_._2)
@@ -73,7 +69,8 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
 
   override def receive: Receive = {
     case SimilarityOutput(queryID, bitmap, similarVectors, latency) =>
-      //TODO: assume zero latency
+      println("received vector " + queryID)
+      endTime += queryID -> latency.get
     case IOTicket =>
       for (query <- queries) {
         startTime += query.vectorId -> System.currentTimeMillis()
@@ -85,8 +82,6 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
       }
     case ReceiveTimeout =>
       context.stop(self)
-    case BenchmarkEnd =>
-
   }
 }
 
