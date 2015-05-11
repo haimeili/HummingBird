@@ -131,7 +131,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     //we have interest in this time particularly, since in sharding schema, we need to deduct the
     //ShardIDs in addition to the bucketIndex
     indexCalculationCost += searchRequest.vector.vectorId ->
-      (System.currentTimeMillis() - startMoment)
+      (System.nanoTime() - startMoment)
     sendOrBatchShardAllocation(outputShardMap)
   }
 
@@ -181,7 +181,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def processShardAllocation(shardAllocationMsg: FlatShardAllocation): Unit = {
 
     val similarityOutputMessages = generateSimilarityOutputs(shardAllocationMsg)
-    val currentTime = System.currentTimeMillis()
+    val currentTime = System.nanoTime()
     for (similarityOutput <- similarityOutputMessages) {
       val queryVectorID = similarityOutput.queryVectorID
       if (startTime.containsKey(queryVectorID)) {
@@ -195,7 +195,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
 
   private def updateVectorDatabase(shardAllocationMsg: FlatShardAllocation): Unit = {
     val withInShardData = shardAllocationMsg.shardsMap.values
-    val writingTimeMoment = System.currentTimeMillis()
+    val writingTimeMoment = System.nanoTime()
     for (vectorAndTableIDs <- withInShardData;
         (vector, tableIds) <- vectorAndTableIDs) {
       val vectorId = vector.sparseVector.vectorId
@@ -208,7 +208,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
       }
       if (indexCalculationCost.containsKey(vectorId)) {
-        writeCost += vectorId -> ((System.currentTimeMillis() - writingTimeMoment) +
+        writeCost += vectorId -> ((System.nanoTime() - writingTimeMoment) +
           indexCalculationCost(vectorId))
       }
     }
