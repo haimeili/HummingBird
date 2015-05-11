@@ -213,8 +213,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       }
     }
     val endMoment = System.currentTimeMillis()
-    for (vectorAndTableIDs <- withInShardData;
-         (vector, tableIds) <- vectorAndTableIDs) {
+    for (vectorAndTableIDs <- withInShardData; (vector, tableIds) <- vectorAndTableIDs) {
       val vectorId = vector.sparseVector.vectorId
       endTime += vectorId -> endMoment
     }
@@ -223,7 +222,11 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   private def sendPerformanceReport(): Unit = {
     val result = new mutable.HashMap[Int, Long]
     for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
-      result += vectorId -> (endMoment - startTime(vectorId))
+      val cost = endMoment - startTime(vectorId)
+      if (cost < 0) {
+        println(s"endMoment: $endMoment, startTime: ${startTime(vectorId)}")
+      }
+      result += vectorId -> cost
     }
     //get max, min, average
     var overallTuple: (Long, Long, Long) = null
