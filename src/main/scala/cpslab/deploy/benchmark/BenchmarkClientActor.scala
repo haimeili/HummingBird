@@ -33,12 +33,23 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
   //expiration duration setup
   private val expDuration = conf.getLong("cpslab.lsh.benchmark.expDuration")
   if (expDuration > 0) {
-    context.setReceiveTimeout(expDuration milliseconds)
+    context.setReceiveTimeout((expDuration * 2) milliseconds)
   }
 
   // vectorID -> Long
   private val startTime = new mutable.HashMap[Int, Long]
   private val endTime = new mutable.HashMap[Int, Long]
+
+  // performance measurement
+  private var overallAverage = new ListBuffer[Long]
+  private var overallMax = 0L
+  private var overallMin = 0L
+  private var searchCostAverage = new ListBuffer[Long]
+  private var searchCostMax = 0L
+  private var searchCostMin = 0L
+  private var writeCostAverage = new ListBuffer[Long]
+  private var writeCostMax = 0L
+  private var writeCostMin = 0L
 
   override def preStart(): Unit = {
     val system = context.system
@@ -54,7 +65,6 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
 
   override def postStop(): Unit = {
     //grouped size
-    actors.foreach(actor => actor ! BenchmarkEnd)
     val result = new mutable.HashMap[Int, Long]
     for ((vectorId, endMoment) <- endTime if startTime.contains(vectorId)) {
       result += vectorId -> (endTime(vectorId) - startTime(vectorId))
@@ -65,6 +75,15 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
       val average = result.map(_._2).sum * 1.0 / result.size
       println(s"max $max, min: $min, average: $average")
     }
+    //overallCost
+    println(s"overallCost, Max: $overallMax, Min: $overallMin, " +
+      s"Average: ${overallAverage.sum * 1.0 / overallAverage.length}")
+    //searchCost
+    println(s"searchCost, Max: $searchCostMax, Min: $searchCostMin, " +
+      s"Average: ${searchCostAverage.sum * 1.0 / searchCostAverage.length}")
+    //writeCost
+    println(s"writeCost, Max: $writeCostMax, Min: $writeCostMin, " +
+      s"Average: ${writeCostAverage.sum * 1.0 / writeCostAverage.length}")
   }
 
   override def receive: Receive = {
@@ -82,6 +101,19 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
       }
     case ReceiveTimeout =>
       context.stop(self)
+    case PerformanceReport(overrallCost, searchCost, writeCost) =>
+      //overall
+      overallAverage += overrallCost._3
+      overallMax = math.max(overallMax, overrallCost._1)
+      overallMin = math.min(overallMin, overrallCost._2)
+      //search
+      searchCostAverage += searchCost._3
+      searchCostMax = math.max(searchCostMax, searchCost._1)
+      searchCostMin = math.min(searchCostMin, searchCost._2)
+      //write
+      writeCostAverage += writeCost._3
+      writeCostMax = math.max(writeCostMax, writeCost._1)
+      writeCostMin = math.min(writeCostMin, writeCost._2)
   }
 }
 

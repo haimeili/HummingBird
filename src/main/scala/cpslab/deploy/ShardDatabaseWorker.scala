@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import akka.actor.{Actor, Cancellable, Props}
+import akka.actor.{ReceiveTimeout, Actor, Cancellable, Props}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
@@ -42,6 +42,11 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   //TODO: change for dynamic client actor
   private val clientActorAddress = conf.getString("cpslab.lsh.clientAddress")
   private val clientActor = context.actorSelection(clientActorAddress)
+
+  private val expDuration = conf.getLong("cpslab.lsh.benchmark.expDuration")
+  if (expDuration > 0) {
+    context.setReceiveTimeout(expDuration milliseconds)
+  }
 
   override def preStart(): Unit = {
     // initialize the sender for load batching
@@ -220,34 +225,37 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
       result += vectorId -> (endMoment - startTime(vectorId))
     }
-    println(s"Total Vector Num: ${vectorIdToVector.size}")
     //get max, min, average
+    var overallTuple: (Long, Long, Long) = null
     if (result.nonEmpty) {
       val max = result.maxBy(_._2)
       val min = result.minBy(_._2)
       //get average
       val sum = result.map(_._2).sum
       val average = sum * 1.0 / result.size
-      println(s"Overall: Max: $max, Min: $min, Average: $average")
+      overallTuple = (max._2, min._2, average.toLong)
     }
     //search cost
+    var searchTuple: (Long, Long, Long) = null
     if (searchCost.nonEmpty) {
       val max = searchCost.maxBy(_._2)
       val min = searchCost.minBy(_._2)
       //get average
       val sum = searchCost.map(_._2).sum
       val average = sum * 1.0 / result.size
-      println(s"SearchCost: Max: $max, Min: $min, Average: $average")
+      searchTuple = (max._2, min._2, average.toLong)
     }
     //write cost
+    var writeTuple: (Long, Long, Long) = null
     if (writeCost.nonEmpty) {
       val max = writeCost.maxBy(_._2)
       val min = writeCost.minBy(_._2)
       //get average
       val sum = writeCost.map(_._2).sum
       val average = sum * 1.0 / result.size
-      println(s"WriteCost: Max: $max, Min: $min, Average: $average")
+      writeTuple = (max._2, min._2, average.toLong)
     }
+    clientActor ! PerformanceReport(overallTuple, searchTuple, writeTuple)
   }
 
   override def receive: Receive = {
@@ -255,8 +263,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       processSearchRequest(searchRequest)
     case shardAllocation: FlatShardAllocation =>
       processShardAllocation(shardAllocation)
-    case BenchmarkEnd =>
-      printBenchmarkResult()
+    case ReceiveTimeout =>
+
   }
 }
 

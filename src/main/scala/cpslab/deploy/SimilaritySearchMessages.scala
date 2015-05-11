@@ -50,4 +50,5 @@ case class FlatShardAllocation(shardsMap: HashMap[ShardId,
  */
 case object IOTicket
 
-case object BenchmarkEnd
+case class PerformanceReport(overall: (Long, Long, Long), searchCost: (Long, Long, Long),
+    writeCost: (Long, Long, Long))
