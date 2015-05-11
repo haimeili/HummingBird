@@ -1,5 +1,7 @@
 package cpslab.benchmark
 
+import java.io.File
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -8,8 +10,8 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Random
 
-import akka.actor.{Actor, Cancellable, ReceiveTimeout}
-import com.typesafe.config.Config
+import akka.actor._
+import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.{BenchmarkEnd, IOTicket, SearchRequest, SimilarityOutput}
 import cpslab.lsh.vector.{SparseVector, Vectors}
 
@@ -84,5 +86,18 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
       context.stop(self)
     case BenchmarkEnd =>
 
+  }
+}
+
+private[benchmark] object BenchmarkClientActor {
+
+  def main(args: Array[String]): Unit = {
+    if (args.length != 1) {
+      println("Usage: program conf_path")
+      sys.exit(1)
+    }
+    val conf = ConfigFactory.parseFile(new File(args(0)))
+    val actorSystem = ActorSystem("benchmarkSystem", conf)
+    actorSystem.actorOf(Props(new BenchmarkClientActor(conf)))
   }
 }

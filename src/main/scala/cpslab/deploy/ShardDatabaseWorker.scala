@@ -3,10 +3,10 @@ package cpslab.deploy
 import java.util
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
+import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
