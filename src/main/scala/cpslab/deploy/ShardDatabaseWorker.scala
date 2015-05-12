@@ -124,10 +124,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[SparseVectorWrapper, Array[Int]]]
     val tableNum = indexInAllTables.length
-    val indexInTable = new Array[Int](indexInAllTables.length)
+    val indexInTable = new Array[Int](indexInAllTables.length).zipWithIndex{
+      case (_, idx) => indexInAllTables(idx)}
     val vector = SparseVectorWrapper(indexInTable, searchRequest.vector)
     for (tableId <- 0 until tableNum) {
-      indexInTable(tableId) = indexInAllTables(tableId)
       val bucketIndex = indexInAllTables(tableId)
       val shardId = bucketIndex % maxShardNumPerTable
       outputShardMap.getOrElseUpdate(shardId.toString,
