@@ -98,7 +98,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       } else {
         //merge to write buffer
         for ((vector, tableId) <- tableMap) {
-          val vectorsInBatching = flatAllocationWriteBuffer.
+          flatAllocationWriteBuffer.
             getOrElseUpdate(shardId, new mutable.HashMap[SparseVectorWrapper, Array[Int]]).
             getOrElseUpdate(vector, tableId)
         }
