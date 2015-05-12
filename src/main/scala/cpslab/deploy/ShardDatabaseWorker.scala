@@ -73,11 +73,13 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    */
   private def sendShardAllocation(): Unit = {
     import scala.collection.JavaConversions._
-    for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
-      regionActor ! FlatShardAllocation(
-        HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
+    flatAllocationWriteBuffer.synchronized {
+      for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
+        regionActor ! FlatShardAllocation(
+          HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
+      }
+      flatAllocationWriteBuffer.clear()
     }
-    flatAllocationWriteBuffer.clear()
   }
 
   /**
