@@ -166,7 +166,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         nextSetBit = bitmap.nextSetBit(nextSetBit + 1)
       }
       if (selectedCandidates.size > 0) {
-        val topKCandidate = selectedCandidates.sortWith((a, b) => a._2 < b._2).take(topK)
+        //val topKCandidate = selectedCandidates.sortWith((a, b) => a._2 < b._2).take(topK)
+        val topKCandidate = selectedCandidates.take(topK)
         SimilarityOutput(queryVector.vectorId, null, topKCandidate.toList,
           Some(System.currentTimeMillis()))
       } else {
