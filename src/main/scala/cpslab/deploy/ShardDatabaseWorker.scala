@@ -213,12 +213,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         writeCost += vectorId -> ((System.nanoTime() - writingTimeMoment) +
           indexCalculationCost(vectorId))
       }
-    }
-    val endMoment = System.nanoTime()
-    for (vectorAndTableIDs <- withInShardData; (vector, tableIds) <- vectorAndTableIDs) {
-      val vectorId = vector.sparseVector.vectorId
       if (startTime.containsKey(vectorId)) {
-        endTime += vectorId -> endMoment
+        endTime += vectorId -> System.nanoTime()
       }
     }
   }
@@ -227,9 +223,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val result = new mutable.HashMap[Int, Long]
     for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
       val cost = endMoment - startTime(vectorId)
-      if (cost < 0) {
-        println(s"endMoment: $endMoment, startTime: ${startTime(vectorId)}")
-      } else {
+      if (cost > 0) {
         result += vectorId -> cost
       }
     }
