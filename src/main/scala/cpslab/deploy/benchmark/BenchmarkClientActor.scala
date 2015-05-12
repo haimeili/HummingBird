@@ -92,7 +92,6 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
       endTime += queryID -> latency.get
     case IOTicket =>
       for (query <- queries.take(1000)) {
-        println("sending vector " + query.vectorId)
         startTime += query.vectorId -> System.currentTimeMillis()
         actors(Random.nextInt(actors.length)) ! SearchRequest(query)
       }
