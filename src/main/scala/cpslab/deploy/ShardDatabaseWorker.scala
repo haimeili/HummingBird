@@ -229,8 +229,9 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val cost = endMoment - startTime(vectorId)
       if (cost < 0) {
         println(s"endMoment: $endMoment, startTime: ${startTime(vectorId)}")
+      } else {
+        result += vectorId -> cost
       }
-      result += vectorId -> cost
     }
     //get max, min, average
     var overallTuple: (Long, Long, Long) = null
