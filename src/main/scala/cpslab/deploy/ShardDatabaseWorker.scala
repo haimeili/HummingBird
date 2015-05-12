@@ -116,11 +116,6 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
     val queryId = searchRequest.vector.vectorId
     startTime += queryId -> startMoment
     val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
-    //record index calculation time
-    //we have interest in this time particularly, since in sharding schema, we need to deduct the
-    //ShardIDs in addition to the bucketIndex
-    indexCalculationCost += searchRequest.vector.vectorId ->
-      (System.nanoTime() - startMoment)
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[SparseVectorWrapper, Array[Int]]]
     val tableNum = indexInAllTables.length
@@ -211,9 +206,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
       }
       val currentTime = System.nanoTime()
-      if (indexCalculationCost.containsKey(vectorId)) {
-        writeCost += vectorId -> ((currentTime - writingTimeMoment) +
-          indexCalculationCost(vectorId))
+      if (startTime.containsKey(vectorId)) {
+        writeCost += vectorId -> (currentTime - writingTimeMoment)
         endTime += vectorId -> currentTime
       }
     }
@@ -278,7 +272,6 @@ private[deploy] object ShardDatabaseWorker {
   //benchmark stuffs
   private val startTime = new ConcurrentHashMap[Int, Long]
   private val endTime = new ConcurrentHashMap[Int, Long]
-  private val indexCalculationCost = new ConcurrentHashMap[Int, Long]
   private val searchCost = new ConcurrentHashMap[Int, Long]
   private val writeCost = new ConcurrentHashMap[Int, Long]
 }
