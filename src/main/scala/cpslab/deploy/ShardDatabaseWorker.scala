@@ -154,7 +154,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         }
       }
     }
-    deduplicateBitmap.map {case (queryVector, bitmap) =>
+    deduplicateBitmap.view.map {case (queryVector, bitmap) =>
       var nextSetBit = bitmap.nextSetBit(0)
       val selectedCandidates = new ListBuffer[(Int, Double)]
       while (nextSetBit != -1) {
