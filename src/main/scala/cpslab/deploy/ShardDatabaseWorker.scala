@@ -177,14 +177,17 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    * @param shardAllocationMsg the shardAllocation Message
    */
   private def processShardAllocation(shardAllocationMsg: FlatShardAllocation): Unit = {
+    val shardMap = shardAllocationMsg.shardsMap
+    val time = System.nanoTime()
+    for ((_, withinShardData) <- shardMap; (vector, tableIds) <- withinShardData) {
+      startTime += vector.sparseVector.vectorId -> time
+    }
 
     val similarityOutputMessages = generateSimilarityOutputs(shardAllocationMsg)
     val currentTime = System.nanoTime()
     for (similarityOutput <- similarityOutputMessages) {
       val queryVectorID = similarityOutput.queryVectorID
-      if (startTime.containsKey(queryVectorID)) {
-        searchCost += queryVectorID -> (currentTime - startTime(queryVectorID))
-      }
+      searchCost += queryVectorID -> (currentTime - startTime(queryVectorID))
       clientActor ! similarityOutput
     }
     //update vector database
@@ -214,24 +217,22 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   }
 
   private def sendPerformanceReport(): Unit = {
-    val result = new mutable.HashMap[Int, (Long, Long)]
+    val result = new mutable.HashMap[Int, Long]
     for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
       val cost = endMoment - startTime(vectorId)
       if (cost > 0) {
-        result += vectorId -> Tuple2(startTime(vectorId), endMoment)
+        result += vectorId -> cost
       }
     }
     //get max, min, average
     var overallTuple: (Long, Long, Long) = null
     if (result.nonEmpty) {
-      val max = result.maxBy{case (id, timestamps) => timestamps._2 - timestamps._1}
-      val min = result.minBy{case (id, timestamps) => timestamps._2 - timestamps._1}
+      val max = result.maxBy(_._2)
+      val min = result.minBy(_._2)
       //get average
-      //val sum = result.map(_._2).sum
-      val earliest = result.minBy(_._2._1)._2
-      val latest = result.maxBy(_._2._2)._2
-      val average = (latest._2 - earliest._1) * 1.0 / result.size
-      overallTuple = ((max._2._2 - max._2._1), (min._2._2 - min._2._1), average.toLong)
+      val sum = result.map(_._2).sum
+      val average = sum * 1.0 / result.size
+      overallTuple = (max._2, min._2, average.toLong)
     }
     //search cost
     var searchTuple: (Long, Long, Long) = null
