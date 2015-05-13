@@ -32,10 +32,11 @@ private[deploy] object ShardDatabase extends DataSetLoader {
         val shard3Cnt = vectorDatabase.map(vectorTable => {
           val keysItr = vectorTable.keySet().iterator()
           var shardThreeCnt = 0
-          while (keysItr.hasNext()) {
-             if (keysItr.next() % 3 == 0) {
-               shardThreeCnt += 1
-             }
+          while (keysItr.hasNext) {
+            val bucketIndex = keysItr.next()
+            if (bucketIndex % 3 == 0) {
+              shardThreeCnt += vectorTable.get(bucketIndex).size()
+            }
           }
           shardThreeCnt
         }).sum
