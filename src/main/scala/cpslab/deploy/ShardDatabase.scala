@@ -29,6 +29,17 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       case ReceiveTimeout =>
         println("Finished building table: " + (endTime - startTime) + " milliseconds")
         println("Monitor Actor Stopped")
+        val shard3Cnt = vectorDatabase.map(vectorTable => {
+          val keysItr = vectorTable.keySet().iterator()
+          var shardThreeCnt = 0
+          while (keysItr.hasNext()) {
+             if (keysItr.next() % 3 == 0) {
+               shardThreeCnt += 1
+             }
+          }
+          shardThreeCnt
+        }).sum
+        println("data transfer amount" + shard3Cnt)
       case Report =>
     }
   }
