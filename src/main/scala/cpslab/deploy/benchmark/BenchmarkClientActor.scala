@@ -95,7 +95,6 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
         startTime += query.vectorId -> System.currentTimeMillis()
         actors(Random.nextInt(actors.length)) ! SearchRequest(query)
       }
-      queries.clear()
       //TODO: support multiple rounds of benchmarking
       if(benchmarkTask != null) {
         benchmarkTask.cancel()
