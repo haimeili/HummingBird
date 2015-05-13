@@ -29,18 +29,6 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       case ReceiveTimeout =>
         println("Finished building table: " + (endTime - startTime) + " milliseconds")
         println("Monitor Actor Stopped")
-        val shard3Cnt = vectorDatabase.map(vectorTable => {
-          val keysItr = vectorTable.keySet().iterator()
-          var shardThreeCnt = 0
-          while (keysItr.hasNext) {
-            val bucketIndex = keysItr.next()
-            if (bucketIndex % 3 == 0) {
-              shardThreeCnt += vectorTable.get(bucketIndex).size()
-            }
-          }
-          shardThreeCnt
-        }).sum
-        println("data transfer amount" + shard3Cnt)
       case Report =>
     }
   }
@@ -163,8 +151,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
               }
             }
             val currentTime = System.currentTimeMillis()
-            /*println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
-              ((currentTime - lastTime) * 1000)}")*/
+            println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
+              ((currentTime - lastTime) * 1000)}")
             lastAmount = totalCnt
             lastTime = currentTime
             Thread.sleep(1000)
