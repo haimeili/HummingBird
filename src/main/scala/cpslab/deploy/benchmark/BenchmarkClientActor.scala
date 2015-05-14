@@ -96,10 +96,10 @@ private[benchmark] class BenchmarkClientActor(conf: Config) extends Actor {
         actors(Random.nextInt(actors.length)) ! SearchRequest(query)
       }
       //TODO: support multiple rounds of benchmarking
-      /*
+      queries.clear()
       if(benchmarkTask != null) {
         benchmarkTask.cancel()
-      }*/
+      }
     case ReceiveTimeout =>
       context.stop(self)
     case PerformanceReport(overrallCost, searchCost, writeCost) =>
