@@ -26,7 +26,7 @@ object StructureLoadGenerator {
       }.onSuccess {
         case x =>
           if (lshIndex.totalCount.get() >= vectors.length) {
-            println("total time cost:" + (System.nanoTime() - startTime))
+            println("LSH write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnLSH(lsh)
           }
       }
@@ -43,7 +43,7 @@ object StructureLoadGenerator {
       }.onSuccess{
         case x =>
           if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("total time cost:" + (System.nanoTime() - startTime))
+            println("LSH read total time cost:" + (System.nanoTime() - startTime))
             sys.exit(0)
           }
       }
@@ -59,7 +59,7 @@ object StructureLoadGenerator {
       }.onSuccess {
         case x =>
           if (invertedIndex.totalCount.get() >= vectors.length) {
-            println("total time cost:" + (System.nanoTime() - startTime))
+            println("Index write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnIndex(dim)
           }
       }
@@ -76,7 +76,7 @@ object StructureLoadGenerator {
       }.onSuccess {
         case x =>
           if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("total time cost:" + (System.nanoTime() - startTime))
+            println("Index read total time cost:" + (System.nanoTime() - startTime))
             sys.exit(0)
           }
       }
