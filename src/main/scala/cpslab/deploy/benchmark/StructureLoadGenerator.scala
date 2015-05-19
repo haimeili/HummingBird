@@ -21,7 +21,6 @@ object StructureLoadGenerator {
   def runWriteLoadOnLSH(lsh: LSH): Unit = {
     val lshIndex = new LSHIndex(lsh)
     for (vector <- vectors) {
-      println("processing vector " + vector.vectorId)
       future {
         lshIndex.insert(vector)
       }.onSuccess {

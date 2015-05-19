@@ -13,10 +13,10 @@ class LSHIndex(lsh: LSH) {
   val totalCount: AtomicInteger = new AtomicInteger(0)
   val array = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
     lsh.tableIndexGenerators.length)(new mutable.HashMap[Int, ListBuffer[SparseVector]])
-  println("tableCount:" + lsh.tableIndexGenerators.length)
 
   def insert(vector: SparseVector): Unit = {
     val indices = lsh.calculateIndex(vector)
+    println("index of vector " + vector.vectorId + " is " + indices.toList)
     for (i <- 0 until array.length) {
       array(i).synchronized {
         array(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
