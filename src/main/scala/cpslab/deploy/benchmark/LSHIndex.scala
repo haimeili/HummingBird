@@ -30,9 +30,8 @@ class LSHIndex(lsh: LSH) {
     for (i <- 0 until array.length) {
       val candidates = array(i).get(indices(i))
       candidates.foreach(l => l.foreach(v => {
-        if (
-          !calculated.contains(v.vectorId) &&
-            SimilarityCalculator.calculateSimilarity(v, query) > 0.9) {
+        if (!calculated.contains(v.vectorId) &&
+            SimilarityCalculator.fastCalculateSimilarity(v, query) > 0.9) {
           results += v.vectorId
         }
         calculated += v.vectorId

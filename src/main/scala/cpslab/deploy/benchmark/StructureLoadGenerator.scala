@@ -109,8 +109,9 @@ object StructureLoadGenerator {
         val p = Random.nextDouble()
         if (p <= zeroProbability) 0.0 else  1.0
       })
-      val indices = values.zipWithIndex.filter(_._1 > 0).map(_._2)
-      val nonZeroValues = values.filter(_ > 0)
+      val t = values.zipWithIndex.filter(_._1 > 0)
+      val indices = t.map(_._2)
+      val nonZeroValues = t.map(_._1)
       val newVector = new SparseVector(i, vectorDim, indices, nonZeroValues)
       vectors += newVector
     }

@@ -26,7 +26,7 @@ class InvertedIndex(dim: Int) {
     for (i <- query.indices) {
       val candidates = index(i)
       for (v <- candidates if !calculated.contains(v.vectorId)) {
-        val similarity = SimilarityCalculator.calculateSimilarity(query, v)
+        val similarity = SimilarityCalculator.fastCalculateSimilarity(query, v)
         if (similarity > 0.9) {
           results += v.vectorId
         }
