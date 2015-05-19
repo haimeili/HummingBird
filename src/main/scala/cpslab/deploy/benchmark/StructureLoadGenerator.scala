@@ -24,6 +24,9 @@ object StructureLoadGenerator {
     for (vector <- vectors) {
       future {
         lshIndex.insert(vector)
+      }.onComplete {
+        case x =>
+
       }
     }
   }
@@ -33,6 +36,9 @@ object StructureLoadGenerator {
     for (vector <- vectors.take(1000)) {
       future {
         lshIndex.query(vector)
+      }.onComplete {
+        case x =>
+
       }
     }
   }
@@ -43,6 +49,9 @@ object StructureLoadGenerator {
     for (vector <- vectors) {
       val f = future {
         invertedIndex.insert(vector)
+      }.onComplete {
+        case x =>
+
       }
     }
   }
@@ -53,6 +62,9 @@ object StructureLoadGenerator {
     for (vector <- vectors.take(1000)) {
       val f = future {
         invertedIndex.query(vector)
+      }.onComplete {
+        case x =>
+
       }
     }
   }
@@ -89,7 +101,7 @@ object StructureLoadGenerator {
       override def run(): Unit = {
         println("elapse time:" + (System.nanoTime() - startTime))
       }
-    })
+    }).start()
     Thread.sleep(10000000)
   }
 }
