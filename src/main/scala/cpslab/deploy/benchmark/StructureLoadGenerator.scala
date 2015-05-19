@@ -28,6 +28,8 @@ object StructureLoadGenerator {
           if (lshIndex.totalCount.get() >= vectors.length) {
             println("LSH write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnLSH(lshIndex)
+          } else {
+            println("finishing write")
           }
       }
     }
