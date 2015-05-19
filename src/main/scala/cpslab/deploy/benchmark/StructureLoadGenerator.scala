@@ -110,5 +110,6 @@ object StructureLoadGenerator {
     if (args(0) == "lsh") {
       runWriteLoadOnLSH(lsh)
     }
+    Thread.sleep(1000000)
   }
 }
