@@ -24,15 +24,13 @@ class InvertedIndex(dim: Int) {
     val results = new mutable.HashSet[Int]
     val calculated = new mutable.HashSet[Int]
     for (i <- query.indices) {
-      index(i).synchronized {
-        val candidates = index(i)
-        for (v <- candidates if !calculated.contains(v.vectorId)) {
-          val similarity = SimilarityCalculator.calculateSimilarity(query, v)
-          if (similarity > 0.9) {
-            results += v.vectorId
-          }
-          calculated += v.vectorId
+      val candidates = index(i)
+      for (v <- candidates if !calculated.contains(v.vectorId)) {
+        val similarity = SimilarityCalculator.calculateSimilarity(query, v)
+        if (similarity > 0.9) {
+          results += v.vectorId
         }
+        calculated += v.vectorId
       }
     }
     results
