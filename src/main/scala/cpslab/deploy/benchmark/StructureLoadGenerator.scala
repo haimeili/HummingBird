@@ -64,7 +64,6 @@ object StructureLoadGenerator {
         invertedIndex.query(vector)
       }.onComplete {
         case x =>
-
       }
     }
   }
@@ -99,7 +98,10 @@ object StructureLoadGenerator {
     }
     new Thread(new Runnable {
       override def run(): Unit = {
-        println("elapse time:" + (System.nanoTime() - startTime))
+        while (true) {
+          println("elapse time:" + (System.nanoTime() - startTime))
+          Thread.sleep(1000)
+        }
       }
     }).start()
     Thread.sleep(10000000)
