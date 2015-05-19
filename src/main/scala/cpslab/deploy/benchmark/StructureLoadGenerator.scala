@@ -75,7 +75,7 @@ object StructureLoadGenerator {
     for (vector <- vectors.take(1000)) {
       val f = future {
         invertedIndex.query(vector)
-        if (finishedCount.incrementAndGet() == vectors.length) {
+        if (finishedCount.incrementAndGet() == 1000) {
           println("read time cost with inverted index " + (System.nanoTime() - startTime))
           sys.exit(0)
         }
