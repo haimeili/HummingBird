@@ -86,6 +86,8 @@ object StructureLoadGenerator {
           if (finishedCount.incrementAndGet() >= vectors.length) {
             println("Index read total time cost:" + (System.nanoTime() - startTime))
             sys.exit(0)
+          } else {
+            println("finished " + finishedCount.get())
           }
       }
       f.onFailure {
