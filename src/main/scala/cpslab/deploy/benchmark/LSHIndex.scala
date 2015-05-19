@@ -26,13 +26,17 @@ class LSHIndex(lsh: LSH) {
   def query(query: SparseVector): mutable.HashSet[Int] = {
     val indices = lsh.calculateIndex(query)
     val results = new mutable.HashSet[Int]
+    val calculated = new mutable.HashSet[Int]
     for (i <- 0 until array.length) {
       array(i).synchronized {
         val candidates = array(i).get(indices(i))
         candidates.foreach(l => l.foreach(v => {
-          if (SimilarityCalculator.calculateSimilarity(v, query) > 0.9) {
+          if (
+            !calculated.contains(v.vectorId) &&
+            SimilarityCalculator.calculateSimilarity(v, query) > 0.9) {
             results += v.vectorId
           }
+          calculated += v.vectorId
         }))
       }
     }
