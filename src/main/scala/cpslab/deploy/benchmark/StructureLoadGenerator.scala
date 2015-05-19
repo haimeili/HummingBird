@@ -111,7 +111,7 @@ object StructureLoadGenerator {
       })
       val indices = values.zipWithIndex.filter(_._1 > 0).map(_._2)
       val nonZeroValues = values.filter(_ > 0)
-      val newVector = new SparseVector(i, indices.length, indices, nonZeroValues)
+      val newVector = new SparseVector(i, vectorDim, indices, nonZeroValues)
       vectors += newVector
     }
     println("Finished generating vectors")
