@@ -10,7 +10,6 @@ import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
 // an inverted index implementation for sparse vector
 class InvertedIndex(dim: Int) {
 
-  val totalCount: AtomicInteger = new AtomicInteger(0)
   val index = Array.fill[ListBuffer[SparseVector]](dim)(new ListBuffer[SparseVector])
 
   def insert(vector: SparseVector): Unit = {
@@ -19,7 +18,6 @@ class InvertedIndex(dim: Int) {
         index(i) += vector
       }
     }
-    totalCount.addAndGet(1)
   }
 
   def query(query: SparseVector): mutable.HashSet[Int] = {

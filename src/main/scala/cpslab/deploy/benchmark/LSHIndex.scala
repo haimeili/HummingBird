@@ -10,7 +10,6 @@ import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
 
 class LSHIndex(lsh: LSH) {
 
-  val totalCount: AtomicInteger = new AtomicInteger(0)
   val array = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
     lsh.tableIndexGenerators.length)(new mutable.HashMap[Int, ListBuffer[SparseVector]])
 
@@ -22,7 +21,6 @@ class LSHIndex(lsh: LSH) {
         array(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
       }
     }
-    totalCount.incrementAndGet()
   }
 
   def query(query: SparseVector): mutable.HashSet[Int] = {

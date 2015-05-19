@@ -19,13 +19,15 @@ object StructureLoadGenerator {
   val vectors = new ListBuffer[SparseVector]
 
   def runWriteLoadOnLSH(lsh: LSH): Unit = {
+    startTime = System.nanoTime()
+    val finishedCount = new AtomicInteger(0)
     val lshIndex = new LSHIndex(lsh)
     for (vector <- vectors) {
       future {
         lshIndex.insert(vector)
       }.onSuccess {
         case x =>
-          if (lshIndex.totalCount.get() >= vectors.length) {
+          if (finishedCount.incrementAndGet() >= vectors.length) {
             println("LSH write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnLSH(lshIndex)
           } else {
@@ -53,13 +55,14 @@ object StructureLoadGenerator {
 
   def runWriteLoadOnIndex(dim: Int): Unit = {
     startTime = System.nanoTime()
+    val finishedCount = new AtomicInteger(0)
     val invertedIndex = new InvertedIndex(dim)
     for (vector <- vectors) {
       future {
         invertedIndex.insert(vector)
       }.onSuccess {
         case x =>
-          if (invertedIndex.totalCount.get() >= vectors.length) {
+          if (finishedCount.incrementAndGet() >= vectors.length) {
             println("Index write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnIndex(invertedIndex, dim)
           }
