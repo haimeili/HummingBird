@@ -90,5 +90,6 @@ object StructureLoadGenerator {
         println("elapse time:" + (System.nanoTime() - startTime))
       }
     })
+    Thread.sleep(10000000)
   }
 }
