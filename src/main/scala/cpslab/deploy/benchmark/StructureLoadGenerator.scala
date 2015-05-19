@@ -27,16 +27,15 @@ object StructureLoadGenerator {
         case x =>
           if (lshIndex.totalCount.get() >= vectors.length) {
             println("LSH write total time cost:" + (System.nanoTime() - startTime))
-            runReadLoadOnLSH(lsh)
+            runReadLoadOnLSH(lshIndex)
           }
       }
     }
   }
 
-  def runReadLoadOnLSH(lsh: LSH): Unit = {
+  def runReadLoadOnLSH(lshIndex: LSHIndex): Unit = {
     startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
-    val lshIndex = new LSHIndex(lsh)
     for (vector <- vectors) {
       future {
         lshIndex.query(vector)
@@ -60,16 +59,15 @@ object StructureLoadGenerator {
         case x =>
           if (invertedIndex.totalCount.get() >= vectors.length) {
             println("Index write total time cost:" + (System.nanoTime() - startTime))
-            runReadLoadOnIndex(dim)
+            runReadLoadOnIndex(invertedIndex, dim)
           }
       }
     }
   }
 
-  def runReadLoadOnIndex(dim: Int): Unit = {
+  def runReadLoadOnIndex(invertedIndex: InvertedIndex, dim: Int): Unit = {
     startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
-    val invertedIndex = new InvertedIndex(dim)
     for (vector <- vectors) {
       val f = future {
         invertedIndex.query(vector)
