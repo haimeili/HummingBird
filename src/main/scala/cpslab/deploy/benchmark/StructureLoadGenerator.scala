@@ -20,56 +20,29 @@ object StructureLoadGenerator {
 
   def runWriteLoadOnLSH(lsh: LSH): Unit = {
     startTime = System.nanoTime()
-    val finishedCount = new AtomicInteger(0)
     val lshIndex = new LSHIndex(lsh)
     for (vector <- vectors) {
       future {
         lshIndex.insert(vector)
-      }.onSuccess {
-        case x =>
-          if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("LSH write total time cost:" + (System.nanoTime() - startTime))
-            runReadLoadOnLSH(lshIndex)
-          } else {
-            println("finishing write")
-          }
       }
     }
   }
 
   def runReadLoadOnLSH(lshIndex: LSHIndex): Unit = {
     startTime = System.nanoTime()
-    val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
       future {
         lshIndex.query(vector)
-      }.onSuccess{
-        case x =>
-          if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("LSH read total time cost:" + (System.nanoTime() - startTime))
-            sys.exit(0)
-          }
       }
     }
   }
 
   def runWriteLoadOnIndex(dim: Int): Unit = {
     startTime = System.nanoTime()
-    val finishedCount = new AtomicInteger(0)
     val invertedIndex = new InvertedIndex(dim)
     for (vector <- vectors) {
       val f = future {
         invertedIndex.insert(vector)
-      }
-      f.onSuccess {
-        case x =>
-          if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("Index write total time cost:" + (System.nanoTime() - startTime))
-            runReadLoadOnIndex(invertedIndex, dim)
-          }
-      }
-      f.onFailure {
-        case x => println(x.getMessage)
       }
     }
   }
@@ -80,18 +53,6 @@ object StructureLoadGenerator {
     for (vector <- vectors.take(1000)) {
       val f = future {
         invertedIndex.query(vector)
-      }
-      f.onSuccess {
-        case x =>
-          if (finishedCount.incrementAndGet() >= vectors.length) {
-            println("Index read total time cost:" + (System.nanoTime() - startTime))
-            sys.exit(0)
-          } else {
-            println("finished " + finishedCount.get())
-          }
-      }
-      f.onFailure {
-        case x => println(x.getMessage)
       }
     }
   }
@@ -124,6 +85,10 @@ object StructureLoadGenerator {
     if (args(0) == "lsh") {
       runWriteLoadOnLSH(lsh)
     }
-    Thread.sleep(1000000)
+    new Thread(new Runnable {
+      override def run(): Unit = {
+        println("elapse time:" + (System.nanoTime() - startTime))
+      }
+    })
   }
 }
