@@ -58,14 +58,18 @@ object StructureLoadGenerator {
     val finishedCount = new AtomicInteger(0)
     val invertedIndex = new InvertedIndex(dim)
     for (vector <- vectors) {
-      future {
+      val f = future {
         invertedIndex.insert(vector)
-      }.onSuccess {
+      }
+      f.onSuccess {
         case x =>
           if (finishedCount.incrementAndGet() >= vectors.length) {
             println("Index write total time cost:" + (System.nanoTime() - startTime))
             runReadLoadOnIndex(invertedIndex, dim)
           }
+      }
+      f.onFailure {
+        case x => println(x.getMessage)
       }
     }
   }
@@ -76,12 +80,16 @@ object StructureLoadGenerator {
     for (vector <- vectors) {
       val f = future {
         invertedIndex.query(vector)
-      }.onSuccess {
+      }
+      f.onSuccess {
         case x =>
           if (finishedCount.incrementAndGet() >= vectors.length) {
             println("Index read total time cost:" + (System.nanoTime() - startTime))
             sys.exit(0)
           }
+      }
+      f.onFailure {
+        case x => println(x.getMessage)
       }
     }
   }
