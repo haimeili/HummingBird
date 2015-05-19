@@ -21,7 +21,7 @@ class LSHIndex(lsh: LSH) {
         array(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
       }
     }
-    totalCount.getAndIncrement
+    totalCount.incrementAndGet()
   }
 
   def query(query: SparseVector): mutable.HashSet[Int] = {
