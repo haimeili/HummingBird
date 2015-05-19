@@ -21,21 +21,30 @@ object StructureLoadGenerator {
   def runWriteLoadOnLSH(lsh: LSH): Unit = {
     startTime = System.nanoTime()
     val lshIndex = new LSHIndex(lsh)
+    val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
       future {
         lshIndex.insert(vector)
       }.onComplete {
         case x =>
-
+          if (finishedCount.incrementAndGet() == vectors.length) {
+            println("write time cost with lsh " + (System.nanoTime() - startTime))
+            runReadLoadOnLSH(lshIndex)
+          }
       }
     }
   }
 
   def runReadLoadOnLSH(lshIndex: LSHIndex): Unit = {
     startTime = System.nanoTime()
+    val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
       future {
         lshIndex.query(vector)
+        if (finishedCount.incrementAndGet() == vectors.length) {
+          println("read time cost with lsh " + (System.nanoTime() - startTime))
+          sys.exit(0)
+        }
       }.onComplete {
         case x =>
 
@@ -46,12 +55,16 @@ object StructureLoadGenerator {
   def runWriteLoadOnIndex(dim: Int): Unit = {
     startTime = System.nanoTime()
     val invertedIndex = new InvertedIndex(dim)
+    val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
       val f = future {
         invertedIndex.insert(vector)
       }.onComplete {
         case x =>
-
+          if (finishedCount.incrementAndGet() == vectors.length) {
+            println("write time cost with inverted index " + (System.nanoTime() - startTime))
+            runReadLoadOnIndex(invertedIndex, dim)
+          }
       }
     }
   }
@@ -62,6 +75,10 @@ object StructureLoadGenerator {
     for (vector <- vectors.take(1000)) {
       val f = future {
         invertedIndex.query(vector)
+        if (finishedCount.incrementAndGet() == vectors.length) {
+          println("read time cost with inverted index " + (System.nanoTime() - startTime))
+          sys.exit(0)
+        }
       }.onComplete {
         case x =>
       }
@@ -96,14 +113,6 @@ object StructureLoadGenerator {
     if (args(0) == "lsh") {
       runWriteLoadOnLSH(lsh)
     }
-    new Thread(new Runnable {
-      override def run(): Unit = {
-        while (true) {
-          println("elapse time:" + (System.nanoTime() - startTime))
-          Thread.sleep(1000)
-        }
-      }
-    }).start()
     Thread.sleep(10000000)
   }
 }
