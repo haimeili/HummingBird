@@ -27,7 +27,6 @@ class LSHIndex(lsh: LSH) {
     val results = new mutable.HashSet[Int]
     val calculated = new mutable.HashSet[Int]
     for (i <- 0 until array.length) {
-      println("query vector " + query.vectorId + " in table " + i)
       val candidates = array(i).get(indices(i))
       candidates.foreach(l => l.foreach(v => {
         if (!calculated.contains(v.vectorId) &&
@@ -37,6 +36,7 @@ class LSHIndex(lsh: LSH) {
         calculated += v.vectorId
       }))
     }
+    println("query vector " + query.vectorId + " in table " + i)
     results
   }
 }

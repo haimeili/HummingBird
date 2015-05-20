@@ -129,6 +129,12 @@ object StructureLoadGenerator {
     if (args(0) == "lsh") {
       runWriteLoadOnLSH(lsh)
     }
-    Thread.sleep(10000000)
+    new Thread(new Runnable {
+      override def run(): Unit = {
+        while (true) {
+          Thread.sleep(1000)
+        }
+      }
+    })
   }
 }
