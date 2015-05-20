@@ -14,21 +14,24 @@ import cpslab.lsh.vector.SparseVector
 
 object StructureLoadGenerator {
 
-  var startTime = 0L
-
   val vectors = new ListBuffer[SparseVector]
+  val performanceMeasurement = new ListBuffer[Long]
 
   def runWriteLoadOnLSH(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
-    startTime = System.nanoTime()
     val lshIndex = new LSHIndex(lsh)
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
+          val startTime = System.nanoTime()
           lshIndex.insert(vector)
+          val performance = System.nanoTime() - startTime
+          performanceMeasurement += performance
           if (finishedCount.incrementAndGet() == vectors.length) {
-            println("write time cost with lsh " + (System.nanoTime() - startTime))
-            startTime = System.nanoTime()
+            //get average time cost
+            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
+            println("write time cost with lsh " + avr)
+            performanceMeasurement.clear()
             runReadLoadOnLSH(lshIndex)
           }
         }
@@ -37,14 +40,17 @@ object StructureLoadGenerator {
   }
 
   def runReadLoadOnLSH(lshIndex: LSHIndex)(implicit executionContext: ExecutionContext): Unit = {
-    startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
+          val startTime = System.nanoTime()
           lshIndex.query(vector)
+          val performance = System.nanoTime() - startTime
+          performanceMeasurement += performance
           if (finishedCount.incrementAndGet() == vectors.length) {
-            println("read time cost with lsh " + (System.nanoTime() - startTime))
+            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
+            println("read time cost with lsh " + avr)
             sys.exit(0)
           }
         }
@@ -54,16 +60,19 @@ object StructureLoadGenerator {
   }
 
   def runWriteLoadOnIndex(dim: Int)(implicit executionContext: ExecutionContext): Unit = {
-    startTime = System.nanoTime()
     val invertedIndex = new InvertedIndex(dim)
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
+          val startTime = System.nanoTime()
           invertedIndex.insert(vector)
+          val performance = System.nanoTime() - startTime
+          performanceMeasurement += performance
           if (finishedCount.incrementAndGet() == vectors.length) {
-            println("write time cost with inverted index " + (System.nanoTime() - startTime))
-            startTime = System.nanoTime()
+            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
+            println("write time cost with inverted index " + avr)
+            performanceMeasurement.clear()
             runReadLoadOnIndex(invertedIndex, dim)
           }
         }
@@ -73,14 +82,18 @@ object StructureLoadGenerator {
 
   def runReadLoadOnIndex(invertedIndex: InvertedIndex, dim: Int)
                         (implicit executionContext: ExecutionContext): Unit = {
-    startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
+          val startTime = System.nanoTime()
           invertedIndex.query(vector)
+          val performance = System.nanoTime() - startTime
+          performanceMeasurement += performance
           if (finishedCount.incrementAndGet() == 1000) {
-            println("read time cost with inverted index " + (System.nanoTime() - startTime))
+            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
+            println("read time cost with inverted index " + avr)
+            performanceMeasurement.clear()
             sys.exit(0)
           }
         }
