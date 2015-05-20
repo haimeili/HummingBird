@@ -36,7 +36,6 @@ class LSHIndex(lsh: LSH) {
         calculated += v.vectorId
       }))
     }
-    println("query vector " + query.vectorId)
     results
   }
 }
