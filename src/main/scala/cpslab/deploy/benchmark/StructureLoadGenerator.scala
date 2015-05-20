@@ -14,6 +14,7 @@ import cpslab.lsh.vector.SparseVector
 
 object StructureLoadGenerator {
 
+  var queryNumber = 0
   val vectors = new ListBuffer[SparseVector]
   val performanceMeasurement = new ListBuffer[Long]
 
@@ -41,14 +42,14 @@ object StructureLoadGenerator {
 
   def runReadLoadOnLSH(lshIndex: LSHIndex)(implicit executionContext: ExecutionContext): Unit = {
     val finishedCount = new AtomicInteger(0)
-    for (vector <- vectors.take(1000)) {
+    for (vector <- vectors) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
           val startTime = System.nanoTime()
           lshIndex.query(vector)
           val performance = System.nanoTime() - startTime
           performanceMeasurement += performance
-          if (finishedCount.incrementAndGet() == 1000) {
+          if (finishedCount.incrementAndGet() == queryNumber) {
             val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
             println("read time cost with lsh " + avr)
             sys.exit(0)
@@ -90,7 +91,7 @@ object StructureLoadGenerator {
           invertedIndex.query(vector)
           val performance = System.nanoTime() - startTime
           performanceMeasurement += performance
-          if (finishedCount.incrementAndGet() == 1000) {
+          if (finishedCount.incrementAndGet() == queryNumber) {
             val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
             println("read time cost with inverted index " + avr)
             performanceMeasurement.clear()
@@ -123,6 +124,7 @@ object StructureLoadGenerator {
       vectors += newVector
     }
     println("Finished generating vectors")
+    queryNumber = conf.getInt("queryNumber")
     if (args(0) == "index") {
       runWriteLoadOnIndex(vectorDim)
     }
