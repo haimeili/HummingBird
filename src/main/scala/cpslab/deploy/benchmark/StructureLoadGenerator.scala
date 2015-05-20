@@ -42,7 +42,7 @@ object StructureLoadGenerator {
 
   def runReadLoadOnLSH(lshIndex: LSHIndex)(implicit executionContext: ExecutionContext): Unit = {
     val finishedCount = new AtomicInteger(0)
-    for (vector <- vectors) {
+    for (vector <- vectors.take(queryNumber)) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
           val startTime = System.nanoTime()
@@ -84,7 +84,7 @@ object StructureLoadGenerator {
   def runReadLoadOnIndex(invertedIndex: InvertedIndex, dim: Int)
                         (implicit executionContext: ExecutionContext): Unit = {
     val finishedCount = new AtomicInteger(0)
-    for (vector <- vectors.take(1000)) {
+    for (vector <- vectors.take(queryNumber)) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
           val startTime = System.nanoTime()
