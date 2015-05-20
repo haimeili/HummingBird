@@ -21,7 +21,6 @@ class InvertedIndex(dim: Int) {
   }
 
   def query(query: SparseVector): mutable.HashSet[Int] = {
-    println("querying for " + query.vectorId)
     val results = new mutable.HashSet[Int]
     val calculated = new mutable.HashSet[Int]
     for (i <- query.indices) {
