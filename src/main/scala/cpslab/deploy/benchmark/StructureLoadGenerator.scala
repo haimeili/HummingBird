@@ -48,7 +48,7 @@ object StructureLoadGenerator {
           lshIndex.query(vector)
           val performance = System.nanoTime() - startTime
           performanceMeasurement += performance
-          if (finishedCount.incrementAndGet() == vectors.length) {
+          if (finishedCount.incrementAndGet() == 1000) {
             val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
             println("read time cost with lsh " + avr)
             sys.exit(0)
