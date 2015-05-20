@@ -95,8 +95,6 @@ object StructureLoadGenerator {
             println("read time cost with inverted index " + avr)
             performanceMeasurement.clear()
             sys.exit(0)
-          } else {
-            println("finished " + finishedCount.get())
           }
         }
       })
