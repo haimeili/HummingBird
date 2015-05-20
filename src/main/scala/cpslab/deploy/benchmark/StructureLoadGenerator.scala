@@ -18,70 +18,73 @@ object StructureLoadGenerator {
 
   val vectors = new ListBuffer[SparseVector]
 
-  def runWriteLoadOnLSH(lsh: LSH): Unit = {
+  def runWriteLoadOnLSH(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     startTime = System.nanoTime()
     val lshIndex = new LSHIndex(lsh)
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
-      future {
-        lshIndex.insert(vector)
-      }.onComplete {
-        case x =>
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          lshIndex.insert(vector)
           if (finishedCount.incrementAndGet() == vectors.length) {
             println("write time cost with lsh " + (System.nanoTime() - startTime))
+            startTime = System.nanoTime()
             runReadLoadOnLSH(lshIndex)
           }
-      }
+        }
+      })
     }
   }
 
-  def runReadLoadOnLSH(lshIndex: LSHIndex): Unit = {
+  def runReadLoadOnLSH(lshIndex: LSHIndex)(implicit executionContext: ExecutionContext): Unit = {
     startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
-      future {
-        lshIndex.query(vector)
-        if (finishedCount.incrementAndGet() == vectors.length) {
-          println("read time cost with lsh " + (System.nanoTime() - startTime))
-          sys.exit(0)
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          lshIndex.query(vector)
+          if (finishedCount.incrementAndGet() == vectors.length) {
+            println("read time cost with lsh " + (System.nanoTime() - startTime))
+            sys.exit(0)
+          }
         }
-      }.onComplete {
-        case x =>
-
       }
+      )
     }
   }
 
-  def runWriteLoadOnIndex(dim: Int): Unit = {
+  def runWriteLoadOnIndex(dim: Int)(implicit executionContext: ExecutionContext): Unit = {
     startTime = System.nanoTime()
     val invertedIndex = new InvertedIndex(dim)
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors) {
-      val f = future {
-        invertedIndex.insert(vector)
-      }.onComplete {
-        case x =>
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          invertedIndex.insert(vector)
           if (finishedCount.incrementAndGet() == vectors.length) {
             println("write time cost with inverted index " + (System.nanoTime() - startTime))
+            startTime = System.nanoTime()
             runReadLoadOnIndex(invertedIndex, dim)
           }
-      }
+        }
+      })
     }
   }
 
-  def runReadLoadOnIndex(invertedIndex: InvertedIndex, dim: Int): Unit = {
+  def runReadLoadOnIndex(invertedIndex: InvertedIndex, dim: Int)
+                        (implicit executionContext: ExecutionContext): Unit = {
     startTime = System.nanoTime()
     val finishedCount = new AtomicInteger(0)
     for (vector <- vectors.take(1000)) {
-      val f = future {
-        invertedIndex.query(vector)
-        if (finishedCount.incrementAndGet() == 1000) {
-          println("read time cost with inverted index " + (System.nanoTime() - startTime))
-          sys.exit(0)
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          invertedIndex.query(vector)
+          if (finishedCount.incrementAndGet() == 1000) {
+            println("read time cost with inverted index " + (System.nanoTime() - startTime))
+            sys.exit(0)
+          }
         }
-      }.onComplete {
-        case x =>
-      }
+      })
     }
   }
 
@@ -98,7 +101,7 @@ object StructureLoadGenerator {
     for (i <- 0 until vectorCount) {
       val values = Array.fill[Double](vectorDim)({
         val p = Random.nextDouble()
-        if (p <= zeroProbability) 0.0 else  1.0
+        if (p <= zeroProbability) 0.0 else 1.0
       })
       val t = values.zipWithIndex.filter(_._1 > 0)
       val indices = t.map(_._2)
