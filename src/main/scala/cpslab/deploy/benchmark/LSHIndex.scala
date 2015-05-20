@@ -15,7 +15,6 @@ class LSHIndex(lsh: LSH) {
 
   def insert(vector: SparseVector): Unit = {
     val indices = lsh.calculateIndex(vector)
-    println("index of vector " + vector.vectorId + " is " + indices.toList)
     for (i <- 0 until array.length) {
       array(i).synchronized {
         array(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector

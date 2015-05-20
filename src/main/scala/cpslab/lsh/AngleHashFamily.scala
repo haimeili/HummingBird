@@ -93,7 +93,6 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
         vector))
       result = result << 1 | signResult
     }
-    println("result: " + result)
     result
   }
 }
