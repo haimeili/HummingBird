@@ -135,6 +135,7 @@ object StructureLoadGenerator {
           Thread.sleep(1000)
         }
       }
-    })
+    }).start()
+    Thread.sleep(1000)
   }
 }
