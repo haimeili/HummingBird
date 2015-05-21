@@ -64,7 +64,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
+                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
                 sys.exit(0)
               }
             }
@@ -109,7 +109,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
+                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
                 sys.exit(0)
               }
             }
@@ -155,7 +155,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
+                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
                 sys.exit(0)
               }
             }
@@ -202,7 +202,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
+                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
                 sys.exit(0)
               }
             }
