@@ -1,6 +1,7 @@
 package cpslab.deploy.benchmark
 
-import java.util.concurrent.locks.Lock
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.{ReentrantLock, Condition, Lock}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -8,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import cpslab.lsh.vector.SparseVector
 
 class LockStrippingHashMap {
-  val locks = new Array[Lock](196)
+  val locks = Array.fill[Lock](196)(new ReentrantLock)
 
   val store = new mutable.HashMap[Int, ListBuffer[SparseVector]]
 
