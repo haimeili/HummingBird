@@ -1,7 +1,7 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{Executors, ConcurrentHashMap}
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
@@ -11,7 +11,6 @@ import scala.util.Random
 
 import akka.actor.Actor.Receive
 import akka.actor.{Actor, ActorSystem}
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.typesafe.config.ConfigFactory
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
@@ -21,6 +20,11 @@ object ConcurrencyTest {
   var startTime = 0L
   val vectors = new ListBuffer[SparseVector]
   val totalCount = new AtomicInteger(0)
+
+  implicit lazy val executorService : ExecutionContext = {
+    val executorService = Executors.newCachedThreadPool()
+    ExecutionContext.fromExecutorService(executorService)
+  }
 
   def runWithGlobalLock(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
