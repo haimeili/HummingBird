@@ -10,17 +10,20 @@ import scala.util.Random
 
 import akka.actor.Actor.Receive
 import akka.actor.{Actor, ActorSystem}
+import scala.concurrent.ExecutionContext.Implicits.global
 import com.typesafe.config.ConfigFactory
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 
 object ConcurrencyTest {
 
+  var startTime = 0L
   val vectors = new ListBuffer[SparseVector]
 
   def runWithGlobalLock(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
       lsh.tableIndexGenerators.length)(new mutable.HashMap[Int, ListBuffer[SparseVector]])
+    startTime = System.nanoTime()
     for (vector <- vectors) {
       executionContext.execute(
         new Runnable {
@@ -30,6 +33,9 @@ object ConcurrencyTest {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
+                if (lshStructure(lshStructure.length - 1).size == vectors.length) {
+                  println("timeCost:" + (System.nanoTime() - startTime))
+                }
               }
             }
           }
@@ -41,6 +47,7 @@ object ConcurrencyTest {
   def runWithLockStripping(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[LockStrippingHashMap](
       lsh.tableIndexGenerators.length)(new LockStrippingHashMap)
+    startTime = System.nanoTime()
     for (vector <- vectors) {
       executionContext.execute(
         new Runnable {
@@ -49,6 +56,9 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
+              if (lshStructure(lshStructure.length - 1).store.size == vectors.length) {
+                println("timeCost:" + (System.nanoTime() - startTime))
+              }
             }
           }
         }
@@ -60,6 +70,7 @@ object ConcurrencyTest {
     @volatile var totalVector = 0
     val lshStructure = Array.fill[VolatileHashMap](
       lsh.tableIndexGenerators.length)(new VolatileHashMap)
+    startTime = System.nanoTime()
     for (vector <- vectors) {
       executionContext.execute(
         new Runnable {
@@ -76,9 +87,9 @@ object ConcurrencyTest {
   }
 
   def runWithVolatileStrip(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
-    @volatile var totalVector = 0
     val lshStructure = Array.fill[ConcurrentHashMap[Int, SparseVector]](
       lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, SparseVector])
+    startTime = System.nanoTime()
     for (vector <- vectors) {
       executionContext.execute(
         new Runnable {
@@ -87,6 +98,9 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
+              if (lshStructure(lshStructure.length - 1).size == vectors.length) {
+                println("timeCost:" + (System.nanoTime() - startTime))
+              }
             }
           }
         }
@@ -117,5 +131,15 @@ object ConcurrencyTest {
       vectors += newVector
     }
     println("Finished generating vectors")
+    args(0) match {
+      case "global" =>
+        runWithGlobalLock(lsh)
+      case "lockstripping" =>
+        runWithLockStripping(lsh)
+      case "volatile" =>
+        runWithVolatile(lsh)
+      case "volatileStripping" =>
+        runWithVolatileStrip(lsh)
+    }
   }
 }
