@@ -17,6 +17,7 @@ import cpslab.lsh.vector.SparseVector
 
 object ConcurrencyTest {
 
+  var startTime = 0L
   var threadCount = 0
   var batchSize = 0
   val vectors = new ListBuffer[SparseVector]
@@ -30,11 +31,10 @@ object ConcurrencyTest {
   def runWithGlobalLock(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
       lsh.tableIndexGenerators.length)(new mutable.HashMap[Int, ListBuffer[SparseVector]])
+    startTime = System.nanoTime()
     for (i <- 0 until threadCount) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
-          var writeCount = 0
-          val startTime = System.nanoTime()
           var vectorIdx = 0
           while (true) {
             val vector = vectors(vectorIdx)
@@ -43,7 +43,6 @@ object ConcurrencyTest {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
-                writeCount += 1
               }
             }
             if (vectorIdx % batchSize == 0) {
@@ -55,8 +54,18 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println(writeCount)
-              return
+              lshStructure.synchronized {
+                var totalCount = 0
+                for (i <- 0 until lshStructure.length) {
+                  val table = lshStructure(i)
+                  val valueSetItr = table.values.iterator
+                  while (valueSetItr.hasNext) {
+                    totalCount += valueSetItr.next().size
+                  }
+                }
+                println("throughput: " + totalCount)
+                sys.exit(0)
+              }
             }
           }
         }
@@ -67,11 +76,11 @@ object ConcurrencyTest {
   def runWithLockStripping(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[LockStrippingHashMap](
       lsh.tableIndexGenerators.length)(new LockStrippingHashMap)
+    startTime = System.nanoTime()
     for (i <- 0 until threadCount) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
           var writeCount = 0
-          val startTime = System.nanoTime()
           var vectorIdx = 0
           while (true) {
             val vector = vectors(vectorIdx)
@@ -90,8 +99,18 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println(writeCount)
-              return
+              lshStructure.synchronized {
+                var totalCount = 0
+                for (i <- 0 until lshStructure.length) {
+                  val table = lshStructure(i)
+                  val valueSetItr = table.store.values.iterator
+                  while (valueSetItr.hasNext) {
+                    totalCount += valueSetItr.next().size
+                  }
+                }
+                println("throughput: " + totalCount)
+                sys.exit(0)
+              }
             }
           }
         }
@@ -102,6 +121,7 @@ object ConcurrencyTest {
   def runWithVolatile(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[VolatileHashMap](
       lsh.tableIndexGenerators.length)(new VolatileHashMap)
+    startTime = System.nanoTime()
     for (i <- 0 until threadCount) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
@@ -125,8 +145,18 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println(writeCount)
-              return
+              lshStructure.synchronized {
+                var totalCount = 0
+                for (i <- 0 until lshStructure.length) {
+                  val table = lshStructure(i)
+                  val valueSetItr = table.store.values.iterator
+                  while (valueSetItr.hasNext) {
+                    totalCount += valueSetItr.next().size
+                  }
+                }
+                println("throughput: " + totalCount)
+                sys.exit(0)
+              }
             }
           }
         }
@@ -137,6 +167,7 @@ object ConcurrencyTest {
   def runWithVolatileStrip(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[ConcurrentHashMap[Int, ListBuffer[SparseVector]]](
       lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))
+    startTime = System.nanoTime()
     for (i <- 0 until threadCount) {
       executionContext.execute(new Runnable {
         override def run(): Unit = {
@@ -161,8 +192,18 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println(writeCount)
-              return
+              lshStructure.synchronized {
+                var totalCount = 0
+                for (i <- 0 until lshStructure.length) {
+                  val table = lshStructure(i)
+                  val valueSetItr = table.values.iterator
+                  while (valueSetItr.hasNext) {
+                    totalCount += valueSetItr.next().size
+                  }
+                }
+                println("throughput: " + totalCount)
+                sys.exit(0)
+              }
             }
           }
         }
