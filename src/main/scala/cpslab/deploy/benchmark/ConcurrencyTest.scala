@@ -20,6 +20,7 @@ object ConcurrencyTest {
   var startTime = 0L
   var threadCount = 0
   var batchSize = 0
+  var experimentalLength = 0L
   val vectors = new ListBuffer[SparseVector]
   val totalCount = new AtomicInteger(0)
 
@@ -53,7 +54,7 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > 2000000000) {
+            if (System.nanoTime() - startTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -63,7 +64,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount)
+                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
                 sys.exit(0)
               }
             }
@@ -98,7 +99,7 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > 2000000000) {
+            if (System.nanoTime() - startTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -108,7 +109,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount)
+                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
                 sys.exit(0)
               }
             }
@@ -144,7 +145,7 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > 2000000000) {
+            if (System.nanoTime() - startTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -154,7 +155,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount)
+                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
                 sys.exit(0)
               }
             }
@@ -191,7 +192,7 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > 2000000000) {
+            if (System.nanoTime() - startTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -201,7 +202,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount)
+                println("throughput: " + totalCount * 1.0 / experimentalLength / 1000000000)
                 sys.exit(0)
               }
             }
@@ -224,6 +225,7 @@ object ConcurrencyTest {
     val zeroProbability = conf.getDouble("probability")
     threadCount = conf.getInt("parallelism")
     batchSize = conf.getInt("batchSize")
+    experimentalLength = conf.getLong("length")
     for (i <- 0 until vectorCount) {
       val values = Array.fill[Double](vectorDim)({
         val p = Random.nextDouble()
