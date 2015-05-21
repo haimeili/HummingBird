@@ -18,11 +18,12 @@ import cpslab.lsh.vector.SparseVector
 object ConcurrencyTest {
 
   var startTime = 0L
+  var threadCount = 0
   val vectors = new ListBuffer[SparseVector]
   val totalCount = new AtomicInteger(0)
 
   implicit lazy val executorService : ExecutionContext = {
-    val executorService = Executors.newFixedThreadPool(20)
+    val executorService = Executors.newFixedThreadPool(threadCount)
     ExecutionContext.fromExecutorService(executorService)
   }
 
@@ -94,7 +95,7 @@ object ConcurrencyTest {
 
   def runWithVolatileStrip(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[ConcurrentHashMap[Int, SparseVector]](
-      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, SparseVector])
+      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, SparseVector](16, 0.75f, 196))
     startTime = System.nanoTime()
     for (vector <- vectors) {
       executionContext.execute(
@@ -125,6 +126,7 @@ object ConcurrencyTest {
     val vectorCount = conf.getInt("vectorCount")
     val vectorDim = conf.getInt("dim")
     val zeroProbability = conf.getDouble("probability")
+    val parallelism = conf.getInt("parallelism")
     for (i <- 0 until vectorCount) {
       val values = Array.fill[Double](vectorDim)({
         val p = Random.nextDouble()
