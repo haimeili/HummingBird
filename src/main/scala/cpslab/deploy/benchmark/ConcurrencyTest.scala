@@ -17,8 +17,8 @@ import cpslab.lsh.vector.SparseVector
 
 object ConcurrencyTest {
 
-  var startTime = 0L
   var threadCount = 0
+  var batchSize = 0
   val vectors = new ListBuffer[SparseVector]
   val totalCount = new AtomicInteger(0)
 
@@ -30,88 +30,143 @@ object ConcurrencyTest {
   def runWithGlobalLock(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
       lsh.tableIndexGenerators.length)(new mutable.HashMap[Int, ListBuffer[SparseVector]])
-    startTime = System.nanoTime()
-    for (vector <- vectors) {
-      executionContext.execute(
-        new Runnable {
-          override def run(): Unit = {
+    for (i <- 0 until threadCount) {
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          var writeCount = 0
+          val startTime = System.nanoTime()
+          var vectorIdx = 0
+          while (true) {
+            val vector = vectors(vectorIdx)
             val indices = lsh.calculateIndex(vector)
             for (i <- 0 until indices.length) {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
+                writeCount += 1
               }
             }
-            if (totalCount.incrementAndGet() == vectors.length) {
-              println("timeCost:" + (System.nanoTime() - startTime))
+            if (vectorIdx % batchSize == 0) {
+              Thread.sleep(Random.nextInt(100))
+            }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
+            if (System.nanoTime() - startTime > 2000000000) {
+              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              return
             }
           }
         }
-      )
+      })
     }
   }
 
   def runWithLockStripping(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[LockStrippingHashMap](
       lsh.tableIndexGenerators.length)(new LockStrippingHashMap)
-    startTime = System.nanoTime()
-    for (vector <- vectors) {
-      executionContext.execute(
-        new Runnable {
-          override def run(): Unit = {
+    for (i <- 0 until threadCount) {
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          var writeCount = 0
+          val startTime = System.nanoTime()
+          var vectorIdx = 0
+          while (true) {
+            val vector = vectors(vectorIdx)
             val indices = lsh.calculateIndex(vector)
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
+              writeCount += 1
             }
-            if (totalCount.incrementAndGet() == vectors.length) {
-              println("timeCost:" + (System.nanoTime() - startTime))
+            if (vectorIdx % batchSize == 0) {
+              Thread.sleep(Random.nextInt(100))
+            }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
+            if (System.nanoTime() - startTime > 2000000000) {
+              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              return
             }
           }
         }
-      )
+      })
     }
   }
 
   def runWithVolatile(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
-    @volatile var totalVector = 0
     val lshStructure = Array.fill[VolatileHashMap](
       lsh.tableIndexGenerators.length)(new VolatileHashMap)
-    startTime = System.nanoTime()
-    for (vector <- vectors) {
-      executionContext.execute(
-        new Runnable {
-          override def run(): Unit = {
+    for (i <- 0 until threadCount) {
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          var writeCount = 0
+          val startTime = System.nanoTime()
+          var vectorIdx = 0
+          while (true) {
+            val vector = vectors(vectorIdx)
             val indices = lsh.calculateIndex(vector)
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
+              writeCount += 1
+            }
+            if (vectorIdx % batchSize == 0) {
+              Thread.sleep(Random.nextInt(100))
+            }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
+            if (System.nanoTime() - startTime > 2000000000) {
+              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              return
             }
           }
         }
-      )
+      })
     }
   }
 
   def runWithVolatileStrip(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
-    val lshStructure = Array.fill[ConcurrentHashMap[Int, SparseVector]](
-      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, SparseVector](16, 0.75f, 196))
-    startTime = System.nanoTime()
-    for (vector <- vectors) {
-      executionContext.execute(
-        new Runnable {
-          override def run(): Unit = {
+    val lshStructure = Array.fill[ConcurrentHashMap[Int, ListBuffer[SparseVector]]](
+      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))
+    for (i <- 0 until threadCount) {
+      executionContext.execute(new Runnable {
+        override def run(): Unit = {
+          var writeCount = 0
+          val startTime = System.nanoTime()
+          var vectorIdx = 0
+          while (true) {
+            val vector = vectors(vectorIdx)
             val indices = lsh.calculateIndex(vector)
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
-              lshStructure(i).put(indices(i), vector)
+              lshStructure(i).putIfAbsent(indices(i), new ListBuffer[SparseVector])
+              lshStructure(i).get(indices(i)) += vector
+              writeCount += 1
             }
-            if (totalCount.incrementAndGet() == vectors.length) {
-              println("timeCost:" + (System.nanoTime() - startTime))
+            if (vectorIdx % batchSize == 0) {
+              Thread.sleep(Random.nextInt(100))
+            }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
+            if (System.nanoTime() - startTime > 2000000000) {
+              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              return
             }
           }
         }
-      )
+      })
     }
   }
 
@@ -127,6 +182,7 @@ object ConcurrencyTest {
     val vectorDim = conf.getInt("dim")
     val zeroProbability = conf.getDouble("probability")
     threadCount = conf.getInt("parallelism")
+    batchSize = conf.getInt("batchSize")
     for (i <- 0 until vectorCount) {
       val values = Array.fill[Double](vectorDim)({
         val p = Random.nextDouble()

@@ -17,9 +17,6 @@ class VolatileHashMap {
       case Tuple2(key: Int, value: SparseVector) =>
         store.getOrElseUpdate(key, new ListBuffer[SparseVector]) += value
         totalCount += 1
-        if (totalCount == ConcurrencyTest.vectors.length) {
-          println("time cost:" + (System.nanoTime() - ConcurrencyTest.startTime))
-        }
     }
   }
 
