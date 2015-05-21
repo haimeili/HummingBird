@@ -141,5 +141,12 @@ object ConcurrencyTest {
       case "volatileStripping" =>
         runWithVolatileStrip(lsh)
     }
+    new Thread(new Runnable {
+      override def run(): Unit = {
+        while (true) {
+          Thread.sleep(1000)
+        }
+      }
+    }).start()
   }
 }
