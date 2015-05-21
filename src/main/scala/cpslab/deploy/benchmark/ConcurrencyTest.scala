@@ -35,8 +35,6 @@ object ConcurrencyTest {
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
                 if (lshStructure(lshStructure.length - 1).size == vectors.length) {
                   println("timeCost:" + (System.nanoTime() - startTime))
-                } else {
-                  println(lshStructure(lshStructure.length - 1).size)
                 }
               }
             }
@@ -146,6 +144,7 @@ object ConcurrencyTest {
     new Thread(new Runnable {
       override def run(): Unit = {
         while (true) {
+          println(System.nanoTime() - startTime)
           Thread.sleep(1000)
         }
       }
