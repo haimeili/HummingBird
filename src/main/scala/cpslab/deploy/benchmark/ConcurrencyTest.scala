@@ -126,7 +126,7 @@ object ConcurrencyTest {
     val vectorCount = conf.getInt("vectorCount")
     val vectorDim = conf.getInt("dim")
     val zeroProbability = conf.getDouble("probability")
-    val parallelism = conf.getInt("parallelism")
+    threadCount = conf.getInt("parallelism")
     for (i <- 0 until vectorCount) {
       val values = Array.fill[Double](vectorDim)({
         val p = Random.nextDouble()
