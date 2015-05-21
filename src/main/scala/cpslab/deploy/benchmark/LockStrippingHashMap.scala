@@ -9,31 +9,20 @@ import scala.collection.mutable.ListBuffer
 import cpslab.lsh.vector.SparseVector
 
 class LockStrippingHashMap {
-  val locks = Array.fill[ReentrantReadWriteLock](8192)(new ReentrantReadWriteLock(false))
+  val locks = Array.fill[ReentrantLock](8192)(new ReentrantLock)
 
   val store = new mutable.HashMap[Int, ListBuffer[SparseVector]]
 
-  def put(key: Int, value: SparseVector): Unit = {
+  def getAndPut(key: Int, value: SparseVector): Unit = {
     try {
-      locks(key % 8192).writeLock().lock()
+      locks(key % 8192).lock()
+      store.get(key)
       store.getOrElseUpdate(key, new ListBuffer[SparseVector]) += value
     } catch {
       case x: Exception =>
         x.printStackTrace()
     } finally {
-      locks(key % 8192).writeLock().unlock()
-    }
-  }
-
-  def get(key: Int) = {
-    try {
-      locks(key % 8192).readLock().lock()
-      store.get(key)
-    } catch {
-      case x: Exception =>
-        x.printStackTrace()
-    } finally {
-      locks(key % 8192).readLock().unlock()
+      locks(key % 8192).unlock()
     }
   }
 }
