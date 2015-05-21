@@ -90,8 +90,7 @@ object ConcurrencyTest {
             val vector = vectors(vectorIdx)
             val indices = lsh.calculateIndex(vector)
             for (i <- 0 until indices.length) {
-              lshStructure(i).get(indices(i))
-              lshStructure(i).put(indices(i), vector)
+              lshStructure(i).getAndPut(indices(i), vector)
               writeCount += 1
             }
             if (vectorIdx % batchSize == 0) {
