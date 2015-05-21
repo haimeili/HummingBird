@@ -2,6 +2,7 @@ package cpslab.deploy.benchmark
 
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -19,6 +20,7 @@ object ConcurrencyTest {
 
   var startTime = 0L
   val vectors = new ListBuffer[SparseVector]
+  val totalCount = new AtomicInteger(0)
 
   def runWithGlobalLock(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
     val lshStructure = Array.fill[mutable.HashMap[Int, ListBuffer[SparseVector]]](
@@ -33,7 +35,7 @@ object ConcurrencyTest {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
-                if (lshStructure(lshStructure.length - 1).size == vectors.length) {
+                if (totalCount.incrementAndGet() == vectors.length) {
                   println("timeCost:" + (System.nanoTime() - startTime))
                 }
               }
@@ -56,7 +58,7 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
-              if (lshStructure(lshStructure.length - 1).store.size == vectors.length) {
+              if (totalCount.incrementAndGet() == vectors.length) {
                 println("timeCost:" + (System.nanoTime() - startTime))
               }
             }
@@ -98,7 +100,7 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
-              if (lshStructure(lshStructure.length - 1).size == vectors.length) {
+              if (totalCount.incrementAndGet() == vectors.length) {
                 println("timeCost:" + (System.nanoTime() - startTime))
               }
             }
@@ -144,7 +146,6 @@ object ConcurrencyTest {
     new Thread(new Runnable {
       override def run(): Unit = {
         while (true) {
-          println(System.nanoTime() - startTime)
           Thread.sleep(1000)
         }
       }
