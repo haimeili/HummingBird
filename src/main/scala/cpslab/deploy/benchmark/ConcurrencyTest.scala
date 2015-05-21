@@ -39,10 +39,10 @@ object ConcurrencyTest {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
-                if (totalCount.incrementAndGet() == vectors.length) {
-                  println("timeCost:" + (System.nanoTime() - startTime))
-                }
               }
+            }
+            if (totalCount.incrementAndGet() == vectors.length) {
+              println("timeCost:" + (System.nanoTime() - startTime))
             }
           }
         }
@@ -62,9 +62,9 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
-              if (totalCount.incrementAndGet() == vectors.length) {
-                println("timeCost:" + (System.nanoTime() - startTime))
-              }
+            }
+            if (totalCount.incrementAndGet() == vectors.length) {
+              println("timeCost:" + (System.nanoTime() - startTime))
             }
           }
         }
@@ -104,9 +104,9 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).get(indices(i))
               lshStructure(i).put(indices(i), vector)
-              if (totalCount.incrementAndGet() == vectors.length) {
-                println("timeCost:" + (System.nanoTime() - startTime))
-              }
+            }
+            if (totalCount.incrementAndGet() == vectors.length) {
+              println("timeCost:" + (System.nanoTime() - startTime))
             }
           }
         }
