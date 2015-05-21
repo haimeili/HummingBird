@@ -54,7 +54,8 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > experimentalLength) {
+            val finishTime = System.nanoTime() - startTime
+            if (finishTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -64,7 +65,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
+                println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
             }
@@ -99,7 +100,8 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > experimentalLength) {
+            val finishTime = System.nanoTime() - startTime
+            if (finishTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -109,7 +111,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
+                println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
             }
@@ -145,7 +147,9 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > experimentalLength) {
+
+            val finishTime = System.nanoTime() - startTime
+            if (finishTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -155,7 +159,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
+                println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
             }
@@ -192,7 +196,8 @@ object ConcurrencyTest {
             } else {
               vectorIdx += 1
             }
-            if (System.nanoTime() - startTime > experimentalLength) {
+            val finishTime = System.nanoTime() - startTime
+            if (finishTime > experimentalLength) {
               lshStructure.synchronized {
                 var totalCount = 0
                 for (i <- 0 until lshStructure.length) {
@@ -202,7 +207,7 @@ object ConcurrencyTest {
                     totalCount += valueSetItr.next().size
                   }
                 }
-                println("throughput: " + totalCount * 1.0 / (experimentalLength / 1000000000))
+                println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
             }
