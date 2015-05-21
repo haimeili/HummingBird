@@ -55,7 +55,7 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              println(writeCount)
               return
             }
           }
@@ -90,7 +90,7 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              println(writeCount)
               return
             }
           }
@@ -125,7 +125,7 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              println(writeCount)
               return
             }
           }
@@ -161,7 +161,7 @@ object ConcurrencyTest {
               vectorIdx += 1
             }
             if (System.nanoTime() - startTime > 2000000000) {
-              println("counting in " + Thread.currentThread().getName + ": " + writeCount)
+              println(writeCount)
               return
             }
           }
