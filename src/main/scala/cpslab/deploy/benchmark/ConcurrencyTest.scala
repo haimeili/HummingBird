@@ -47,7 +47,7 @@ object ConcurrencyTest {
               }
             }
             if (vectorIdx % batchSize == 0) {
-              Thread.sleep(Random.nextInt(100))
+              Thread.sleep(Random.nextInt(20))
             }
             if (vectorIdx == vectors.length - 1) {
               vectorIdx = 0
@@ -93,7 +93,7 @@ object ConcurrencyTest {
               writeCount += 1
             }
             if (vectorIdx % batchSize == 0) {
-              Thread.sleep(Random.nextInt(100))
+              Thread.sleep(Random.nextInt(20))
             }
             if (vectorIdx == vectors.length - 1) {
               vectorIdx = 0
@@ -140,7 +140,7 @@ object ConcurrencyTest {
               writeCount += 1
             }
             if (vectorIdx % batchSize == 0) {
-              Thread.sleep(Random.nextInt(100))
+              Thread.sleep(Random.nextInt(20))
             }
             if (vectorIdx == vectors.length - 1) {
               vectorIdx = 0
@@ -189,7 +189,7 @@ object ConcurrencyTest {
               writeCount += 1
             }
             if (vectorIdx % batchSize == 0) {
-              Thread.sleep(Random.nextInt(100))
+              Thread.sleep(Random.nextInt(20))
             }
             if (vectorIdx == vectors.length - 1) {
               vectorIdx = 0
