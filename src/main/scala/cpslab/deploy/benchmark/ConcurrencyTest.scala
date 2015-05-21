@@ -49,6 +49,11 @@ object ConcurrencyTest {
             if (vectorIdx % batchSize == 0) {
               Thread.sleep(Random.nextInt(100))
             }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
             val finishTime = System.nanoTime() - startTime
             if (finishTime > experimentalLength) {
               lshStructure.synchronized {
@@ -63,10 +68,6 @@ object ConcurrencyTest {
                 println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
-            }
-            vectorIdx += 1
-            if (vectorIdx == vectors.length) {
-              return
             }
           }
         }
@@ -94,6 +95,11 @@ object ConcurrencyTest {
             if (vectorIdx % batchSize == 0) {
               Thread.sleep(Random.nextInt(100))
             }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
             val finishTime = System.nanoTime() - startTime
             if (finishTime > experimentalLength) {
               lshStructure.synchronized {
@@ -108,10 +114,6 @@ object ConcurrencyTest {
                 println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
-            }
-            vectorIdx += 1
-            if (vectorIdx == vectors.length) {
-              return
             }
           }
         }
@@ -140,6 +142,12 @@ object ConcurrencyTest {
             if (vectorIdx % batchSize == 0) {
               Thread.sleep(Random.nextInt(100))
             }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
+
             val finishTime = System.nanoTime() - startTime
             if (finishTime > experimentalLength) {
               lshStructure.synchronized {
@@ -154,10 +162,6 @@ object ConcurrencyTest {
                 println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
-            }
-            vectorIdx += 1
-            if (vectorIdx == vectors.length) {
-              return
             }
           }
         }
@@ -187,6 +191,11 @@ object ConcurrencyTest {
             if (vectorIdx % batchSize == 0) {
               Thread.sleep(Random.nextInt(100))
             }
+            if (vectorIdx == vectors.length - 1) {
+              vectorIdx = 0
+            } else {
+              vectorIdx += 1
+            }
             val finishTime = System.nanoTime() - startTime
             if (finishTime > experimentalLength) {
               lshStructure.synchronized {
@@ -201,10 +210,6 @@ object ConcurrencyTest {
                 println("throughput: " + totalCount * 1.0 / (finishTime * 1.0 / 1000000000))
                 sys.exit(0)
               }
-            }
-            vectorIdx += 1
-            if (vectorIdx == vectors.length) {
-              return
             }
           }
         }
