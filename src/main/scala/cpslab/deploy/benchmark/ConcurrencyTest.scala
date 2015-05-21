@@ -22,7 +22,7 @@ object ConcurrencyTest {
   val totalCount = new AtomicInteger(0)
 
   implicit lazy val executorService : ExecutionContext = {
-    val executorService = Executors.newCachedThreadPool()
+    val executorService = Executors.newFixedThreadPool(20)
     ExecutionContext.fromExecutorService(executorService)
   }
 
