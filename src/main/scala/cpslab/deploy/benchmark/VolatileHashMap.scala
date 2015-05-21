@@ -4,6 +4,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import akka.actor.{Props, ActorSystem, Actor}
+import com.typesafe.config.ConfigFactory
 import cpslab.lsh.vector.SparseVector
 
 class VolatileHashMap {
@@ -24,7 +25,10 @@ class VolatileHashMap {
 
   val store = new mutable.HashMap[Int, ListBuffer[SparseVector]]
 
-  val actorSystem = ActorSystem()
+  val actorSystem = ActorSystem("concurrentDSTest", ConfigFactory.parseString(
+    """
+      |akka.actor.provider=akka.actor.LocalActorRefProvider
+    """.stripMargin))
 
   val writer = actorSystem.actorOf(Props(new WriterActor))
 
