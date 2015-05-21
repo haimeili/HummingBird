@@ -43,6 +43,8 @@ object ConcurrencyTest {
             for (i <- 0 until indices.length) {
               lshStructure(i).synchronized {
                 lshStructure(i).get(indices(i))
+              }
+              lshStructure(i).synchronized {
                 lshStructure(i).getOrElseUpdate(indices(i), new ListBuffer[SparseVector]) += vector
               }
             }
