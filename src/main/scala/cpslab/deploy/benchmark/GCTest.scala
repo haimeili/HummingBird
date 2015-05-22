@@ -49,9 +49,7 @@ object GCTest {
               /*lshStructure(i).getOrElseUpdate(bucketIndices(i), new ListBuffer[SparseVector]) +=
                 newVector*/
               vectorDatabase(i).putIfAbsent(bucketIndices(i), new ConcurrentLinkedQueue[Int])
-              val l = vectorDatabase(i).get(bucketIndices(i))
-              l.add(newVector.vectorId)
-              vectorDatabase(i).put(bucketIndices(i), l)
+              vectorDatabase(i).get(bucketIndices(i)).add(newVector.vectorId)
             }
           }
           println(System.nanoTime() - startTime)
