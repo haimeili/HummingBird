@@ -55,7 +55,7 @@ object GCTest {
           Thread.sleep(1000)
         }
       }
-    })
+    }).start()
   }
 
 }
