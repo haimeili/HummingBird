@@ -1,13 +1,14 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions._
 import scala.util.Random
 
 import com.typesafe.config.ConfigFactory
+import cpslab.deploy.ShardDatabase
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 
@@ -25,8 +26,12 @@ object GCTest {
     val lsh = new LSH(conf)
     val threadCount = conf.getInt("parallelism")
     val startTime = System.nanoTime()
+    /*
     val lshStructure = Array.fill[ConcurrentHashMap[Int, ListBuffer[SparseVector]]](
-      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))
+      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))*/
+    import ShardDatabase._
+    initializeMapDBHashMap(conf)
+
     for (i <- 0 until threadCount) {
       new Thread(new Runnable {
         override def run(): Unit = {
@@ -41,8 +46,12 @@ object GCTest {
             val newVector = new SparseVector(i * vectorCount + i, vectorDim, indices, nonZeroValues)
             val bucketIndices = lsh.calculateIndex(newVector)
             for (i <- 0 until bucketIndices.length) {
-              lshStructure(i).getOrElseUpdate(bucketIndices(i), new ListBuffer[SparseVector]) +=
-                newVector
+              /*lshStructure(i).getOrElseUpdate(bucketIndices(i), new ListBuffer[SparseVector]) +=
+                newVector*/
+              vectorDatabase(i).putIfAbsent(bucketIndices(i), new ConcurrentLinkedQueue[Int])
+              val l = vectorDatabase(i).get(bucketIndices(i))
+              l.add(newVector.vectorId)
+              vectorDatabase(i).put(bucketIndices(i), l)
             }
           }
           println(System.nanoTime() - startTime)

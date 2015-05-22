@@ -167,7 +167,7 @@ private[deploy] object ShardDatabase extends DataSetLoader {
     }
   }
 
-  private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, ConcurrentLinkedQueue[Int]]] = null
+  var vectorDatabase: Array[ConcurrentMap[Int, ConcurrentLinkedQueue[Int]]] = null
   private[deploy] var vectorIdToVector: ConcurrentMap[Int, SparseVector] = null
 
   
