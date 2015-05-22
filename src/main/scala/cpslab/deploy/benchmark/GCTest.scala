@@ -18,7 +18,7 @@ object GCTest {
       println("usage: program conf_path")
       sys.exit(1)
     }
-    val conf = ConfigFactory.parseFile(new File(args(1)))
+    val conf = ConfigFactory.parseFile(new File(args(0)))
     val vectorCount = conf.getInt("vectorCount")
     val vectorDim = conf.getInt("dim")
     val zeroProbability = conf.getDouble("probability")
