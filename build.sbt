@@ -20,9 +20,12 @@ resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositori
 libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-contrib_2.10" % "2.3.8",
   "com.typesafe" % "config" % "1.2.1",
-  "org.scalatest" % "scalatest_2.10" % "2.2.4",
   "org.scalanlp" %% "breeze" % "0.11.1",
-  "com.typesafe.akka" % "akka-testkit_2.10" % "2.3.8"
+  "com.typesafe.akka" % "akka-testkit_2.10" % "2.3.8",
+  "junit" % "junit" % "4.11",
+  "com.novocode" % "junit-interface" % "0.11" % "test",
+  "org.scalatest" % "scalatest_2.10" % "2.2.5",
+  "com.google.guava" % "guava" % "18.0"
 )
 
 
