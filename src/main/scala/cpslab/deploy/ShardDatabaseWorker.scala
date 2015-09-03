@@ -1,7 +1,7 @@
 package cpslab.deploy
 
 import java.util
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
+import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable

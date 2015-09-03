@@ -10,9 +10,8 @@ import com.typesafe.config.Config
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
-import cpslab.utils.{Serializers, RangePartitioner}
-import org.mapdb.DBMaker.Maker
-import org.mapdb.{PartitionedHTreeMap, DBMaker, Serializer}
+import cpslab.utils.{HashPartitioner, RangePartitioner, Serializers}
+import org.mapdb.PartitionedHTreeMap
 
 private[deploy] object ShardDatabase extends DataSetLoader {
 
@@ -97,7 +96,7 @@ private[deploy] object ShardDatabase extends DataSetLoader {
           new PartitionedHTreeMap(
             workingDirRoot + "-vector-" + partitionedHTreeCount,
             "partitionedTree-" + partitionedHTreeCount,
-            new RangePartitioner[Int](numPartitions),
+            new HashPartitioner[Int](numPartitions),
             true,
             1,
             Serializers.scalaIntSerializer,

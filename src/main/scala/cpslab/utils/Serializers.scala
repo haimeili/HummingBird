@@ -1,6 +1,6 @@
 package cpslab.utils
 
-import java.io.{DataOutput, DataInput}
+import java.io.{DataInput, DataOutput}
 
 import cpslab.lsh.vector.SparseVector
 import org.mapdb.Serializer

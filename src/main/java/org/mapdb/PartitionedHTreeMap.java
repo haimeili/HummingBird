@@ -2,17 +2,16 @@ package org.mapdb;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
-import cpslab.lsh.Hasher;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
-
-import static org.mapdb.DataIO.parity1Get;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class PartitionedHTreeMap<K, V>
