@@ -2,6 +2,7 @@ package org.mapdb;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
+import cpslab.lsh.Hasher;
 
 import java.io.*;
 import java.util.*;
@@ -75,7 +76,7 @@ public class PartitionedHTreeMap<K, V>
           new ConcurrentHashMap<Integer, ReentrantReadWriteLock>();
 
   //partitioner
-  private final Partitioner<Object> partitioner;
+  private final Partitioner<K> partitioner;
 
   private final String workingDirectory;
   private final String name;
@@ -278,7 +279,7 @@ public class PartitionedHTreeMap<K, V>
   public PartitionedHTreeMap(
           String workingDirectory,
           String name,
-          Partitioner<Object> partitioner,
+          Partitioner<K> partitioner,
           boolean closeEngine,
           int hashSalt,
           Serializer<K> keySerializer,
@@ -430,12 +431,23 @@ public class PartitionedHTreeMap<K, V>
     return sizeLong() == 0;
   }
 
+  /**
+   * find the similar vector
+   * @param vector
+   * @return
+   */
+  public LinkedList<K> getSimilar(final Object o) {
+    //TODO: Finish getSimilar
+
+    return null;
+  }
+
   @Override
   public V get(final Object o) {
     if (o == null) return null;
     final int h = hash(o);
     final int seg = h >>> 28;
-    final int partition = partitioner.getPartition(o);
+    final int partition = partitioner.getPartition((K) o);
     LinkedNode<K, V> ln;
     try {
       final Lock ramLock = partitionRamLock.get(partition).readLock();
@@ -501,7 +513,7 @@ public class PartitionedHTreeMap<K, V>
     if (key == null) return null;
     final int h = hash(key);
     final int seg = h >>> 28;
-    final int partition = partitioner.getPartition(key);
+    final int partition = partitioner.getPartition((K) key);
 
     V ret;
     try {
@@ -1054,7 +1066,7 @@ public class PartitionedHTreeMap<K, V>
     V ret;
 
     final int h = hash(key);
-    final int partition = partitioner.getPartition(key);
+    final int partition = partitioner.getPartition((K) key);
     try {
       partitionRamLock.get(partition).writeLock().lock();
       ret = removeInternal(key, partition, h);
@@ -1435,7 +1447,6 @@ public class PartitionedHTreeMap<K, V>
     return _entrySet.get(partitionId);
   }
 
-
   protected int hash(final Object key) {
     //TODO investigate if hashSalt has any effect
     int h = keySerializer.hashCode((K) key) ^ hashSalt;
@@ -1734,7 +1745,7 @@ public class PartitionedHTreeMap<K, V>
     boolean ret;
 
     final int h = PartitionedHTreeMap.this.hash(key);
-    final int partition = partitioner.getPartition(key);
+    final int partition = partitioner.getPartition((K) key);
 
     try {
       partitionRamLock.get(partition).writeLock().lock();
@@ -1869,8 +1880,7 @@ public class PartitionedHTreeMap<K, V>
       Iterator<Integer> keyIterator = engines.keySet().iterator();
       while (keyIterator.hasNext()) {
         int key = keyIterator.next();
-        int partition = partitioner.getPartition(key);
-        engines.get(partition).close();
+        engines.get(key).close();
       }
     }
   }

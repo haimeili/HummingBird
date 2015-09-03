@@ -16,6 +16,7 @@ import com.typesafe.config.Config
 import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
+import org.mapdb.PartitionedHTreeMap
 
 private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
 
@@ -126,7 +127,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
          (vector, tableIds) <- withinShardData;
          tableId <- tableIds if tableId != -1) {
       //query and update the database
-      val allSimilarCandidates = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
+      val db = vectorDatabase(tableId).asInstanceOf[PartitionedHTreeMap[Int, Boolean]]
+      val allSimilarCandidates = db.getSimilar(vector.sparseVector)
       val bitMap = deduplicateBitmap.getOrElseUpdate(vector.sparseVector, new util.BitSet)
       if (allSimilarCandidates != null) {
         val itr = allSimilarCandidates.iterator()
@@ -175,11 +177,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         (vector, tableIds) <- vectorAndTableIDs) {
       vectorIdToVector.put(vector.sparseVector.vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        vectorDatabase(tableId).putIfAbsent(vector.bucketIndices(tableId),
-          new ConcurrentLinkedQueue[Int])
-        val list = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
-        list.add(vector.sparseVector.vectorId)
-        vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
+        vectorDatabase(tableId).put(vector.sparseVector.vectorId, true)
       }
     }
   }

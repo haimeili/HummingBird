@@ -71,11 +71,16 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
    * calculate the index of the vector in tables, the index in each table is represented as a 
    * byte array
    * @param vector the vector to be indexed
+   * @param tableId the id of the table
    * @return the index of the vector in tables, the order corresponds to the validTableIDs parameter
    */
-  def calculateIndex(vector: SparseVector): Array[Int] = {
-    (for (i <- 0 until tableIndexGenerators.size)
-      yield tableIndexGenerators(i).compute(vector)).toArray
+  def calculateIndex(vector: SparseVector, tableId: Int = -1): Array[Int] = {
+    if (tableId < 0) {
+      (for (i <- tableIndexGenerators.indices)
+        yield tableIndexGenerators(i).compute(vector)).toArray
+    } else {
+      Array.fill(1)(tableIndexGenerators(tableId).compute(vector))
+    }
   }
 }
 
