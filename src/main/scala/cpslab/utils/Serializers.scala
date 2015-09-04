@@ -2,8 +2,8 @@ package cpslab.utils
 
 import java.io.{DataInput, DataOutput}
 
+import cpslab.db.Serializer
 import cpslab.lsh.vector.SparseVector
-import org.mapdb.Serializer
 
 object Serializers {
   val scalaIntSerializer = new Serializer[Int] {
@@ -38,4 +38,7 @@ object Serializers {
       new SparseVector(vectorId, size, indices.toArray, values.toArray)
     }
   }
+
+  def IntSerializer = scalaIntSerializer
+  def VectorSerializer = vectorSerializer
 }

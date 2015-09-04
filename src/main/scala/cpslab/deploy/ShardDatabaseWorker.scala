@@ -13,10 +13,10 @@ import akka.actor.{Actor, Cancellable, Props}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
+import cpslab.db.PartitionedHTreeMap
 import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
-import org.mapdb.PartitionedHTreeMap
 
 private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
 

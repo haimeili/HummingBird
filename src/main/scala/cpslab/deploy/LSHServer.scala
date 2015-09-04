@@ -12,6 +12,10 @@ import cpslab.lsh.LSH
 
 private[cpslab] object LSHServer {
 
+  var lshEngine: LSH = null
+
+  def getLSHEngine = lshEngine
+
   /**
    * start actor system for PLSH schema
    * @param conf the config object
@@ -82,7 +86,7 @@ private[cpslab] object LSHServer {
     val conf = ConfigFactory.parseFile(new File(args(0)))
 
     // initialize the LSH instance
-    val lshEngine = new LSH(conf)
+    lshEngine = new LSH(conf)
     val system = conf.getString("cpslab.lsh.distributedSchema") match {
       case "PLSH" =>
         startPLSHSystem(conf, lshEngine, PLSHWorker.props)

@@ -1,7 +1,7 @@
 package cpslab.lsh
 
+import cpslab.db.Serializer
 import cpslab.lsh.vector.SparseVector
-import org.mapdb.Serializer
 
 trait Hasher[K] {
   def hash(key: K, keySerializer: Serializer[K]): Int

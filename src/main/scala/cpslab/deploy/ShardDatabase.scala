@@ -7,13 +7,13 @@ import scala.language.postfixOps
 
 import akka.actor._
 import com.typesafe.config.Config
+import cpslab.db.PartitionedHTreeMap
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 import cpslab.utils.{HashPartitioner, RangePartitioner, Serializers}
-import org.mapdb.PartitionedHTreeMap
 
-private[deploy] object ShardDatabase extends DataSetLoader {
+private[cpslab] object ShardDatabase extends DataSetLoader {
 
   var partitionedHTreeCount = 0
 
@@ -76,6 +76,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       concurrentCollectionType match {
         case "Doraemon" =>
           val newTree = new PartitionedHTreeMap[Int, Boolean](
+            partitionedHTreeCount,
+            "lsh",
             workingDirRoot + "-" + partitionedHTreeCount,
             "partitionedTree-" + partitionedHTreeCount,
             new RangePartitioner[Int](numPartitions),
@@ -94,6 +96,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
       concurrentCollectionType match {
         case "Doraemon" =>
           new PartitionedHTreeMap(
+            0,
+            "default",
             workingDirRoot + "-vector-" + partitionedHTreeCount,
             "partitionedTree-" + partitionedHTreeCount,
             new HashPartitioner[Int](numPartitions),
@@ -164,5 +168,8 @@ private[deploy] object ShardDatabase extends DataSetLoader {
   }
 
   private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, Boolean]] = null
-  var vectorIdToVector: ConcurrentMap[Int, SparseVector] = null
+  private[deploy] var vectorIdToVector: ConcurrentMap[Int, SparseVector] = null
+
+  def vectorSimilarityDB = vectorDatabase
+  def vectorMainDB = vectorIdToVector
 }
