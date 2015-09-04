@@ -455,13 +455,46 @@ public class PartitionedHTreeMap<K, V>
 
   /**
    * find the similar vector
-   * @param vector
-   * @return
+   * @param key the query vector id
+   * @return the list of the similarity candidates
    */
-  public LinkedList<K> getSimilar(final Object o) {
+  public LinkedList<K> getSimilar(
+          final Object key) {
     //TODO: Finish getSimilar
+    final int h = hash((K) key);
+    final int seg = h >>> 28;
+    final int partition = partitioner.getPartition((K) key);
 
-    return null;
+    LinkedList<K> lns;
+    try {
+      final Lock ramLock = partitionRamLock.get(partition).readLock();
+      try {
+        ramLock.lock();
+        lns = getInnerWithSimilarity(seg, h, partition);
+      } finally {
+        ramLock.unlock();
+      }
+
+      if (lns == null || lns.size() == 0 && persistedStorages.containsKey(partition)) {
+        final Lock persistLock = partitionPersistLock.get(partition).readLock();
+        try {
+          persistLock.lock();
+          lns = fetchFromPersistedStorageWithSimilarity(
+                  partition,
+                  partitionRootRec.get(partition)[seg],
+                  h);
+        } finally {
+          persistLock.unlock();
+        }
+      }
+    } catch (NullPointerException npe) {
+      npe.printStackTrace();
+      return null;
+    }
+
+    if (lns == null)
+      return null;
+    return lns;
   }
 
   @Override
@@ -567,6 +600,49 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
+  private LinkedList<K> searchWithSimilarity(
+          Engine engine,
+          long recId,
+          int h) {
+    LinkedList<K> ret = new LinkedList<>();
+    for (int level = 3; level >= 0; level--) {
+      Object dir = engine.get(recId, DIR_SERIALIZER);
+      if (dir == null) {
+        return null;
+      }
+
+      final int slot = (h >>> (level * 7)) & 0x7F;
+      if (CC.ASSERT && slot > 128) {
+        throw new DBException.DataCorruption("slot too high");
+      }
+      recId = dirGetSlot(dir, slot);
+      if (recId == 0) {
+        //Nan: no such node
+        //search from persisted storage for the directory
+        return null;
+      }
+      //Nan: last bite indicates if referenced record is LinkedNode
+      //if the bit is set to 1, then it is the linkednode, which stores the real key value pairs
+      //otherwise, it is the directory node.
+      if ((recId & 1) != 0) {
+        //Nan: if the node is linkedNode n, then the records start from
+        //n / 2, next, next, next
+        recId = recId >>> 1;
+        long workingRecId = recId;
+        while (true) {
+          LinkedNode<K, V> ln = engine.get(workingRecId, LN_SERIALIZER);
+          if (ln == null) {
+            return null;
+          }
+          ret.add(ln.key);
+          workingRecId = ln.next;
+        }
+      }
+      recId = recId >>> 1;
+    }
+    return ret;
+  }
+
   private LinkedNode<K, V> search(Object key, Engine engine, long recId, int h) {
     for (int level = 3; level >= 0; level--) {
       Object dir = engine.get(recId, DIR_SERIALIZER);
@@ -614,6 +690,30 @@ public class PartitionedHTreeMap<K, V>
     return null;
   }
 
+  private LinkedList<K> fetchFromPersistedStorageWithSimilarity(
+          int partitionId,
+          long rootRecId,
+          int hashCode) {
+    Iterator<PersistedStorage> persistedStorageIterator =
+            persistedStorages.get(partitionId).iterator();
+    HashSet<K> ret = new HashSet<K>();
+    while (persistedStorageIterator.hasNext()) {
+      StoreAppend persistedStorage = persistedStorageIterator.next().store;
+      if (testInDataSummary(persistedStorage, hashCode)) {
+        LinkedList<K> similarCandidates =
+                searchWithSimilarity(persistedStorage, rootRecId, hashCode);
+        if (similarCandidates != null) {
+          ret.addAll(similarCandidates);
+        }
+      }
+    }
+    LinkedList<K> l = new LinkedList<K>();
+    for (K k: ret) {
+      l.add(k);
+    }
+    return l;
+  }
+
   private LinkedNode<K, V> fetchFromPersistedStorage(
           Object key,
           int partitionId,
@@ -632,6 +732,22 @@ public class PartitionedHTreeMap<K, V>
       }
     }
     return ret;
+  }
+
+  private LinkedList<K> getInnerWithSimilarity(
+          int seg,
+          int h,
+          int partition) {
+    try {
+      long recId = partitionRootRec.get(partition)[seg];
+      Engine engine = engines.get(partition);
+      if (((Store) engine).getCurrSize() >= ramThreshold) {
+        persist(partition);
+      }
+      return searchWithSimilarity(engine, recId, h);
+    } catch (NullPointerException npe) {
+      return null;
+    }
   }
 
   private LinkedNode<K, V> getInner(Object key, int seg, int h, int partition) {
@@ -1969,7 +2085,8 @@ public class PartitionedHTreeMap<K, V>
       DataIO.DataOutputByteArray output = new DataIO.DataOutputByteArray();
       while (keyIterator.hasNext()) {
         K key = keyIterator.next();
-        keySerializer.serialize(output, key);
+        int h = hash(key);
+        Serializers.IntSerializer().serialize(output, h);
         persistStorage.updateDataSummary(output);
         output.resetByteArray();
       }

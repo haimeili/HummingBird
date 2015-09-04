@@ -240,7 +240,7 @@ class SparseVector(
     s"indices length: ${indices.length}, values length: ${values.length}")
   
   val indexToMap = new mutable.HashMap[Int, Double]()
-  
+
   for (i <- 0 until indices.length) {
     indexToMap(indices(i)) = values(i)
   }
