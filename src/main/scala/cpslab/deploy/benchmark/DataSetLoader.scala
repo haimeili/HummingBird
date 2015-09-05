@@ -10,6 +10,9 @@ trait DataSetLoader {
   /**
    * initialize the database by reading raw vector data from file system
    * @param filePath the root path of the data directory
+   * @param replica this parameter controls the level we would like to scale the dataset
+   * @param offset the offset for each replica
+   * @param cap the maximum number of vectors we need
    */
   protected def initVectorDatabaseFromFS(
       filePath: String,

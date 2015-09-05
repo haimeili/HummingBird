@@ -15,8 +15,6 @@ import cpslab.utils.{HashPartitioner, RangePartitioner, Serializers}
 
 private[cpslab] object ShardDatabase extends DataSetLoader {
 
-  var partitionedHTreeCount = 0
-
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
   @volatile var endTime = -1L
@@ -43,7 +41,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     private var hasSentReport = false
 
     override def receive: Receive = {
-      case sv: SparseVector =>
+      case vectorId: Int =>
         if (hasSentReport) {
           monitor ! Report
           hasSentReport = false
@@ -52,7 +50,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
           startTime = System.currentTimeMillis()
         }
         for (i <- vectorDatabase.indices) {
-          vectorDatabase(i).put(sv.vectorId, true)
+          vectorDatabase(i).put(vectorId, true)
         }
         val endMoment = System.currentTimeMillis()
         if (endMoment > endTime) {
@@ -72,14 +70,14 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
-    def initializeVectorDatabase(): ConcurrentMap[Int, Boolean] =
+    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
           val newTree = new PartitionedHTreeMap[Int, Boolean](
-            partitionedHTreeCount,
+            tableId,
             "lsh",
-            workingDirRoot + "-" + partitionedHTreeCount,
-            "partitionedTree-" + partitionedHTreeCount,
+            workingDirRoot + "-" + tableId,
+            "partitionedTree-" + tableId,
             new RangePartitioner[Int](numPartitions),
             true,
             1,
@@ -89,17 +87,16 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             Executors.newCachedThreadPool(),
             true,
             ramThreshold)
-          partitionedHTreeCount += 1
           newTree
       }
-    def initializeIdToVectorMap(): ConcurrentMap[Int, SparseVector] =
+    def initializeIdToVectorMap(): PartitionedHTreeMap[Int, SparseVector] =
       concurrentCollectionType match {
         case "Doraemon" =>
           new PartitionedHTreeMap(
             0,
             "default",
-            workingDirRoot + "-vector-" + partitionedHTreeCount,
-            "partitionedTree-" + partitionedHTreeCount,
+            workingDirRoot + "-vector",
+            "vectorIdToVector",
             new HashPartitioner[Int](numPartitions),
             true,
             1,
@@ -110,7 +107,10 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             true,
             ramThreshold)
       }
-    vectorDatabase = Array.fill(tableNum)(initializeVectorDatabase())
+    vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+    }
     vectorIdToVector = initializeIdToVectorMap()
   }
 
@@ -144,11 +144,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
           while (true) {
             var totalCnt = 0
             for (i <- vectorDatabase.indices) {
-              val entrySetItr = vectorDatabase(i).entrySet().iterator()
-              while (entrySetItr.hasNext) {
-                val a = entrySetItr.next()
-                totalCnt += a.getValue.asInstanceOf[ConcurrentLinkedQueue[Int]].size()
-              }
+              totalCnt += vectorDatabase(i).size()
             }
             val currentTime = System.currentTimeMillis()
             println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
@@ -160,16 +156,15 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
         }
       }
     ).start()
-    val itr = vectorIdToVector.values().iterator()
-    while (itr.hasNext) {
-      val vector = itr.next()
-      actors(vector.vectorId % parallelism) ! vector
+    for (i <- 0 until vectorIdToVector.getMaxPartitionNumber) {
+      val itr = vectorIdToVector.values(i).iterator()
+      while (itr.hasNext) {
+        val vector = itr.next()
+        actors(vector.vectorId % parallelism) ! vector.vectorId
+      }
     }
   }
 
-  private[deploy] var vectorDatabase: Array[ConcurrentMap[Int, Boolean]] = null
-  private[deploy] var vectorIdToVector: ConcurrentMap[Int, SparseVector] = null
-
-  def vectorSimilarityDB = vectorDatabase
-  def vectorMainDB = vectorIdToVector
+  private[deploy] var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
+  var vectorIdToVector: PartitionedHTreeMap[Int, SparseVector] = null
 }

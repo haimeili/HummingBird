@@ -1030,7 +1030,7 @@ public class PartitionedHTreeMap<K, V>
     if (hasher instanceof LocalitySensitiveHasher) {
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
-      SparseVector v = ShardDatabase.vectorMainDB().get(key);
+      SparseVector v = ShardDatabase.vectorIdToVector().get(key);
       return ((LocalitySensitiveHasher) hasher).hash(v, Serializers.VectorSerializer());
     } else {
       // the hasher is the default hasher which calculates the hash based on the key directly
@@ -2012,6 +2012,10 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
+
+  public int getMaxPartitionNumber() {
+    return partitioner.numPartitions;
+  }
 
   public Collection<Engine> getEngine() {
     return engines.values();
