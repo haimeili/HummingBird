@@ -173,6 +173,7 @@ public class StoreSegment extends StoreDirect {
         if (!last) {
           putDataSingleWithLink(offset, parity3Set(offsets[i + 1]), src, outPos, size);
         } else {
+          //System.out.println("put without link");
           putDataSingleWithoutLink(offset, src, outPos, size);
         }
         outPos += size;

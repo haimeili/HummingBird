@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
 import cpslab.deploy.utils.{Client, DummyLSH}
 import cpslab.lsh.vector.SparseVector
-import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
+import org.scalatest.{Ignore, BeforeAndAfterAll, FunSuiteLike}
 
 class FlatShardingSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfterAll {
@@ -27,10 +27,13 @@ class FlatShardingSuite(var actorSystem: ActorSystem)
          |akka.cluster.seed-nodes = ["akka.tcp://FlatShardingSystem@127.0.0.1:2553"]
          |akka.remote.netty.tcp.port = 2553
          |cpslab.lsh.sharding.namespace = flat
+         |cpslab.lsh.numPartitions = 1
+         |cpslab.lsh.workingDirRoot= ${getClass.getClassLoader.getResource("testdir").getFile}
+         |cpslab.lsh.ramThreshold=${Int.MaxValue}
        """.stripMargin).withFallback(TestSettings.testShardingConf)
-    LSHServer.startShardingSystem(conf, new DummyLSH(conf))
+    LSHServer.lshEngine = new DummyLSH(conf)
+    LSHServer.startShardingSystem(conf, LSHServer.lshEngine)
   })
-
 
   test("(flat) Sharding scheme forwards search request correctly") {
     val client = TestActorRef[Client](Props(new Client), name = "client")

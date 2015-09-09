@@ -126,8 +126,9 @@ public class PartitionedHTreeMap<K, V>
 
       DataIO.packLong(out, value.next);
       keySerializer.serialize(out, value.key);
-      if (hasValues)
+      if (hasValues) {
         valueSerializer.serialize(out, value.value);
+      }
     }
 
     @Override
@@ -488,7 +489,7 @@ public class PartitionedHTreeMap<K, V>
         }
       }
     } catch (NullPointerException npe) {
-      npe.printStackTrace();
+      //npe.printStackTrace();
       return null;
     }
 
@@ -523,7 +524,7 @@ public class PartitionedHTreeMap<K, V>
         }
       }
     } catch (NullPointerException npe) {
-      npe.printStackTrace();
+      //npe.printStackTrace();
       return null;
     }
 
@@ -635,6 +636,9 @@ public class PartitionedHTreeMap<K, V>
             return null;
           }
           ret.add(ln.key);
+          if (ln.next == 0) {
+            return ret;
+          }
           workingRecId = ln.next;
         }
       }
@@ -1697,18 +1701,20 @@ public class PartitionedHTreeMap<K, V>
       //second phase, start search from increased hash to find next items
       for (int segment = Math.max(hash >>> 28, lastSegment); segment < SEG; segment++) {
         Engine engine = engines.get(partition);
-        final Lock lock = partitionRamLock.get(partition).readLock();
-        try {
-          lock.lock();
-          lastSegment = Math.max(segment, lastSegment);
-          long dirRecid = partitionRootRec.get(partition)[segment];
-          LinkedNode ret[] = findNextLinkedNodeRecur(engine, dirRecid, hash, 3);
-          if (ret != null) {
-            return ret;
+        if (partitionRamLock.containsKey(partition)) {
+          final Lock lock = partitionRamLock.get(partition).readLock();
+          try {
+            lock.lock();
+            lastSegment = Math.max(segment, lastSegment);
+            long dirRecid = partitionRootRec.get(partition)[segment];
+            LinkedNode ret[] = findNextLinkedNodeRecur(engine, dirRecid, hash, 3);
+            if (ret != null) {
+              return ret;
+            }
+            hash = 0;
+          } finally {
+            lock.unlock();
           }
-          hash = 0;
-        } finally {
-          lock.unlock();
         }
       }
       return null;
