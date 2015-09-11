@@ -464,14 +464,15 @@ public class PartitionedHTreeMap<K, V>
     //TODO: Finish getSimilar
     final int h = hash((K) key);
     final int seg = h >>> 28;
-    final int partition = partitioner.getPartition((K) key);
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
 
     LinkedList<K> lns;
     try {
       final Lock ramLock = partitionRamLock.get(partition).readLock();
       try {
         ramLock.lock();
-        lns = getInnerWithSimilarity(seg, h, partition);
+        lns = getInnerWithSimilarity(key, seg, h, partition);
       } finally {
         ramLock.unlock();
       }
@@ -481,6 +482,7 @@ public class PartitionedHTreeMap<K, V>
         try {
           persistLock.lock();
           lns = fetchFromPersistedStorageWithSimilarity(
+                  key,
                   partition,
                   partitionRootRec.get(partition)[seg],
                   h);
@@ -602,6 +604,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
   private LinkedList<K> searchWithSimilarity(
+          final Object key,
           Engine engine,
           long recId,
           int h) {
@@ -635,7 +638,9 @@ public class PartitionedHTreeMap<K, V>
           if (ln == null) {
             return null;
           }
-          ret.add(ln.key);
+          if (ln.key != key) {
+            ret.add(ln.key);
+          }
           if (ln.next == 0) {
             return ret;
           }
@@ -695,6 +700,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
   private LinkedList<K> fetchFromPersistedStorageWithSimilarity(
+          final Object key,
           int partitionId,
           long rootRecId,
           int hashCode) {
@@ -705,7 +711,7 @@ public class PartitionedHTreeMap<K, V>
       StoreAppend persistedStorage = persistedStorageIterator.next().store;
       if (testInDataSummary(persistedStorage, hashCode)) {
         LinkedList<K> similarCandidates =
-                searchWithSimilarity(persistedStorage, rootRecId, hashCode);
+                searchWithSimilarity(key, persistedStorage, rootRecId, hashCode);
         if (similarCandidates != null) {
           ret.addAll(similarCandidates);
         }
@@ -739,6 +745,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
   private LinkedList<K> getInnerWithSimilarity(
+          final Object key,
           int seg,
           int h,
           int partition) {
@@ -748,7 +755,7 @@ public class PartitionedHTreeMap<K, V>
       if (((Store) engine).getCurrSize() >= ramThreshold) {
         persist(partition);
       }
-      return searchWithSimilarity(engine, recId, h);
+      return searchWithSimilarity(key, engine, recId, h);
     } catch (NullPointerException npe) {
       return null;
     }

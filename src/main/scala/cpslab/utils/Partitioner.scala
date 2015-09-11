@@ -1,5 +1,7 @@
 package cpslab.utils
 
+import scala.reflect.ClassTag
+
 import cpslab.db.Partitioner
 
 class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartitions) {
@@ -8,7 +10,11 @@ class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartition
   }
 }
 
-class RangePartitioner[K](numPartitions: Int) extends Partitioner[K](numPartitions) {
+class RangePartitioner[K : Ordering : ClassTag](numPartitions: Int)
+  extends Partitioner[K](numPartitions) {
+
+  private var ordering = implicitly[Ordering[K]]
+
   override def getPartition(value: K): Int = {
     //TODO: finish the range partitioner
     0

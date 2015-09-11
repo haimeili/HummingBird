@@ -165,6 +165,6 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     }
   }
 
-  private[deploy] var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
+  var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
   var vectorIdToVector: PartitionedHTreeMap[Int, SparseVector] = null
 }
