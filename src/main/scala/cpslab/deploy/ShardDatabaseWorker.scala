@@ -1,7 +1,7 @@
 package cpslab.deploy
 
 import java.util
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
+import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
@@ -14,6 +14,7 @@ import akka.actor.{ReceiveTimeout, Actor, Cancellable, Props}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
+import cpslab.db.PartitionedHTreeMap
 import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
@@ -140,7 +141,8 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
          (vector, tableIds) <- withinShardData;
          tableId <- tableIds if tableId != -1) {
       //query and update the database
-      val allSimilarCandidates = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
+      val db = vectorDatabase(tableId).asInstanceOf[PartitionedHTreeMap[Int, Boolean]]
+      val allSimilarCandidates = db.getSimilar(vector.sparseVector)
       val bitMap = deduplicateBitmap.getOrElseUpdate(vector.sparseVector, new util.BitSet)
       if (allSimilarCandidates != null) {
         val itr = allSimilarCandidates.iterator()
@@ -202,11 +204,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       val vectorId = vector.sparseVector.vectorId
       vectorIdToVector.put(vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
-        vectorDatabase(tableId).putIfAbsent(vector.bucketIndices(tableId),
-          new ConcurrentLinkedQueue[Int])
-        val list = vectorDatabase(tableId).get(vector.bucketIndices(tableId))
-        list.add(vector.sparseVector.vectorId)
-        vectorDatabase(tableId).put(vector.bucketIndices(tableId), list)
+        vectorDatabase(tableId).put(vector.sparseVector.vectorId, true)
       }
       val currentTime = System.nanoTime()
       if (startTime.containsKey(vectorId)) {

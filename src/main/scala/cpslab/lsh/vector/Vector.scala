@@ -53,17 +53,6 @@ sealed trait Vector extends Serializable {
   override def hashCode(): Int = util.Arrays.hashCode(this.toArray)
 
   /**
-   * Converts the instance to a breeze vector.
-   */
-  private[cpslab] def toBreeze: BV[Double]
-
-  /**
-   * Gets the value of the ith element.
-   * @param i index
-   */
-  def apply(i: Int): Double = toBreeze(i)
-
-  /**
    * Makes a deep copy of this vector.
    */
   def copy: Vector = {
@@ -233,10 +222,6 @@ class DenseVector(val vectorId: Int, val values: Array[Double]) extends Vector {
 
   override def toArray: Array[Double] = values
 
-  private[cpslab] override def toBreeze: BV[Double] = new BDV[Double](values)
-
-  override def apply(i: Int): Double = values(i)
-
   override def copy: DenseVector = {
     new DenseVector(vectorId, values.clone())
   }
@@ -255,7 +240,7 @@ class SparseVector(
     s"indices length: ${indices.length}, values length: ${values.length}")
   
   val indexToMap = new mutable.HashMap[Int, Double]()
-  
+
   for (i <- 0 until indices.length) {
     indexToMap(indices(i)) = values(i)
   }
@@ -286,6 +271,4 @@ class SparseVector(
   override def copy: SparseVector = {
     new SparseVector(vectorId, size, indices.clone(), values.clone())
   }
-  
-  private[cpslab] override def toBreeze: BV[Double] = new BSV[Double](indices, values, size)
 }
