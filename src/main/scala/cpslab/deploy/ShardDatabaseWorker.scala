@@ -3,13 +3,14 @@ package cpslab.deploy
 import java.util
 import java.util.concurrent.ConcurrentHashMap
 
+import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import akka.actor.{Actor, Cancellable, Props}
+import akka.actor.{ReceiveTimeout, Actor, Cancellable, Props}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
@@ -19,6 +20,8 @@ import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, SparseVectorWrapper}
 
 private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extends Actor {
+
+  import ShardDatabaseWorker._
 
   //sharding actors
   private val regionActor = ClusterSharding(context.system).shardRegion(
@@ -40,6 +43,11 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
   //TODO: change for dynamic client actor
   private val clientActorAddress = conf.getString("cpslab.lsh.clientAddress")
   private val clientActor = context.actorSelection(clientActorAddress)
+
+  private val expDuration = conf.getLong("cpslab.lsh.benchmark.expDuration")
+  if (expDuration > 0) {
+    context.setReceiveTimeout(expDuration milliseconds)
+  }
 
   override def preStart(): Unit = {
     // initialize the sender for load batching
@@ -66,11 +74,13 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    */
   private def sendShardAllocation(): Unit = {
     import scala.collection.JavaConversions._
-    for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
-      regionActor ! FlatShardAllocation(
-        HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
+    flatAllocationWriteBuffer.synchronized {
+      for ((shardId, perShardMap) <- flatAllocationWriteBuffer) {
+        regionActor ! FlatShardAllocation(
+          HashMap[ShardId, mutable.HashMap[SparseVectorWrapper, Array[Int]]]((shardId, perShardMap)))
+      }
+      flatAllocationWriteBuffer.clear()
     }
-    flatAllocationWriteBuffer.clear()
   }
 
   /**
@@ -89,7 +99,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       } else {
         //merge to write buffer
         for ((vector, tableId) <- tableMap) {
-          val vectorsInBatching = flatAllocationWriteBuffer.
+          flatAllocationWriteBuffer.
             getOrElseUpdate(shardId, new mutable.HashMap[SparseVectorWrapper, Array[Int]]).
             getOrElseUpdate(vector, tableId)
         }
@@ -102,14 +112,18 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    * @param searchRequest the search requeste received from client
    */
   private def processSearchRequest(searchRequest: SearchRequest): Unit = {
+    //record start time
+    val startMoment = System.nanoTime()
+    val queryId = searchRequest.vector.vectorId
+    startTime += queryId -> startMoment
     val indexInAllTables = lshInstance.calculateIndex(searchRequest.vector)
     val outputShardMap = new mutable.HashMap[ShardId,
       mutable.HashMap[SparseVectorWrapper, Array[Int]]]
     val tableNum = indexInAllTables.length
-    val indexInTable = new Array[Int](indexInAllTables.length)
-    val vector = SparseVectorWrapper(indexInTable, searchRequest.vector)
+    val indexInTable = new Array[Int](indexInAllTables.length).view.zipWithIndex.map{
+      case (num, idx) => indexInAllTables(idx)}
+    val vector = SparseVectorWrapper(indexInTable.toArray, searchRequest.vector)
     for (tableId <- 0 until tableNum) {
-      indexInTable(tableId) = indexInAllTables(tableId)
       val bucketIndex = indexInAllTables(tableId)
       val shardId = bucketIndex % maxShardNumPerTable
       outputShardMap.getOrElseUpdate(shardId.toString,
@@ -137,7 +151,7 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         }
       }
     }
-    deduplicateBitmap.map {case (queryVector, bitmap) =>
+    deduplicateBitmap.view.map {case (queryVector, bitmap) =>
       var nextSetBit = bitmap.nextSetBit(0)
       val selectedCandidates = new ListBuffer[(Int, Double)]
       while (nextSetBit != -1) {
@@ -149,8 +163,10 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
         nextSetBit = bitmap.nextSetBit(nextSetBit + 1)
       }
       if (selectedCandidates.size > 0) {
-        val topKCandidate = selectedCandidates.sortWith((a, b) => a._2 < b._2).take(topK)
-        SimilarityOutput(queryVector.vectorId, null, topKCandidate.toList)
+        //val topKCandidate = selectedCandidates.sortWith((a, b) => a._2 < b._2).take(topK)
+        val topKCandidate = selectedCandidates.take(topK)
+        SimilarityOutput(queryVector.vectorId, null, topKCandidate.toList,
+          Some(System.currentTimeMillis()))
       } else {
         null
       }
@@ -163,8 +179,17 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
    * @param shardAllocationMsg the shardAllocation Message
    */
   private def processShardAllocation(shardAllocationMsg: FlatShardAllocation): Unit = {
+    val shardMap = shardAllocationMsg.shardsMap
+    val time = System.nanoTime()
+    for ((_, withinShardData) <- shardMap; (vector, tableIds) <- withinShardData) {
+      startTime += vector.sparseVector.vectorId -> time
+    }
+
     val similarityOutputMessages = generateSimilarityOutputs(shardAllocationMsg)
+    val currentTime = System.nanoTime()
     for (similarityOutput <- similarityOutputMessages) {
+      val queryVectorID = similarityOutput.queryVectorID
+      searchCost += queryVectorID -> (currentTime - startTime(queryVectorID))
       clientActor ! similarityOutput
     }
     //update vector database
@@ -173,13 +198,61 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
 
   private def updateVectorDatabase(shardAllocationMsg: FlatShardAllocation): Unit = {
     val withInShardData = shardAllocationMsg.shardsMap.values
+    val writingTimeMoment = System.nanoTime()
     for (vectorAndTableIDs <- withInShardData;
         (vector, tableIds) <- vectorAndTableIDs) {
-      vectorIdToVector.put(vector.sparseVector.vectorId, vector.sparseVector)
+      val vectorId = vector.sparseVector.vectorId
+      vectorIdToVector.put(vectorId, vector.sparseVector)
       for (tableId <- tableIds if tableId != -1) {
         vectorDatabase(tableId).put(vector.sparseVector.vectorId, true)
       }
+      val currentTime = System.nanoTime()
+      if (startTime.containsKey(vectorId)) {
+        writeCost += vectorId -> (currentTime - writingTimeMoment)
+        endTime += vectorId -> currentTime
+      }
     }
+  }
+
+  private def sendPerformanceReport(): Unit = {
+    val result = new mutable.HashMap[Int, Long]
+    for ((vectorId, endMoment) <- endTime if startTime.containsKey(vectorId)) {
+      val cost = endMoment - startTime(vectorId)
+      if (cost > 0) {
+        result += vectorId -> cost
+      }
+    }
+    //get max, min, average
+    var overallTuple: (Long, Long, Long) = null
+    if (result.nonEmpty) {
+      val max = result.maxBy(_._2)
+      val min = result.minBy(_._2)
+      //get average
+      val sum = result.map(_._2).sum
+      val average = sum * 1.0 / result.size
+      overallTuple = (max._2, min._2, average.toLong)
+    }
+    //search cost
+    var searchTuple: (Long, Long, Long) = null
+    if (searchCost.nonEmpty) {
+      val max = searchCost.maxBy(_._2)
+      val min = searchCost.minBy(_._2)
+      //get average
+      val sum = searchCost.map(_._2).sum
+      val average = sum * 1.0 / result.size
+      searchTuple = (max._2, min._2, average.toLong)
+    }
+    //write cost
+    var writeTuple: (Long, Long, Long) = null
+    if (writeCost.nonEmpty) {
+      val max = writeCost.maxBy(_._2)
+      val min = writeCost.minBy(_._2)
+      //get average
+      val sum = writeCost.map(_._2).sum
+      val average = sum * 1.0 / result.size
+      writeTuple = (max._2, min._2, average.toLong)
+    }
+    clientActor ! PerformanceReport(overallTuple, searchTuple, writeTuple)
   }
 
   override def receive: Receive = {
@@ -187,10 +260,19 @@ private[deploy] class ShardDatabaseWorker(conf: Config, lshInstance: LSH) extend
       processSearchRequest(searchRequest)
     case shardAllocation: FlatShardAllocation =>
       processShardAllocation(shardAllocation)
+    case ReceiveTimeout =>
+      sendPerformanceReport()
+      context.stop(self)
   }
 }
 
 private[deploy] object ShardDatabaseWorker {
   val shardDatabaseWorkerActorName = "ShardDatabaseWorkerActor"
   def props(conf: Config, lsh: LSH): Props = Props(new ShardDatabaseWorker(conf, lsh))
+
+  //benchmark stuffs
+  private val startTime = new ConcurrentHashMap[Int, Long]
+  private val endTime = new ConcurrentHashMap[Int, Long]
+  private val searchCost = new ConcurrentHashMap[Int, Long]
+  private val writeCost = new ConcurrentHashMap[Int, Long]
 }

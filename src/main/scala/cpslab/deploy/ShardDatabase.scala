@@ -146,9 +146,9 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             for (i <- vectorDatabase.indices) {
               totalCnt += vectorDatabase(i).size()
             }
-            val currentTime = System.currentTimeMillis()
+            val currentTime = System.nanoTime()
             println(s"Writing Rate ${(totalCnt - lastAmount) * 1.0 /
-              ((currentTime - lastAmount) * 1000)}")
+              ((currentTime - lastTime) / 1000000000)}")
             lastAmount = totalCnt
             lastTime = currentTime
             Thread.sleep(1000)

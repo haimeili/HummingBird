@@ -90,7 +90,7 @@ private[cpslab] object LSHServer {
     val system = conf.getString("cpslab.lsh.distributedSchema") match {
       case "PLSH" =>
         startPLSHSystem(conf, lshEngine, PLSHWorker.props)
-      case "SHARDING" => 
+      case "SHARDING" =>
         startShardingSystem(conf, lshEngine)
       case x => 
         println(s"Unsupported Distributed Schema $x")
