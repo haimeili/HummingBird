@@ -1,6 +1,5 @@
 package cpslab.deploy.benchmark
 
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks._
 
 import scala.collection.mutable

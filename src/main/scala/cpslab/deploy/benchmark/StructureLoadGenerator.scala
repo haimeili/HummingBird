@@ -4,11 +4,11 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import ExecutionContext.Implicits.global
 import scala.util.Random
 
-import com.typesafe.config.{ConfigFactory, Config}
+import com.typesafe.config.ConfigFactory
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 

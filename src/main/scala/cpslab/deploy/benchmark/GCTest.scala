@@ -1,10 +1,7 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConversions._
 import scala.util.Random
 
 import com.typesafe.config.ConfigFactory

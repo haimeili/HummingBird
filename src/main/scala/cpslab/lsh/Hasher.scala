@@ -22,6 +22,7 @@ class DefaultHasher[K](hashSalt: Int) extends Hasher[K] {
 }
 
 class LocalitySensitiveHasher(lsh: LSH, tableId: Int) extends Hasher[SparseVector] {
+  assert(lsh != null)
   override def hash(key: SparseVector, keySerializer: Serializer[SparseVector]): Int = {
     lsh.calculateIndex(key, tableId)(0)
   }

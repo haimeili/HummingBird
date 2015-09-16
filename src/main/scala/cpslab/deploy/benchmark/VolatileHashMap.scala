@@ -3,7 +3,7 @@ package cpslab.deploy.benchmark
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import akka.actor.{Props, ActorSystem, Actor}
+import akka.actor.{Actor, ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import cpslab.lsh.vector.SparseVector
 

@@ -2055,7 +2055,7 @@ public class PartitionedHTreeMap<K, V>
           try {
             StoreSegment engine = (StoreSegment) engines.get(partitionId);
             //engine.compact();
-            String unionDir = name + "/" + partitionId;
+            String unionDir = workingDirectory + "/" + name + "/" + partitionId;
             File dir = new File(unionDir);
             dir.mkdirs();
             Store persistStorage = engine.persist(unionDir + "/" + persistTimestamp);

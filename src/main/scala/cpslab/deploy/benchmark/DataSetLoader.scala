@@ -14,7 +14,7 @@ trait DataSetLoader {
    * @param offset the offset for each replica
    * @param cap the maximum number of vectors we need
    */
-  protected def initVectorDatabaseFromFS(
+  def initVectorDatabaseFromFS(
       filePath: String,
       replica: Int,
       offset: Int,

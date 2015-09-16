@@ -1,11 +1,9 @@
 package cpslab.deploy.benchmark
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-import cpslab.lsh.vector.{SimilarityCalculator, SparseVector}
+import cpslab.lsh.vector.SparseVector
 
 // an inverted index implementation for sparse vector
 class InvertedIndex(dim: Int) {
