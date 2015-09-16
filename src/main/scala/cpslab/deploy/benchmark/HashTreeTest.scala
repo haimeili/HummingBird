@@ -46,6 +46,9 @@ object HashTreeTest {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
     init(conf)
-    testThreadScalability(conf, 500, 20)
+    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
+    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+    testThreadScalability(conf, requestNumberPerThread = requestPerThread,
+      threadNumber = threadNumber)
   }
 }
