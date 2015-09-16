@@ -29,10 +29,12 @@ object HashTreeTest {
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         override def run(): Unit = {
+          val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+          val tableNum = conf.getInt("cpslab.lsh.tableNum")
           System.out.println("startTime: " + System.nanoTime())
           for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(conf.getInt("cpslab.lsh.benchmark.cap"))
-            for (tableId <- 0 until conf.getInt("cpslab.lsh.tableNum")) {
+            val interestVectorId = Random.nextInt(cap)
+            for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
           }
