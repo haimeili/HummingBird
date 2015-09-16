@@ -93,7 +93,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       concurrentCollectionType match {
         case "Doraemon" =>
           new PartitionedHTreeMap(
-            0,
+            tableNum,
             "default",
             workingDirRoot + "-vector",
             "vectorIdToVector",
