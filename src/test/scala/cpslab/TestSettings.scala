@@ -7,6 +7,7 @@ private[cpslab] object TestSettings {
     s"""
        |cpslab.lsh.plsh.benchmark.expDuration=0
        |cpslab.lsh.benchmark.replica=1
+       |cpslab.lsh.benchmark.expDuration=30000
        |cpslab.lsh.benchmark.offset=0
        |cpslab.lsh.benchmark.cap=1000000
        |cpslab.vectorDatabase.memoryModel=offheap

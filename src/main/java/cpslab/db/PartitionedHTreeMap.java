@@ -1021,7 +1021,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
   private void initPartitionIfNecessary(int partitionId) {
-    Lock structureLock = structureLocks.get(partitionId % structureLockScale).writeLock();
+    Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
     try {
       structureLock.lock();
       if (!partitionRamLock.containsKey(partitionId) ||
@@ -1060,7 +1060,8 @@ public class PartitionedHTreeMap<K, V>
     V ret;
     final int h = hash(key);
 
-    final int partition = partitioner.getPartition(key);
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
     initPartitionIfNecessary(partition);
     try {
       partitionRamLock.get(partition).writeLock().lock();
@@ -1127,7 +1128,6 @@ public class PartitionedHTreeMap<K, V>
               throw new DBException.DataCorruption("cyclic reference in linked list");
 
             engine.update(recid, ln, LN_SERIALIZER);
-            notify(key, oldVal, value);
             return oldVal;
           }
           recid = ln.next;
@@ -1184,7 +1184,6 @@ public class PartitionedHTreeMap<K, V>
         //update the parent directory node
         dir = putNewRecordIdInDir(dir, parentPos, (nextDirRecid << 1) | 0);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
-        notify(key, null, value);
         //update counter
         counter(partition, engine, +1);
 
@@ -1204,7 +1203,6 @@ public class PartitionedHTreeMap<K, V>
         }
         dir = putNewRecordIdInDir(dir, slot, (newRecid << 1) | 1);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
-        notify(key, null, value);
         //update counter
         counter(partition, engine, +1);
         return null;
@@ -1296,7 +1294,6 @@ public class PartitionedHTreeMap<K, V>
             if (CC.ASSERT && !(hash(ln.key) == h))
               throw new DBException.DataCorruption("inconsistent hash");
             engine.delete(recid, LN_SERIALIZER);
-            notify((K) key, ln.value, null);
             counter(partition, engine, -1);
             return ln.value;
           }
@@ -1389,7 +1386,6 @@ public class PartitionedHTreeMap<K, V>
           if (CC.ASSERT && n.next == recid)
             throw new DBException.DataCorruption("cyclic reference in linked list");
           engine.delete(recid, LN_SERIALIZER);
-          notify((K) n.key, (V) n.value, null);
           recid = n.next;
         }
       }
@@ -2008,21 +2004,6 @@ public class PartitionedHTreeMap<K, V>
             executor,
             false,
             ramThreshold);
-  }
-
-
-  protected final Object modListenersLock = new Object();
-  protected Bind.MapListener<K, V>[] modListeners = new Bind.MapListener[0];
-
-  protected void notify(K key, V oldValue, V newValue) {
-    int partition = partitioner.getPartition(key);
-    if (CC.ASSERT && !(partitionRamLock.get(partition).isWriteLockedByCurrentThread()))
-      throw new AssertionError();
-    Bind.MapListener<K, V>[] modListeners2 = modListeners;
-    for (Bind.MapListener<K, V> listener : modListeners2) {
-      if (listener != null)
-        listener.update(key, oldValue, newValue);
-    }
   }
 
 

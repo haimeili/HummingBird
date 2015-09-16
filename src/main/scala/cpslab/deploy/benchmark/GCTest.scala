@@ -46,10 +46,7 @@ object GCTest {
             val newVector = new SparseVector(i * vectorCount + i, vectorDim, indices, nonZeroValues)
             val bucketIndices = lsh.calculateIndex(newVector)
             for (i <- 0 until bucketIndices.length) {
-              /*lshStructure(i).getOrElseUpdate(bucketIndices(i), new ListBuffer[SparseVector]) +=
-                newVector*/
-              vectorDatabase(i).putIfAbsent(bucketIndices(i), new ConcurrentLinkedQueue[Int])
-              vectorDatabase(i).get(bucketIndices(i)).add(newVector.vectorId)
+              vectorDatabase(i).put(newVector.vectorId, true)
             }
           }
           println(System.nanoTime() - startTime)
