@@ -4,16 +4,61 @@ import java.io.File
 import java.util.concurrent.atomic.{AtomicLong, AtomicLongArray}
 import java.util.concurrent.{Executors, ForkJoinPool}
 
+import scala.io.Source
 import scala.util.Random
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
-import cpslab.deploy.{LSHServer, ShardDatabase}
+import cpslab.deploy.ShardDatabase._
+import cpslab.deploy.{Utils, LSHServer, ShardDatabase}
 import cpslab.lsh.LSH
+import cpslab.lsh.vector.{SparseVector, Vectors}
 
 object HashTreeTest {
 
-  def init(conf: Config): Unit = {
+  def testWriteThreadScalability(
+    conf: Config,
+    requestNumberPerThread: Int,
+    threadNumber: Int): Unit = {
+    ShardDatabase.initializeMapDBHashMap(conf)
+
+    val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    for (i <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+        val base = i
+        var totalTime = 0L
+        override def run(): Unit = {
+          var cnt = 0
+          val allFiles = Utils.buildFileListUnderDirectory(filePath)
+          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+            val (_, size, indices, values) = Vectors.fromString1(line)
+            val vector = new SparseVector(cnt + cap * base, size, indices, values)
+            if (cnt > cap) {
+              return
+            }
+            val s = System.nanoTime()
+            vectorIdToVector.put(vector.vectorId, vector)
+            for (i <- 0 until tableNum) {
+              vectorDatabase(i).put(vector.vectorId, true)
+            }
+            val e = System.nanoTime()
+            totalTime += e - s
+            cnt += 1
+          }
+          println(cap / (totalTime / 1000000000))
+        }
+      })
+    }
+  }
+
+  def testReadThreadScalability(
+    conf: Config,
+    requestNumberPerThread: Int,
+    threadNumber: Int): Unit = {
+
     ShardDatabase.initializeMapDBHashMap(conf)
     //init database by filling vectors
     ShardDatabase.initVectorDatabaseFromFS(
@@ -21,12 +66,7 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.replica"),
       conf.getInt("cpslab.lsh.benchmark.offset"),
       conf.getInt("cpslab.lsh.benchmark.cap"))
-  }
 
-  def testReadThreadScalability(
-    conf: Config,
-    requestNumberPerThread: Int,
-    threadNumber: Int): Unit = {
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
@@ -49,10 +89,10 @@ object HashTreeTest {
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
-    init(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
-    testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)
+    //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
+    //  threadNumber = threadNumber)
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
   }
 }
