@@ -30,9 +30,9 @@ object HashTreeTest {
       threadPool.execute(new Runnable {
         val base = i
         var totalTime = 0L
-        override def run(): Unit = {
+
+        private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
-          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + cap * base, size, indices, values)
@@ -48,6 +48,11 @@ object HashTreeTest {
             totalTime += e - s
             cnt += 1
           }
+        }
+
+        override def run(): Unit = {
+          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+          traverseFile(allFiles)
           println(cap / (totalTime / 1000000000))
         }
       })
