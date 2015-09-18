@@ -32,7 +32,7 @@ object HashTreeTest {
         var totalTime = 0L
         override def run(): Unit = {
           var cnt = 0
-          val allFiles = Utils.buildFileListUnderDirectory(filePath)
+          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + cap * base, size, indices, values)
