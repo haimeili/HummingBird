@@ -1,20 +1,66 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.util.concurrent.atomic.{AtomicLong, AtomicLongArray}
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{Executors, ForkJoinPool}
 
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.io.Source
-import scala.util.Random
+import scala.util.{Success, Failure, Random}
 
-import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.deploy.ShardDatabase._
-import cpslab.deploy.{Utils, LSHServer, ShardDatabase}
+import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
 
 object HashTreeTest {
+
+  def asyncTestWriteThreadScalability (
+    conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
+    //implicit val executorContext = ExecutionContext.fromExecutor(
+    //  new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
+    ShardDatabase.initializeMapDBHashMap(conf)
+    import ExecutionContext.Implicits.global
+
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+    val cnt = new AtomicInteger(0)
+    for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+      val (id, size, indices, values) = Vectors.fromString1(line)
+      val vector = new SparseVector(id, size, indices, values)
+      Future {
+        blocking {
+          vectorIdToVector.put(vector.vectorId, vector)
+          for (i <- 0 until tableNum) {
+            vectorDatabase(i).put(vector.vectorId, true)
+          }
+        }
+      }.onComplete {
+        case Success(x) =>
+          cnt.incrementAndGet()
+          println(cnt.get())
+        case Failure(t) =>
+          println("An error has occured: " +
+            t.getStackTraceString)
+      }
+
+
+        /*.onSuccess {
+        case x =>
+          cnt.incrementAndGet()
+          println(cnt.get())
+      }*/
+    }
+    while (true) {
+      if (cnt.get() >= cap) {
+        System.exit(1)
+      }
+      Thread.sleep(1000)
+    }
+  }
 
   def testWriteThreadScalability(
     conf: Config,
@@ -99,6 +145,6 @@ object HashTreeTest {
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
     //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
     //  threadNumber = threadNumber)
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
   }
 }
