@@ -40,9 +40,9 @@ object HashTreeTest {
               return
             }
             val s = System.nanoTime()
-            vectorIdToVector.put(vector.vectorId, vector)
+            vectorIdToVector.put(cnt + cap * base, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(vector.vectorId, true)
+              vectorDatabase(i).put(cnt + cap * base, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
@@ -51,7 +51,8 @@ object HashTreeTest {
         }
 
         override def run(): Unit = {
-          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+          val random = new Random(Thread.currentThread().getName.hashCode)
+          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
           println(cap / (totalTime / 1000000000))
         }

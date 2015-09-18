@@ -1000,7 +1000,7 @@ public class PartitionedHTreeMap<K, V>
   private void initPartition(int partitionId) {
     //add root record for each partition
     StoreSegment storeSegment = new StoreSegment(
-            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 1, 0, false, false,
+            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
             null, false, true, null);
     storeSegment.serializer = LN_SERIALIZER;
     storeSegment.init();
@@ -1042,6 +1042,10 @@ public class PartitionedHTreeMap<K, V>
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
       SparseVector v = ShardDatabase.vectorIdToVector().get(key);
+      if (v == null) {
+        System.out.println("get vector with the id " + key + " as the NULL value");
+        System.exit(1);
+      }
       return ((LocalitySensitiveHasher) hasher).hash(v, Serializers.VectorSerializer());
     } else {
       // the hasher is the default hasher which calculates the hash based on the key directly
