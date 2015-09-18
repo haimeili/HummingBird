@@ -9,18 +9,72 @@ import scala.io.Source
 import scala.util.{Success, Failure, Random}
 
 import com.typesafe.config.{Config, ConfigFactory}
+import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
+import cpslab.utils.{HashPartitioner, Serializers, RangePartitioner}
 
 object HashTreeTest {
+
+  def initializeActorBasedHashTree(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
+    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
+    val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
+    val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          val newTree = new ActorBasedPartitionedHTreeMap[Int, Boolean](
+            conf,
+            tableId,
+            "lsh",
+            workingDirRoot + "-" + tableId,
+            "partitionedTree-" + tableId,
+            new RangePartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            null,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+          newTree
+      }
+    def initializeIdToVectorMap(conf: Config): PartitionedHTreeMap[Int, SparseVector] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          new ActorBasedPartitionedHTreeMap[Int, SparseVector](
+            conf,
+            tableNum,
+            "default",
+            workingDirRoot + "-vector",
+            "vectorIdToVector",
+            new HashPartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            Serializers.vectorSerializer,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+      }
+    vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+    }
+    vectorIdToVector = initializeIdToVectorMap(conf)
+  }
 
   def asyncTestWriteThreadScalability (
     conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     //  new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
-    ShardDatabase.initializeMapDBHashMap(conf)
+    initializeActorBasedHashTree(conf)
     import ExecutionContext.Implicits.global
 
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -32,27 +86,16 @@ object HashTreeTest {
       val (id, size, indices, values) = Vectors.fromString1(line)
       val vector = new SparseVector(id, size, indices, values)
       Future {
-        blocking {
-          vectorIdToVector.put(vector.vectorId, vector)
-          for (i <- 0 until tableNum) {
-            vectorDatabase(i).put(vector.vectorId, true)
-          }
+        vectorIdToVector.put(vector.vectorId, vector)
+        for (i <- 0 until tableNum) {
+          vectorDatabase(i).put(vector.vectorId, true)
         }
       }.onComplete {
         case Success(x) =>
           cnt.incrementAndGet()
-          println(cnt.get())
         case Failure(t) =>
-          println("An error has occured: " +
-            t.getStackTraceString)
+          println("An error has occured: " + t.getStackTraceString)
       }
-
-
-        /*.onSuccess {
-        case x =>
-          cnt.incrementAndGet()
-          println(cnt.get())
-      }*/
     }
     while (true) {
       if (cnt.get() >= cap) {

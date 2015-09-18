@@ -3,16 +3,16 @@ package cpslab.lsh
 import cpslab.db.Serializer
 import cpslab.lsh.vector.SparseVector
 
-trait Hasher[K] {
-  def hash(key: K, keySerializer: Serializer[K]): Int
+trait Hasher {
+  def hash[K](key: K, keySerializer: Serializer[K]): Int
 }
 
 
-class DefaultHasher[K](hashSalt: Int) extends Hasher[K] {
+class DefaultHasher(hashSalt: Int) extends Hasher {
 
-  override def hash(key: K, keySerializer: Serializer[K]): Int = {
+  override def hash[K](key: K, keySerializer: Serializer[K]): Int = {
     //TODO investigate if hashSalt has any effect
-    var h: Int = keySerializer.hashCode(key.asInstanceOf[K]) ^ hashSalt
+    var h: Int = keySerializer.hashCode(key) ^ hashSalt
     //stear hashcode a bit, to make sure bits are spread
     h = h * -1640531527
     h = h ^ h >> 16
@@ -21,10 +21,10 @@ class DefaultHasher[K](hashSalt: Int) extends Hasher[K] {
   }
 }
 
-class LocalitySensitiveHasher(lsh: LSH, tableId: Int) extends Hasher[SparseVector] {
+class LocalitySensitiveHasher(lsh: LSH, tableId: Int) extends Hasher {
   assert(lsh != null)
-  override def hash(key: SparseVector, keySerializer: Serializer[SparseVector]): Int = {
-    lsh.calculateIndex(key, tableId)(0)
+  override def hash[K](key: K, keySerializer: Serializer[K]): Int = {
+    lsh.calculateIndex(key.asInstanceOf[SparseVector], tableId)(0)
   }
 }
 

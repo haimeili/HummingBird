@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
+import java.util.Map.Entry;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class PartitionedHTreeMap<K, V>
@@ -84,7 +85,7 @@ public class PartitionedHTreeMap<K, V>
   //partitioner
   private final Partitioner<K> partitioner;
   private final String hasherName;
-  private final Hasher<K> hasher;
+  protected final Hasher hasher;
 
   private final int tableId;
   private final String workingDirectory;
@@ -335,7 +336,7 @@ public class PartitionedHTreeMap<K, V>
       case "lsh":
         return new LocalitySensitiveHasher(LSHServer.getLSHEngine(), tableId);
       default:
-        return new DefaultHasher<Object>(hashSalt);
+        return new DefaultHasher(hashSalt);
     }
   }
 
@@ -1020,7 +1021,7 @@ public class PartitionedHTreeMap<K, V>
     counterRecids.put(partitionId, counterRecId);
   }
 
-  private void initPartitionIfNecessary(int partitionId) {
+  protected void initPartitionIfNecessary(int partitionId) {
     Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
     try {
       structureLock.lock();
@@ -1037,16 +1038,12 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  private int hash(final K key) {
+  protected int hash(final K key) {
     if (hasher instanceof LocalitySensitiveHasher) {
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
       SparseVector v = ShardDatabase.vectorIdToVector().get(key);
-      if (v == null) {
-        System.out.println("get vector with the id " + key + " as the NULL value");
-        System.exit(1);
-      }
-      return ((LocalitySensitiveHasher) hasher).hash(v, Serializers.VectorSerializer());
+      return hasher.hash(v, Serializers.VectorSerializer());
     } else {
       // the hasher is the default hasher which calculates the hash based on the key directly
       return hasher.hash(key, keySerializer);
@@ -1089,7 +1086,7 @@ public class PartitionedHTreeMap<K, V>
    * @param partition the target segment
    * @return null if the corresponding kv pair doesn't exist, otherwise return the existing value
    */
-  private V putInner(K key, V value, int h, int partition) {
+  protected V putInner(K key, V value, int h, int partition) {
     int seg = h>>>28;
     long dirRecid = partitionRootRec.get(partition)[seg];
     Engine engine = engines.get(partition);
