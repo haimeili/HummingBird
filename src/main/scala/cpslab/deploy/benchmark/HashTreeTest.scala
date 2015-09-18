@@ -33,7 +33,7 @@ object HashTreeTest {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new RangePartitioner[Int](numPartitions),
+            new HashPartitioner[Int](numPartitions),
             true,
             1,
             Serializers.scalaIntSerializer,
@@ -47,8 +47,7 @@ object HashTreeTest {
     def initializeIdToVectorMap(conf: Config): PartitionedHTreeMap[Int, SparseVector] =
       concurrentCollectionType match {
         case "Doraemon" =>
-          new ActorBasedPartitionedHTreeMap[Int, SparseVector](
-            conf,
+          new PartitionedHTreeMap[Int, SparseVector](
             tableNum,
             "default",
             workingDirRoot + "-vector",
@@ -81,8 +80,12 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-    val cnt = new AtomicInteger(0)
+    var cnt = 0
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+      cnt += 1
+      if (cnt >= cap) {
+        return
+      }
       val (id, size, indices, values) = Vectors.fromString1(line)
       val vector = new SparseVector(id, size, indices, values)
       Future {
@@ -90,16 +93,17 @@ object HashTreeTest {
         for (i <- 0 until tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
-      }.onComplete {
-        case Success(x) =>
-          cnt.incrementAndGet()
-        case Failure(t) =>
-          println("An error has occured: " + t.getStackTraceString)
       }
     }
+
     while (true) {
-      if (cnt.get() >= cap) {
-        System.exit(1)
+      var stop = true
+      for (i <- 0 until tableNum) {
+        stop = vectorDatabase(i).size >= cap
+      }
+      if (stop) {
+
+        return
       }
       Thread.sleep(1000)
     }
@@ -188,6 +192,7 @@ object HashTreeTest {
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
     //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
     //  threadNumber = threadNumber)
-    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    //asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
   }
 }

@@ -67,6 +67,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     catch {
       case e: Exception =>
         e.printStackTrace()
+        sys.exit(1)
     } finally {
       //partitionRamLock.get(partition).writeLock.unlock
     }

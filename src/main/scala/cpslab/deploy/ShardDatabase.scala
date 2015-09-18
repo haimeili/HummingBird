@@ -78,7 +78,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new RangePartitioner[Int](numPartitions),
+            new HashPartitioner[Int](numPartitions),
             true,
             1,
             Serializers.scalaIntSerializer,
