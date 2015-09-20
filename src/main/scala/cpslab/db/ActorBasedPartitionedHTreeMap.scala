@@ -46,12 +46,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-
-  val actorSystem = ActorSystem(name, conf)
-
   val actors =
     for (i <- -partitioner.numPartitions + 1 until partitioner.numPartitions)
-      yield actorSystem.actorOf(Props(new WriterActor(i)))
+      yield ActorBasedPartitionedHTreeMap.actorSystem.actorOf(Props(new WriterActor(i)))
 
   private def putExecuteByActor(
     partition: Int,
@@ -98,4 +95,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     value
   }
+}
+
+object ActorBasedPartitionedHTreeMap {
+  var actorSystem: ActorSystem = null
+
 }

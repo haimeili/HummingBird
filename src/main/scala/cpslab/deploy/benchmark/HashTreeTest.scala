@@ -8,6 +8,7 @@ import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.io.Source
 import scala.util.{Success, Failure, Random}
 
+import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
@@ -62,6 +63,7 @@ object HashTreeTest {
             true,
             ramThreshold)
       }
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
@@ -74,8 +76,8 @@ object HashTreeTest {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     //  new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
     initializeActorBasedHashTree(conf)
-    import ExecutionContext.Implicits.global
-
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
+    
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
@@ -93,17 +95,23 @@ object HashTreeTest {
         for (i <- 0 until tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
+      }.onComplete {
+        case Success(x) =>
+        case Failure(x) =>
+          println("an error occured, " + x.printStackTrace())
       }
     }
 
     while (true) {
-      var stop = true
-      for (i <- 0 until tableNum) {
-        stop = vectorDatabase(i).size >= cap
+      var stop = vectorDatabase(0).size() >= cap
+      for (i <- 1 until tableNum) {
+        stop = stop && vectorDatabase(i).size() >= cap
       }
       if (stop) {
-
-        return
+      //  return
+      } else {
+        val c = for (i <- 0 until tableNum) yield vectorDatabase(i).size()
+        println(c)
       }
       Thread.sleep(1000)
     }
@@ -192,7 +200,7 @@ object HashTreeTest {
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
     //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
     //  threadNumber = threadNumber)
-    //asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    //testWriteThreadScalability(conf, requestPerThread, threadNumber)
   }
 }
