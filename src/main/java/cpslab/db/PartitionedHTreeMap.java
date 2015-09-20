@@ -389,6 +389,10 @@ public class PartitionedHTreeMap<K, V>
         Lock lock = partitionRamLock.get(partitionId).readLock();
         try {
           lock.lock();
+          if (engines.get(partitionId) == null) {
+            System.out.println("Engine doesn't exit for partition " + partitionId);
+            System.exit(1);
+          }
           ret += engines.get(partitionId).get(counterRecids.get(partitionId), Serializer.LONG);
         } finally {
           lock.unlock();
@@ -528,6 +532,7 @@ public class PartitionedHTreeMap<K, V>
       }
     } catch (NullPointerException npe) {
       //npe.printStackTrace();
+      //System.out.println("fetch null at partition " + partition + ", at key " + o);
       return null;
     }
 
@@ -1027,9 +1032,9 @@ public class PartitionedHTreeMap<K, V>
       structureLock.lock();
       if (!partitionRamLock.containsKey(partitionId) ||
               !partitionPersistLock.containsKey(partitionId)) {
+        initPartition(partitionId);
         partitionRamLock.put(partitionId, new ReentrantReadWriteLock());
         partitionPersistLock.put(partitionId, new ReentrantReadWriteLock());
-        initPartition(partitionId);
       }
     } catch (Exception e){
       e.printStackTrace();
@@ -1043,6 +1048,10 @@ public class PartitionedHTreeMap<K, V>
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
       SparseVector v = ShardDatabase.vectorIdToVector().get(key);
+      /*if (v == null) {
+        System.out.println("fetch vector " + key + ", but got NULL");
+        System.exit(1);
+      }*/
       return hasher.hash(v, Serializers.VectorSerializer());
     } else {
       // the hasher is the default hasher which calculates the hash based on the key directly

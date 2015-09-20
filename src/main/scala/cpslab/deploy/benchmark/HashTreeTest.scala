@@ -4,6 +4,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{Executors, ForkJoinPool}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.io.Source
 import scala.util.{Success, Failure, Random}
@@ -48,7 +49,8 @@ object HashTreeTest {
     def initializeIdToVectorMap(conf: Config): PartitionedHTreeMap[Int, SparseVector] =
       concurrentCollectionType match {
         case "Doraemon" =>
-          new PartitionedHTreeMap[Int, SparseVector](
+          new ActorBasedPartitionedHTreeMap[Int, SparseVector](
+            conf,
             tableNum,
             "default",
             workingDirRoot + "-vector",
@@ -76,39 +78,47 @@ object HashTreeTest {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     //  new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
     initializeActorBasedHashTree(conf)
-    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
     
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
     var cnt = 0
-    for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-      cnt += 1
-      if (cnt >= cap) {
-        return
-      }
-      val (id, size, indices, values) = Vectors.fromString1(line)
-      val vector = new SparseVector(id, size, indices, values)
-      Future {
-        vectorIdToVector.put(vector.vectorId, vector)
-        for (i <- 0 until tableNum) {
-          vectorDatabase(i).put(vector.vectorId, true)
+    ActorBasedPartitionedHTreeMap.tableNum = tableNum
+    val vectorList = new ListBuffer[SparseVector]
+    def traverseAllFiles(): Unit = {
+      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+        cnt += 1
+        if (cnt > cap * threadNumber) {
+          return
         }
-      }.onComplete {
-        case Success(x) =>
-        case Failure(x) =>
-          println("an error occured, " + x.printStackTrace())
+        val (id, size, indices, values) = Vectors.fromString1(line)
+        val vector = new SparseVector(id, size, indices, values)
+        vectorList += vector
       }
     }
+    def sendRequest(): Unit = {
+      implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
+      for (i <- 0 until cap * threadNumber) {
+        Future {
+          val v = vectorList(i)
+          vectorIdToVector.put(v.vectorId, v)
+        }
+      }
+    }
+    traverseAllFiles()
+    val startTime = System.nanoTime()
+    sendRequest()
 
     while (true) {
-      var stop = vectorDatabase(0).size() >= cap
+      var stop = vectorDatabase(0).size() >= cap * threadNumber
       for (i <- 1 until tableNum) {
-        stop = stop && vectorDatabase(i).size() >= cap
+        stop = stop && vectorDatabase(i).size() >= cap * threadNumber
       }
       if (stop) {
-      //  return
+        val totalTime = System.nanoTime() - startTime
+        println(cap * threadNumber / ((totalTime - 1000000000) / 1000000000))
+        return
       } else {
         val c = for (i <- 0 until tableNum) yield vectorDatabase(i).size()
         println(c)

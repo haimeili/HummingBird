@@ -1,9 +1,13 @@
 package cpslab.db
 
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.atomic.AtomicInteger
 
-import akka.actor.{Actor, Props, ActorSystem}
+import scala.collection.mutable
+
+import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 import com.typesafe.config.Config
+import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LocalitySensitiveHasher
 import cpslab.lsh.vector.SparseVector
 
@@ -35,20 +39,26 @@ class ActorBasedPartitionedHTreeMap[K, V](
     valueCreator,
     executor,
     closeExecutor,
-    ramThreshold){
+    ramThreshold) {
 
   class WriterActor(partitionId: Int) extends Actor {
     override def receive: Receive = {
       case (vector: SparseVector, h: Int) =>
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          vectorDatabase(i).put(vector.vectorId, true)
+        }
       case (vectorId: Int, h: Int) =>
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
     }
   }
 
-  val actors =
-    for (i <- -partitioner.numPartitions + 1 until partitioner.numPartitions)
-      yield ActorBasedPartitionedHTreeMap.actorSystem.actorOf(Props(new WriterActor(i)))
+  val actors = new mutable.HashMap[Int, ActorRef]
+
+
+  for (i <- -partitioner.numPartitions + 1 until partitioner.numPartitions) {
+    actors.put(i, ActorBasedPartitionedHTreeMap.actorSystem.actorOf(Props(new WriterActor(i))))
+  }
 
   private def putExecuteByActor(
     partition: Int,
@@ -60,8 +70,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     try {
       //partitionRamLock.get(partition).writeLock.lock
       ret = putInner(key, value, h, partition)
-    }
-    catch {
+    } catch {
       case e: Exception =>
         e.printStackTrace()
         sys.exit(1)
@@ -80,18 +89,18 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     val h: Int = hash(key)
-
     val partition: Int = partitioner.getPartition(
       (
         if (hasher.isInstanceOf[LocalitySensitiveHasher])
           h
-        else
+        else {
           key
+        }
       ).asInstanceOf[K])
-    if (valueSerializer == null) {
-      actors(partition) ! Tuple2(key, h)
-    } else {
+    if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       actors(partition) ! Tuple2(value, h)
+    } else {
+      actors(partition) ! Tuple2(key, h)
     }
     value
   }
@@ -99,5 +108,5 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
 object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
-
+  var tableNum: Int = 0
 }
