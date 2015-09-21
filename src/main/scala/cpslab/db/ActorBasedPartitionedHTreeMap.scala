@@ -1,11 +1,12 @@
 package cpslab.db
 
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-import akka.actor.{ActorRef, Actor, Props, ActorSystem}
+import akka.actor._
 import com.typesafe.config.Config
 import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LocalitySensitiveHasher
@@ -42,14 +43,27 @@ class ActorBasedPartitionedHTreeMap[K, V](
     ramThreshold) {
 
   class WriterActor(partitionId: Int) extends Actor {
+
+    var totalTime = 0L
+
+    context.setReceiveTimeout(60000 milliseconds)
+
     override def receive: Receive = {
       case (vector: SparseVector, h: Int) =>
+        val startTime = System.nanoTime()
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        val endTime = System.nanoTime()
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
+        totalTime += endTime - startTime
       case (vectorId: Int, h: Int) =>
+        val startTime = System.nanoTime()
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+        val endTime = System.nanoTime()
+        totalTime += endTime - startTime
+      case ReceiveTimeout =>
+        context.actorSelection("akka://AK/user/monitor") ! totalTime
     }
   }
 

@@ -11,7 +11,7 @@ import cpslab.db.PartitionedHTreeMap
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
-import cpslab.utils.{HashPartitioner, RangePartitioner, Serializers}
+import cpslab.utils.{HashPartitioner, Serializers}
 
 private[cpslab] object ShardDatabase extends DataSetLoader {
 

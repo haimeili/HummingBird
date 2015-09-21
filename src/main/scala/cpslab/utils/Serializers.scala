@@ -2,7 +2,6 @@ package cpslab.utils
 
 import java.io.{DataInput, DataOutput}
 
-import cpslab.db.DataIO.DataOutputByteArray
 import cpslab.db.Serializer
 import cpslab.lsh.vector.SparseVector
 

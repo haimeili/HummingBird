@@ -6,7 +6,7 @@ import cpslab.TestSettings
 import cpslab.deploy.{LSHServer, ShardDatabase}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
-import cpslab.utils.{Serializers, HashPartitioner}
+import cpslab.utils.{HashPartitioner, Serializers}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {

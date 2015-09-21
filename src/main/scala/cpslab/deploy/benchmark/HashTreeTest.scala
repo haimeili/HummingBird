@@ -1,24 +1,48 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{Executors, ForkJoinPool}
+import java.util.concurrent.Executors
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.io.Source
-import scala.util.{Success, Failure, Random}
+import scala.language.postfixOps
+import scala.util.Random
 
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.{SparseVector, Vectors}
-import cpslab.utils.{HashPartitioner, Serializers, RangePartitioner}
+import cpslab.utils.{HashPartitioner, Serializers}
 
 object HashTreeTest {
+
+  case object Ticket
+
+  class MonitorActor(totalCount: Long) extends Actor {
+    var totalTime = 0L
+
+    override def preStart() {
+      val system = context.system
+      import system.dispatcher
+      context.system.scheduler.schedule(0 milliseconds, 30 * 1000 milliseconds, self, Ticket)
+    }
+
+
+    override def receive: Receive = {
+      case x: Long =>
+        totalTime += x
+      case Ticket =>
+        if (totalTime != 0) {
+          println(totalCount * 1.0 / (totalTime / 1000000000))
+        }
+    }
+  }
+
 
   def initializeActorBasedHashTree(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
@@ -85,7 +109,6 @@ object HashTreeTest {
     val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
-    val vectorList = new ListBuffer[SparseVector]
     def traverseAllFiles(): Unit = {
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
         cnt += 1
@@ -94,23 +117,15 @@ object HashTreeTest {
         }
         val (id, size, indices, values) = Vectors.fromString1(line)
         val vector = new SparseVector(id, size, indices, values)
-        vectorList += vector
+        vectorIdToVector.put(vector.vectorId, vector)
       }
     }
-    def sendRequest(): Unit = {
-      implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
-      for (i <- 0 until cap * threadNumber) {
-        Future {
-          val v = vectorList(i)
-          vectorIdToVector.put(v.vectorId, v)
-        }
-      }
-    }
+    ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+      Props(new MonitorActor(cap * threadNumber * (tableNum + 1))),
+      name = "monitor")
     traverseAllFiles()
-    val startTime = System.nanoTime()
-    sendRequest()
 
-    while (true) {
+    /*while (true) {
       var stop = vectorDatabase(0).size() >= cap * threadNumber
       for (i <- 1 until tableNum) {
         stop = stop && vectorDatabase(i).size() >= cap * threadNumber
@@ -124,7 +139,8 @@ object HashTreeTest {
         println(c)
       }
       Thread.sleep(1000)
-    }
+    }*/
+
   }
 
   def testWriteThreadScalability(

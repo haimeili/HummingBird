@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import cpslab.TestSettings
 import cpslab.deploy.utils.{Client, DummyLSH}
 import cpslab.lsh.vector.SparseVector
-import org.scalatest.{Ignore, BeforeAndAfterAll, FunSuiteLike}
+import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
 
 class FlatShardingSuite(var actorSystem: ActorSystem)
   extends TestKit(actorSystem) with ImplicitSender with FunSuiteLike with BeforeAndAfterAll {

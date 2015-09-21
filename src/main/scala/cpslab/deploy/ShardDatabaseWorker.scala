@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import akka.actor.{ReceiveTimeout, Actor, Cancellable, Props}
+import akka.actor.{Actor, Cancellable, Props, ReceiveTimeout}
 import akka.contrib.pattern.ClusterSharding
 import akka.contrib.pattern.ShardRegion._
 import com.typesafe.config.Config
