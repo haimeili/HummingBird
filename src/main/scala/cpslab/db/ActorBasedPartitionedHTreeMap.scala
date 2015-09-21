@@ -52,10 +52,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case (vector: SparseVector, h: Int) =>
         val startTime = System.nanoTime()
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
-        val endTime = System.nanoTime()
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
+        val endTime = System.nanoTime()
         totalTime += endTime - startTime
       case (vectorId: Int, h: Int) =>
         val startTime = System.nanoTime()
