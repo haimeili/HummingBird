@@ -44,26 +44,23 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   class WriterActor(partitionId: Int) extends Actor {
 
-    var totalTime = 0L
-
     context.setReceiveTimeout(60000 milliseconds)
+
+    var earliestStartTime = Long.MaxValue
+    var latestEndTime = Long.MinValue
 
     override def receive: Receive = {
       case (vector: SparseVector, h: Int) =>
-        val startTime = System.nanoTime()
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
-        val endTime = System.nanoTime()
-        totalTime += endTime - startTime
       case (vectorId: Int, h: Int) =>
-        val startTime = System.nanoTime()
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        val endTime = System.nanoTime()
-        totalTime += endTime - startTime
+        latestEndTime = math.max(System.nanoTime(), latestEndTime)
       case ReceiveTimeout =>
-        context.actorSelection("akka://AK/user/monitor") ! totalTime
+        context.actorSelection("akka://AK/user/monitor") ! Tuple2(earliestStartTime, latestEndTime)
     }
   }
 

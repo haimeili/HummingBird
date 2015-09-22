@@ -25,7 +25,9 @@ object HashTreeTest {
   case object Ticket
 
   class MonitorActor(totalCount: Long) extends Actor {
-    var totalTime = 0L
+
+    var earliestStartTime = Long.MaxValue
+    var latestEndTime = Long.MinValue
 
     val receivedActors = new mutable.HashSet[String]
 
@@ -37,15 +39,16 @@ object HashTreeTest {
 
 
     override def receive: Receive = {
-      case x: Long =>
+      case (startTime: Long, endTime:Long) =>
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath)) {
-          totalTime += x
+          earliestStartTime = math.min(earliestStartTime, startTime)
+          latestEndTime = math.max(latestEndTime, endTime)
           receivedActors += senderPath
         }
       case Ticket =>
-        if (totalTime != 0) {
-          println(totalCount * 1.0 / (totalTime / 1000000000))
+        if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
+          println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000000000))
         }
     }
   }
@@ -126,7 +129,8 @@ object HashTreeTest {
         val (id, size, indices, values) = Vectors.fromString1(line)
         val vector = new SparseVector(id, size, indices, values)
         //Future {
-          vectorIdToVector.put(vector.vectorId, vector)
+
+        vectorIdToVector.put(vector.vectorId, vector)
         //}
       }
     }
