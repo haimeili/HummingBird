@@ -117,6 +117,7 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    //val replica = conf.getInt("cpslab.lsh.benchmark.replica")
     val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
@@ -128,14 +129,11 @@ object HashTreeTest {
         }
         val (id, size, indices, values) = Vectors.fromString1(line)
         val vector = new SparseVector(id, size, indices, values)
-        //Future {
-
         vectorIdToVector.put(vector.vectorId, vector)
-        //}
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      Props(new MonitorActor(cap * threadNumber * (tableNum + 1))),
+      Props(new MonitorActor(cap * threadNumber)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
