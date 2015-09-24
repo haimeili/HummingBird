@@ -2,6 +2,7 @@ package cpslab.deploy.benchmark
 
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -140,6 +141,8 @@ object HashTreeTest {
 
   }
 
+  val finishedWriteThreadCount = new AtomicInteger(0)
+
   def testWriteThreadScalability(
     conf: Config,
     requestNumberPerThread: Int,
@@ -178,7 +181,8 @@ object HashTreeTest {
           val random = new Random(Thread.currentThread().getName.hashCode)
           val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
-          println(cap / (totalTime / 1000000000))
+          //println(cap / (totalTime / 1000000000))
+          finishedWriteThreadCount.incrementAndGet()
         }
       })
     }
@@ -189,28 +193,41 @@ object HashTreeTest {
     requestNumberPerThread: Int,
     threadNumber: Int): Unit = {
 
-    ShardDatabase.initializeMapDBHashMap(conf)
+    //ShardDatabase.initializeMapDBHashMap(conf)
     //init database by filling vectors
+    /*
     ShardDatabase.initVectorDatabaseFromFS(
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.benchmark.cap"),
-      conf.getInt("cpslab.lsh.tableNum"))
+      conf.getInt("cpslab.lsh.tableNum"))*/
 
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
+
+        var max: Long = Int.MinValue
+        var min: Long = Int.MaxValue
+        var average: Long = 0
+
         override def run(): Unit = {
           val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
             val interestVectorId = Random.nextInt(cap)
+            val localStart = System.nanoTime()
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
+            val localEnd = System.nanoTime()
+            val latency = localEnd - localStart
+            max = math.max(latency, max)
+            min = math.min(latency, min)
           }
-          println(requestNumberPerThread * 1.0 /
-            ((System.nanoTime() - startTime) / 1000000000))
+          println(
+            ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
+            max * 1.0 / 1000000000 + "," +
+            min * 1.0 / 1000000000)
         }
       })
     }
@@ -221,6 +238,10 @@ object HashTreeTest {
     LSHServer.lshEngine = new LSH(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(10000)
+    }
     testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
       threadNumber = threadNumber)
     /*
