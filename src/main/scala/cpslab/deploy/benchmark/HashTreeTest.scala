@@ -193,9 +193,8 @@ object HashTreeTest {
     //init database by filling vectors
     ShardDatabase.initVectorDatabaseFromFS(
       conf.getString("cpslab.lsh.inputFilePath"),
-      conf.getInt("cpslab.lsh.benchmark.replica"),
-      conf.getInt("cpslab.lsh.benchmark.offset"),
-      conf.getInt("cpslab.lsh.benchmark.cap"))
+      conf.getInt("cpslab.lsh.benchmark.cap"),
+      conf.getInt("cpslab.lsh.tableNum"))
 
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -210,7 +209,8 @@ object HashTreeTest {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
           }
-          System.out.println((System.nanoTime() - startTime) * 1.0  / requestNumberPerThread)
+          println(requestNumberPerThread * 1.0 /
+            ((System.nanoTime() - startTime) / 1000000000))
         }
       })
     }

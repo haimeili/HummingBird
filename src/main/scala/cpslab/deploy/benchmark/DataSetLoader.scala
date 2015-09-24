@@ -8,20 +8,21 @@ import cpslab.lsh.vector.{SparseVector, Vectors}
 
 trait DataSetLoader {
 
-  private[benchmark] def loadDataFromFS(filePath: String, replica: Int, cap: Int, offset: Int) {
+  private[benchmark] def loadDataFromFS(filePath: String, cap: Int, tableNum: Int) {
     if (filePath != "") {
       val allFiles = Utils.buildFileListUnderDirectory(filePath)
+      var cnt = 0
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
         val (id, size, indices, values) = Vectors.fromString1(line)
-        var currentOffset = 0
-        for (i <- 0 until replica) {
-          val vector = new SparseVector(id + currentOffset, size, indices, values)
-          if (vectorIdToVector.size() > cap) {
-            return
-          }
-          vectorIdToVector.put(vector.vectorId, vector)
-          currentOffset += offset
+        val vector = new SparseVector(cnt, size, indices, values)
+        if (vectorIdToVector.size() > cap) {
+          return
         }
+        vectorIdToVector.put(vector.vectorId, vector)
+        for (i <- 0 until tableNum) {
+          vectorDatabase(i).put(vector.vectorId, true)
+        }
+        cnt += 1
       }
     }
   }
@@ -29,18 +30,15 @@ trait DataSetLoader {
   /**
    * initialize the database by reading raw vector data from file system
    * @param filePath the root path of the data directory
-   * @param replica this parameter controls the level we would like to scale the dataset
-   * @param offset the offset for each replica
    * @param cap the maximum number of vectors we need
    */
   def initVectorDatabaseFromFS(
       filePath: String,
-      replica: Int,
-      offset: Int,
-      cap: Int): Unit = {
+      cap: Int,
+      tableNum: Int): Unit = {
     import ShardDatabase._
 
-    this.loadDataFromFS(filePath, replica, cap, offset)
+    this.loadDataFromFS(filePath, cap, tableNum)
     println(s"Finished Loading Data, containing ${vectorIdToVector.size()} vectors")
   }
 }

@@ -132,7 +132,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       for (i <- 0 until parallelism)
         yield actorSystem.actorOf(Props(new InitializeWorker(parallelism, lsh)))
     }
-    initVectorDatabaseFromFS(filePath, replica, offset, cap)
+    initVectorDatabaseFromFS(filePath, cap, tableNum)
     // start monitor actor
     actorSystem.actorOf(Props(new MonitorActor), name = "monitor")
     //start writing rate monitor thread
