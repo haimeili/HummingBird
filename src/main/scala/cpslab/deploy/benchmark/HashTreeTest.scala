@@ -203,14 +203,14 @@ object HashTreeTest {
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         override def run(): Unit = {
-          System.out.println("startTime: " + System.nanoTime())
+          val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
             val interestVectorId = Random.nextInt(cap)
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
           }
-          System.out.println("endTime: " + System.nanoTime())
+          System.out.println((System.nanoTime() - startTime) * 1.0  / requestNumberPerThread)
         }
       })
     }
@@ -221,12 +221,13 @@ object HashTreeTest {
     LSHServer.lshEngine = new LSH(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
-    //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-    //  threadNumber = threadNumber)
+    testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
+      threadNumber = threadNumber)
+    /*
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }
+    }*/
   }
 }
