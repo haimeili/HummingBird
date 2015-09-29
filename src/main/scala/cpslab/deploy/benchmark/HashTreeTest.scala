@@ -238,17 +238,17 @@ object HashTreeTest {
     LSHServer.lshEngine = new LSH(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    /*testWriteThreadScalability(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
     testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)
-    /*
+      threadNumber = threadNumber)*/
+
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }*/
+    }
   }
 }
