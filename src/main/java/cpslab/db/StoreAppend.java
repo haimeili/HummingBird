@@ -60,7 +60,7 @@ public class StoreAppend extends Store {
   //map from record id to offset
   protected Volume indexTable;
 
-  protected BloomFilter bloomFilter;
+  protected BloomFilter<Integer> bloomFilter;
 
   //guarded by StructuralLock
   protected long eof = 0;
@@ -200,7 +200,7 @@ public class StoreAppend extends Store {
   }
 
   public void initDataSummary(int size, double expectedFPR) {
-    bloomFilter = BloomFilter.create(Funnels.byteArrayFunnel(), size, expectedFPR);
+    bloomFilter = BloomFilter.create(Funnels.integerFunnel(), size, expectedFPR);
   }
 
   protected void initCreate() {
@@ -337,8 +337,8 @@ public class StoreAppend extends Store {
   /**
    * generate the data summary for the cache (currently implement with Bloom Filter)
    */
-  public void updateDataSummary(DataIO.DataOutputByteArray pairByteArray) {
-    bloomFilter.put(pairByteArray.buf);
+  public void updateDataSummary(Integer vectorKey) {
+    bloomFilter.put(vectorKey);
   }
 
   public void persistDataSummary() {

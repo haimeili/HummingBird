@@ -526,6 +526,9 @@ public class PartitionedHTreeMap<K, V>
         try {
           persistLock.lock();
           ln = fetchFromPersistedStorage(o, partition, partitionRootRec.get(partition)[seg], h);
+          if (ln == null) {
+            System.out.println("cannot find " + o + " in persisted memory ");
+          }
         } finally {
           persistLock.unlock();
         }
@@ -556,10 +559,8 @@ public class PartitionedHTreeMap<K, V>
     try {
       DataInputStream in = new DataInputStream(
               new BufferedInputStream(new FileInputStream(store.fileName + "-summary")));
-      BloomFilter dataSummary = BloomFilter.readFrom(in, Funnels.byteArrayFunnel());
-      DataIO.DataOutputByteArray output = new DataIO.DataOutputByteArray();
-      keySerializer.serialize(output, (K) key);
-      return dataSummary.mightContain(output.buf);
+      BloomFilter dataSummary = BloomFilter.readFrom(in, Funnels.integerFunnel());
+      return dataSummary.mightContain(key);
     } catch (Exception e) {
       e.printStackTrace();
       return false;
@@ -745,6 +746,8 @@ public class PartitionedHTreeMap<K, V>
         if (ret != null) {
           break;
         }
+      } else {
+        System.out.println("test " + key +  " failed in data summary ");
       }
     }
     return ret;
@@ -1048,10 +1051,10 @@ public class PartitionedHTreeMap<K, V>
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
       SparseVector v = ShardDatabase.vectorIdToVector().get(key);
-      /*if (v == null) {
+      if (v == null) {
         System.out.println("fetch vector " + key + ", but got NULL");
         System.exit(1);
-      }*/
+      }
       return hasher.hash(v, Serializers.VectorSerializer());
     } else {
       // the hasher is the default hasher which calculates the hash based on the key directly
@@ -1074,8 +1077,13 @@ public class PartitionedHTreeMap<K, V>
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
     initPartitionIfNecessary(partition);
     try {
+      StoreSegment engine = (StoreSegment) engines.get(partition);
       partitionRamLock.get(partition).writeLock().lock();
+      System.out.println("Partition " + partition + " of " + name + " size before put key " +
+              key + ": " + engine.getCurrSize());
       ret = putInner(key, value, h, partition);
+      System.out.println("Partition " + partition + " of " + name + " size after put key " +
+              key + ": " + engine.getCurrSize());
     } catch (Exception e) {
       e.printStackTrace();
       return null;
@@ -2056,12 +2064,14 @@ public class PartitionedHTreeMap<K, V>
           //TODO: we can use snapshot to allow concurrent write threads
           long persistTimestamp = System.currentTimeMillis();
           Lock persistLock = partitionPersistLock.get(partitionId).writeLock();
-          Lock ramLock = partitionRamLock.get(partitionId).readLock();
+          Lock ramLock = partitionRamLock.get(partitionId).writeLock();
           if (!persistLock.tryLock()) {
             //persist is ongoing
             return;
           }
           ramLock.lock();
+          System.out.println("persisting partition " + partitionId + " of " + name +
+                  " in thread " + Thread.currentThread().getName());
           try {
             StoreSegment engine = (StoreSegment) engines.get(partitionId);
             //engine.compact();
@@ -2086,23 +2096,15 @@ public class PartitionedHTreeMap<K, V>
   }
 
   private void generateDataSummary(int partitionId) {
-    try {
-      StoreAppend persistStorage = persistedStorages.get(partitionId).peek().store;
-      persistStorage.initDataSummary((int) sizeLong(partitionId), 0.001);
-      KeyIterator keyIterator = new KeyIterator(partitionId);
-      DataIO.DataOutputByteArray output = new DataIO.DataOutputByteArray();
-      while (keyIterator.hasNext()) {
-        K key = keyIterator.next();
-        int h = hash(key);
-        Serializers.IntSerializer().serialize(output, h);
-        persistStorage.updateDataSummary(output);
-        output.resetByteArray();
-      }
-      output.close();
-      persistStorage.persistDataSummary();
-    } catch (IOException ioe) {
-      ioe.printStackTrace();
+    StoreAppend persistStorage = persistedStorages.get(partitionId).peek().store;
+    persistStorage.initDataSummary((int) sizeLong(partitionId), 0.001);
+    KeyIterator keyIterator = new KeyIterator(partitionId);
+    while (keyIterator.hasNext()) {
+      K key = keyIterator.next();
+      System.out.println("summarizing " + key);
+      persistStorage.updateDataSummary((Integer) key);
     }
+    persistStorage.persistDataSummary();
   }
 
   private void addPersistedStorage(int partitionId, long timestamp, StoreAppend persistedStore) {

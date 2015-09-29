@@ -485,7 +485,7 @@ public class StoreDirect extends Store {
 
   @Override
   public long getCurrSize() {
-    return vol.length() - lastAllocatedData % CHUNKSIZE;
+    return vol.length() - (PAGE_SIZE - lastAllocatedData) % PAGE_SIZE;
   }
 
   @Override
@@ -767,7 +767,6 @@ public class StoreDirect extends Store {
     //and update master pointer
     headVol.putLong(masterLinkOffset, parity4Set(currSize << 48 | pageOffset));
   }
-
 
   protected void longStackNewPage(long masterLinkOffset, long prevPageOffset, long value) {
     if (CC.ASSERT && !structuralLock.isHeldByCurrentThread())
