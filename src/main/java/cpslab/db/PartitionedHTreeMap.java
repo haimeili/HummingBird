@@ -1077,7 +1077,11 @@ public class PartitionedHTreeMap<K, V>
     try {
       StoreSegment engine = (StoreSegment) engines.get(partition);
       partitionRamLock.get(partition).writeLock().lock();
+      System.out.println("Partition " + partition + " of " + name + " size before put key " +
+              key + ": " + engine.getCurrSize());
       ret = putInner(key, value, h, partition);
+      System.out.println("Partition " + partition + " of " + name + " size after put key " +
+              key + ": " + engine.getCurrSize());
     } catch (Exception e) {
       e.printStackTrace();
       return null;
