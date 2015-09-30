@@ -2056,9 +2056,9 @@ public class PartitionedHTreeMap<K, V>
   public void runPersistTask(final int partitionId) {
     //TODO: when integrate with Spark, we shall use Spark's threadpool
     if (executor != null) {
-      executor.execute(new Runnable() {
-        @Override
-        public void run() {
+      //executor.execute(new Runnable() {
+        //@Override
+       // public void run() {
           //TODO: we can use snapshot to allow concurrent write threads
           long persistTimestamp = System.currentTimeMillis();
           Lock persistLock = partitionPersistLock.get(partitionId).writeLock();
@@ -2083,9 +2083,7 @@ public class PartitionedHTreeMap<K, V>
             long endTime = System.nanoTime();
             long totalDuration = endTime - startTime;
             long dataSummaryDuration = dataSummaryEndTime - dataSummaryStartTime;
-            System.out.println("partition Id:" + partitionId + " total: " + totalDuration +
-                    " data summary:" + dataSummaryDuration + " index:" +
-                    (totalDuration - dataSummaryDuration));
+            System.out.println(totalDuration + " " + dataSummaryDuration);
             initPartition(partitionId);
           } catch (Exception e) {
             e.printStackTrace();
@@ -2093,10 +2091,10 @@ public class PartitionedHTreeMap<K, V>
             ramLock.unlock();
             persistLock.unlock();
           }
-        }
-      });
-    } else {
-      LOG.warning("executor is null, rejecting to persist");
+      //  }
+     // });
+    //} else {
+     // LOG.warning("executor is null, rejecting to persist");
     }
   }
 

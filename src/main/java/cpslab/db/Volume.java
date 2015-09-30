@@ -993,17 +993,18 @@ public abstract class Volume implements Closeable{
 
         @Override
         public void ensureAvailable(long offset) {
-            if(offset% sliceSize !=0)
-                offset += sliceSize - offset% sliceSize; //round up to multiply of slice size
+            if (offset % sliceSize != 0) {
+                offset += sliceSize - offset % sliceSize; //round up to multiply of slice size
+            }
 
-            if(offset>size){
+            if (offset > size) {
                 growLock.lock();
                 try {
                     raf.setLength(offset);
                     size = offset;
                 } catch (IOException e) {
                     throw new DBException.VolumeIOError(e);
-                }finally {
+                } finally {
                     growLock.unlock();
                 }
             }

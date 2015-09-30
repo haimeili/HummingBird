@@ -521,7 +521,6 @@ public class StoreSegment extends StoreDirect {
 
       long maxRecId = parity1Get(vol.getLong(MAX_RECID_OFFSET)) / indexValSize;
       store.extendSpace(maxRecId);
-      System.out.println("starting persistence");
       DataOutputByteArray output = new DataOutputByteArray();
       for (long recId = startingRecId + 1; recId <= maxRecId; recId++) {
         if (freedIds.contains(recId)) {
@@ -538,7 +537,6 @@ public class StoreSegment extends StoreDirect {
         }
       }
       store.sync();
-      System.out.println("finished persistence");
       return store;
     } catch (Exception e) {
       e.printStackTrace();
