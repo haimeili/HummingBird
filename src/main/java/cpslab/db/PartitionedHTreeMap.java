@@ -2083,8 +2083,9 @@ public class PartitionedHTreeMap<K, V>
             long endTime = System.nanoTime();
             long totalDuration = endTime - startTime;
             long dataSummaryDuration = dataSummaryEndTime - dataSummaryStartTime;
-            System.out.println("total: " + totalDuration + " data summary:" +
-                    dataSummaryDuration + " index:" + (totalDuration - dataSummaryDuration));
+            System.out.println("partition Id:" + partitionId + " total: " + totalDuration +
+                    " data summary:" + dataSummaryDuration + " index:" +
+                    (totalDuration - dataSummaryDuration));
             initPartition(partitionId);
           } catch (Exception e) {
             e.printStackTrace();
