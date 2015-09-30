@@ -1857,216 +1857,233 @@ public abstract class Volume implements Closeable{
 
     public static final class RandomAccessFileVol extends Volume{
 
+      public static final int PAGE_SIZE = 1024 * 512;
+      public static final long FILE_SIZE = PAGE_SIZE * 2L * 18L;
+      public static final byte[] BLANK_PAGE = new byte[PAGE_SIZE];
 
-        public static final VolumeFactory FACTORY = new VolumeFactory() {
-            @Override
-            public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO allocate initSize
-                return new RandomAccessFileVol(new File(file), readOnly);
-            }
-        };
-        protected final File file;
-        protected final RandomAccessFile raf;
-
-        public RandomAccessFileVol(File file, boolean readOnly) {
-            this.file = file;
-            try {
-                this.raf = new RandomAccessFile(file,readOnly?"r":"rw");
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
+      public static final VolumeFactory FACTORY = new VolumeFactory() {
         @Override
-        public void ensureAvailable(long offset) {
-            //TODO ensure avail
+        public Volume makeVolume(String file, boolean readOnly, int sliceShift, long initSize, boolean fixedSize) {
+          //TODO allocate initSize
+          return new RandomAccessFileVol(new File(file), readOnly);
+        }
+      };
+      protected final File file;
+      protected final RandomAccessFile raf;
+
+      public RandomAccessFileVol(File file, boolean readOnly) {
+        this.file = file;
+        preallocateFile(file);
+        try {
+          this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
 
-        @Override
-        public void truncate(long size) {
-            try {
-                raf.setLength(size);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      }
+
+      private void preallocateFile(File file) {
+        try {
+          RandomAccessFile raf = new RandomAccessFile(file, "rw");
+          for (long i = 0; i < FILE_SIZE; i += PAGE_SIZE) {
+            raf.write(BLANK_PAGE, 0, PAGE_SIZE);
+          }
+          raf.close();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
+        }
+      }
+
+      @Override
+      public void ensureAvailable(long offset) {
+        //TODO ensure avail
+      }
+
+      @Override
+      public void truncate(long size) {
+        try {
+          raf.setLength(size);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
+        }
+      }
+
+      @Override
+      public synchronized void putLong(long offset, long value) {
+        try {
+          raf.seek(offset);
+          raf.writeLong(value);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
+        }
+      }
+
+
+      @Override
+      public synchronized void putInt(long offset, int value) {
+        try {
+          raf.seek(offset);
+          raf.writeInt(value);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
 
-        @Override
-        public synchronized void putLong(long offset, long value) {
-            try {
-                raf.seek(offset);
-                raf.writeLong(value);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      }
+
+      @Override
+      public synchronized void putByte(long offset, byte value) {
+        try {
+          raf.seek(offset);
+          raf.writeByte(value);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
 
+      }
 
-        @Override
-        public synchronized  void putInt(long offset, int value) {
-            try {
-                raf.seek(offset);
-                raf.writeInt(value);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      @Override
+      public synchronized void putData(long offset, byte[] src, int srcPos, int srcSize) {
+        try {
+          raf.seek(offset);
+          raf.write(src, srcPos, srcSize);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
+        }
+      }
 
+      @Override
+      public synchronized void putData(long offset, ByteBuffer buf) {
+        byte[] bb = buf.array();
+        int pos = buf.position();
+        int size = buf.limit() - pos;
+        if (bb == null) {
+          bb = new byte[size];
+          buf.get(bb);
+          pos = 0;
+        }
+        putData(offset, bb, pos, size);
+      }
+
+      @Override
+      public synchronized long getLong(long offset) {
+        try {
+          raf.seek(offset);
+          return raf.readLong();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
+        }
+      }
+
+      @Override
+      public synchronized int getInt(long offset) {
+        try {
+          raf.seek(offset);
+          return raf.readInt();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
 
-        @Override
-        public  synchronized void putByte(long offset, byte value) {
-            try {
-                raf.seek(offset);
-                raf.writeByte(value);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      }
 
+      @Override
+      public synchronized byte getByte(long offset) {
+        try {
+          raf.seek(offset);
+          return raf.readByte();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public  synchronized void putData(long offset, byte[] src, int srcPos, int srcSize) {
-            try {
-                raf.seek(offset);
-                raf.write(src,srcPos,srcSize);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      @Override
+      public synchronized DataInput getDataInput(long offset, int size) {
+        try {
+          raf.seek(offset);
+          byte[] b = new byte[size];
+          raf.read(b);
+          return new DataIO.DataInputByteArray(b);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized void putData(long offset, ByteBuffer buf) {
-            byte[] bb = buf.array();
-            int pos = buf.position();
-            int size = buf.limit()-pos;
-            if(bb==null) {
-                bb = new byte[size];
-                buf.get(bb);
-                pos = 0;
-            }
-            putData(offset,bb,pos, size);
+      @Override
+      public synchronized void getData(long offset, byte[] bytes, int bytesPos, int size) {
+        try {
+          raf.seek(offset);
+          raf.read(bytes, bytesPos, size);
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized long getLong(long offset) {
-            try {
-                raf.seek(offset);
-                return raf.readLong();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      @Override
+      public void close() {
+        closed = true;
+        try {
+          raf.close();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized int getInt(long offset) {
-            try {
-                raf.seek(offset);
-                return raf.readInt();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-
+      @Override
+      public void sync() {
+        try {
+          raf.getFD().sync();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized byte getByte(long offset) {
-            try {
-                raf.seek(offset);
-                return raf.readByte();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      @Override
+      public int sliceSize() {
+        return 0;
+      }
+
+      @Override
+      public boolean isEmpty() {
+        try {
+          return isClosed() || raf.length() == 0;
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized DataInput getDataInput(long offset, int size) {
-            try {
-                raf.seek(offset);
-                byte[] b = new byte[size];
-                raf.read(b);
-                return new DataIO.DataInputByteArray(b);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+
+      @Override
+      public boolean isSliced() {
+        return false;
+      }
+
+      @Override
+      public long length() {
+        try {
+          return raf.length();
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
+      }
 
-        @Override
-        public synchronized void getData(long offset, byte[] bytes, int bytesPos, int size) {
-            try {
-                raf.seek(offset);
-                raf.read(bytes,bytesPos,size);
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
+      @Override
+      public File getFile() {
+        return file;
+      }
+
+      @Override
+      public synchronized void clear(long startOffset, long endOffset) {
+        try {
+          raf.seek(startOffset);
+          while (startOffset < endOffset) {
+            long remaining = Math.min(CLEAR.length, endOffset - startOffset);
+            raf.write(CLEAR, 0, (int) remaining);
+            startOffset += CLEAR.length;
+          }
+
+        } catch (IOException e) {
+          throw new DBException.VolumeIOError(e);
         }
-
-        @Override
-        public void close() {
-            closed = true;
-            try {
-                raf.close();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        @Override
-        public void sync() {
-            try {
-                raf.getFD().sync();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        @Override
-        public int sliceSize() {
-            return 0;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            try {
-                return isClosed() || raf.length()==0;
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-
-        @Override
-        public boolean isSliced() {
-            return false;
-        }
-
-        @Override
-        public long length() {
-            try {
-                return raf.length();
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
-
-        @Override
-        public File getFile() {
-            return file;
-        }
-
-        @Override
-        public synchronized void clear(long startOffset, long endOffset) {
-            try {
-                raf.seek(startOffset);
-                while(startOffset<endOffset){
-                    long remaining = Math.min(CLEAR.length, endOffset - startOffset);
-                    raf.write(CLEAR, 0, (int)remaining);
-                    startOffset+=CLEAR.length;
-                }
-
-            } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
-            }
-        }
+      }
     }
 }
 
