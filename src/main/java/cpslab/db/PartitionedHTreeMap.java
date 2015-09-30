@@ -746,8 +746,6 @@ public class PartitionedHTreeMap<K, V>
         if (ret != null) {
           break;
         }
-      } else {
-        System.out.println("test " + key +  " failed in data summary ");
       }
     }
     return ret;
@@ -1079,11 +1077,7 @@ public class PartitionedHTreeMap<K, V>
     try {
       StoreSegment engine = (StoreSegment) engines.get(partition);
       partitionRamLock.get(partition).writeLock().lock();
-      System.out.println("Partition " + partition + " of " + name + " size before put key " +
-              key + ": " + engine.getCurrSize());
       ret = putInner(key, value, h, partition);
-      System.out.println("Partition " + partition + " of " + name + " size after put key " +
-              key + ": " + engine.getCurrSize());
     } catch (Exception e) {
       e.printStackTrace();
       return null;
@@ -2070,17 +2064,23 @@ public class PartitionedHTreeMap<K, V>
             return;
           }
           ramLock.lock();
-          System.out.println("persisting partition " + partitionId + " of " + name +
-                  " in thread " + Thread.currentThread().getName());
           try {
             StoreSegment engine = (StoreSegment) engines.get(partitionId);
             //engine.compact();
             String unionDir = workingDirectory + "/" + name + "/" + partitionId;
             File dir = new File(unionDir);
             dir.mkdirs();
+            long startTime = System.nanoTime();
             Store persistStorage = engine.persist(unionDir + "/" + persistTimestamp);
             addPersistedStorage(partitionId, persistTimestamp, (StoreAppend) persistStorage);
+            long dataSummaryStartTime = System.nanoTime();
             generateDataSummary(partitionId);
+            long dataSummaryEndTime = System.nanoTime();
+            long endTime = System.nanoTime();
+            long totalDuration = endTime - startTime;
+            long dataSummaryDuration = dataSummaryEndTime - dataSummaryStartTime;
+            System.out.println("total: " + totalDuration + " data summary:" +
+                    dataSummaryDuration + " index:" + (totalDuration - dataSummaryDuration));
             initPartition(partitionId);
           } catch (Exception e) {
             e.printStackTrace();
@@ -2101,7 +2101,6 @@ public class PartitionedHTreeMap<K, V>
     KeyIterator keyIterator = new KeyIterator(partitionId);
     while (keyIterator.hasNext()) {
       K key = keyIterator.next();
-      System.out.println("summarizing " + key);
       persistStorage.updateDataSummary((Integer) key);
     }
     persistStorage.persistDataSummary();
