@@ -184,6 +184,7 @@ object HashTreeTest {
           for (i <- 0 until 20) {
             vectorIdToVector.persist(i)
           }
+          println(vectorIdToVector.sizeLong())
           //println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
@@ -207,7 +208,7 @@ object HashTreeTest {
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    for (t <- 0 until threadNumber) {
+    for (t <- 0 until 10) {
       threadPool.execute(new Runnable {
 
         var max: Long = Int.MinValue
