@@ -560,7 +560,9 @@ public class PartitionedHTreeMap<K, V>
       DataInputStream in = new DataInputStream(
               new BufferedInputStream(new FileInputStream(store.fileName + "-summary")));
       BloomFilter dataSummary = BloomFilter.readFrom(in, Funnels.integerFunnel());
-      return dataSummary.mightContain(key);
+      boolean ret = dataSummary.mightContain(key);
+      in.close();
+      return ret;
     } catch (Exception e) {
       e.printStackTrace();
       return false;
