@@ -153,9 +153,9 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    for (i <- 0 until threadNumber) {
+    //for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
-        val base = i
+        val base = 0
         var totalTime = 0L
 
         private def traverseFile(allFiles: Seq[String]): Unit = {
@@ -181,16 +181,14 @@ object HashTreeTest {
           val random = new Random(Thread.currentThread().getName.hashCode)
           val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
-          println(vectorIdToVector.sizeLong())
           for (i <- 0 until 20) {
             vectorIdToVector.persist(i)
           }
-          println(vectorIdToVector.sizeLong())
           //println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
       })
-    }
+   // }
   }
 
   def testReadThreadScalability(
@@ -209,7 +207,7 @@ object HashTreeTest {
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    for (t <- 0 until 10) {
+    for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
 
         var max: Long = Int.MinValue
@@ -255,5 +253,9 @@ object HashTreeTest {
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
     }
+    while (finishedWriteThreadCount.get() < 1) {
+        Thread.sleep(10000)
+    }
+    testReadThreadScalability(conf, requestPerThread, threadNumber)
   }
 }
