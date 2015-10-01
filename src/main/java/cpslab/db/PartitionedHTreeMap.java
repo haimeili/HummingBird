@@ -2057,6 +2057,9 @@ public class PartitionedHTreeMap<K, V>
 
   public void runPersistTask(final int partitionId) {
     //TODO: when integrate with Spark, we shall use Spark's threadpool
+    if (!partitionPersistLock.containsKey(partitionId)) {
+      return;
+    }
     if (executor != null) {
       //executor.execute(new Runnable() {
         //@Override
