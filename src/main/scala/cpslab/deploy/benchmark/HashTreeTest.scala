@@ -128,9 +128,9 @@ object HashTreeTest {
         if (cnt > cap * threadNumber) {
           return
         }
-        val (_, size, indices, values) = Vectors.fromString1(line)
-        val vector = new SparseVector(cnt, size, indices, values)
-        vectorIdToVector.put(cnt, vector)
+        val (id, size, indices, values) = Vectors.fromString1(line)
+        val vector = new SparseVector(id, size, indices, values)
+        vectorIdToVector.put(id, vector)
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
@@ -161,15 +161,15 @@ object HashTreeTest {
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (_, size, indices, values) = Vectors.fromString1(line)
+            val (id, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + cap * base, size, indices, values)
             if (cnt >= cap) {
               return
             }
             val s = System.nanoTime()
-            vectorIdToVector.put(cnt + cap * base, vector)
+            vectorIdToVector.put(id, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(cnt + cap * base, true)
+              vectorDatabase(i).put(id, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
