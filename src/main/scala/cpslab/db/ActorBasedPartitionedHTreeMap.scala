@@ -42,7 +42,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     closeExecutor,
     ramThreshold) {
 
-  class WriterActor(partitionId: Int) extends Actor {
+  class WriterActor(partitionId: Int, segmentId: Int) extends Actor {
 
     context.setReceiveTimeout(60000 milliseconds)
 
@@ -64,11 +64,16 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-  val actors = new mutable.HashMap[Int, ActorRef]
+  val actors = new mutable.HashMap[Int, Array[ActorRef]]
 
 
-  for (i <- -partitioner.numPartitions + 1 until partitioner.numPartitions) {
-    actors.put(i, ActorBasedPartitionedHTreeMap.actorSystem.actorOf(Props(new WriterActor(i))))
+  for (partitionId <- -partitioner.numPartitions + 1 until partitioner.numPartitions) {
+    actors.put(partitionId, new Array[ActorRef](16))
+    for (segmentId <- 0 until 16) {
+      actors(partitionId)(segmentId) =
+        ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+          Props(new WriterActor(partitionId, segmentId)))
+    }
   }
 
   private def putExecuteByActor(
@@ -108,10 +113,11 @@ class ActorBasedPartitionedHTreeMap[K, V](
           key
         }
       ).asInstanceOf[K])
+    val segmentId = h >>> 28
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      actors(partition) ! Tuple2(value, h)
+      actors(partition)(segmentId) ! Tuple2(value, h)
     } else {
-      actors(partition) ! Tuple2(key, h)
+      actors(partition)(segmentId) ! Tuple2(key, h)
     }
     value
   }
