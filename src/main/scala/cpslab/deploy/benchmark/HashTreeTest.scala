@@ -249,9 +249,14 @@ object HashTreeTest {
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
     }
+    /*
     while (finishedWriteThreadCount.get() < 1) {
         Thread.sleep(10000)
     }
-    testReadThreadScalability(conf, requestPerThread, threadNumber)
+    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
+    /*
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(10000)
+    }*/
   }
 }
