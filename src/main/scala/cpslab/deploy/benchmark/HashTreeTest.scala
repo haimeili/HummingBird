@@ -153,7 +153,7 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    //for (i <- 0 until threadNumber) {
+    for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         val base = 0
         var totalTime = 0L
@@ -188,11 +188,11 @@ object HashTreeTest {
           for (i <- 0 until tableNum; p <- 0 until 20) {
             vectorDatabase(i).persist(p)
           }*/
-          //println(cap / (totalTime / 1000000000))
+          println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
       })
-   // }
+    }
   }
 
   def testReadThreadScalability(
@@ -249,14 +249,14 @@ object HashTreeTest {
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
     }
-    /*
+/*
     while (finishedWriteThreadCount.get() < 1) {
         Thread.sleep(10000)
-    }
-    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
-    /*
+    }*/
+    /*testReadThreadScalability(conf, requestPerThread, threadNumber)*/
+
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
-    }*/
+    }
   }
 }
