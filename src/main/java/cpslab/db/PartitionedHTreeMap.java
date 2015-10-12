@@ -45,7 +45,8 @@ public class PartitionedHTreeMap<K, V>
    */
   protected final int hashSalt;
 
-  protected final ConcurrentHashMap<Integer, Long> counterRecids = new ConcurrentHashMap<Integer, Long>();
+  protected final ConcurrentHashMap<Integer, Long[]> counterRecids =
+          new ConcurrentHashMap<Integer, Long[]>();
 
   protected final Serializer<K> keySerializer;
   protected final Serializer<V> valueSerializer;
@@ -76,11 +77,11 @@ public class PartitionedHTreeMap<K, V>
    */
   protected final ConcurrentHashMap<Integer, Long[]> partitionRootRec = new ConcurrentHashMap();
 
-  protected final ConcurrentHashMap<Integer, ReentrantReadWriteLock> partitionRamLock =
-          new ConcurrentHashMap<Integer, ReentrantReadWriteLock>();
+  protected final ConcurrentHashMap<Integer, ReentrantReadWriteLock[]> partitionRamLock =
+          new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
-  protected final ConcurrentHashMap<Integer, ReentrantReadWriteLock> partitionPersistLock =
-          new ConcurrentHashMap<Integer, ReentrantReadWriteLock>();
+  protected final ConcurrentHashMap<Integer, ReentrantReadWriteLock[]> partitionPersistLock =
+          new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
   //partitioner
   private final Partitioner<K> partitioner;
@@ -353,30 +354,20 @@ public class PartitionedHTreeMap<K, V>
   private long sizeLong(int partitionId) {
     if (counterRecids != null) {
       long ret = 0;
-      Lock lock = partitionRamLock.get(partitionId).readLock();
-      try {
-        lock.lock();
-        ret += engines.get(partitionId).get(counterRecids.get(partitionId), Serializer.LONG);
-      } finally {
-        lock.unlock();
+      for (int segmentId = 0; segmentId < 16; segmentId++) {
+        Lock lock = partitionRamLock.get(partitionId)[segmentId].readLock();
+        try {
+          lock.lock();
+          ret += engines.get(partitionId).get(counterRecids.get(partitionId)[segmentId],
+                  Serializer.LONG);
+        } finally {
+          lock.unlock();
+        }
       }
       return ret;
     }
 
-    //didn't track
-    long ret = 0;
-    Lock lock = partitionRamLock.get(partitionId).readLock();
-    try {
-      lock.lock();
-      Long[] dirRecIds = partitionRootRec.get(partitionId);
-      for (int i = 0; i < dirRecIds.length; i++) {
-        final long dirRecId = dirRecIds[i];
-        ret += recursiveDirCount(engines.get(partitionId), dirRecId);
-      }
-    } finally {
-      lock.unlock();
-    }
-    return ret;
+    return 0;
   }
 
   public long sizeLong() {
@@ -386,39 +377,13 @@ public class PartitionedHTreeMap<K, V>
       Iterator<Integer> partitionIDIterator = partitionRamLock.keySet().iterator();
       while (partitionIDIterator.hasNext()) {
         int partitionId = partitionIDIterator.next();
-        Lock lock = partitionRamLock.get(partitionId).readLock();
-        try {
-          lock.lock();
-          if (engines.get(partitionId) == null) {
-            System.out.println("Engine doesn't exit for partition " + partitionId);
-            System.exit(1);
-          }
-          ret += engines.get(partitionId).get(counterRecids.get(partitionId), Serializer.LONG);
-        } finally {
-          lock.unlock();
-        }
+        ret += sizeLong(partitionId);
       }
       return ret;
     }
 
     //didn't track
-    long ret = 0;
-    Iterator<Integer> partitionIDIterator = partitionRamLock.keySet().iterator();
-    while (partitionIDIterator.hasNext()) {
-      int partitionId = partitionIDIterator.next();
-      Lock lock = partitionRamLock.get(partitionId).readLock();
-      try {
-        lock.lock();
-        Long[] dirRecIds = partitionRootRec.get(partitionId);
-        for (int i = 0; i < dirRecIds.length; i++) {
-          final long dirRecId = dirRecIds[i];
-          ret += recursiveDirCount(engines.get(partitionId), dirRecId);
-        }
-      } finally {
-        lock.unlock();
-      }
-    }
-    return ret;
+    return 0;
   }
 
   public long mappingCount() {
@@ -474,7 +439,7 @@ public class PartitionedHTreeMap<K, V>
 
     LinkedList<K> lns;
     try {
-      final Lock ramLock = partitionRamLock.get(partition).readLock();
+      final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
       try {
         ramLock.lock();
         lns = getInnerWithSimilarity(key, seg, h, partition);
@@ -483,7 +448,7 @@ public class PartitionedHTreeMap<K, V>
       }
 
       if (lns == null || lns.size() == 0 && persistedStorages.containsKey(partition)) {
-        final Lock persistLock = partitionPersistLock.get(partition).readLock();
+        final Lock persistLock = partitionPersistLock.get(partition)[seg].readLock();
         try {
           persistLock.lock();
           lns = fetchFromPersistedStorageWithSimilarity(
@@ -513,7 +478,7 @@ public class PartitionedHTreeMap<K, V>
     final int partition = partitioner.getPartition((K) o);
     LinkedNode<K, V> ln;
     try {
-      final Lock ramLock = partitionRamLock.get(partition).readLock();
+      final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
       try {
         ramLock.lock();
         ln = getInner(o, seg, h, partition);
@@ -522,7 +487,7 @@ public class PartitionedHTreeMap<K, V>
       }
 
       if (ln == null && persistedStorages.containsKey(partition)) {
-        final Lock persistLock = partitionPersistLock.get(partition).readLock();
+        final Lock persistLock = partitionPersistLock.get(partition)[seg].readLock();
         try {
           persistLock.lock();
           ln = fetchFromPersistedStorage(o, partition, partitionRootRec.get(partition)[seg], h);
@@ -584,7 +549,7 @@ public class PartitionedHTreeMap<K, V>
 
     V ret;
     try {
-      final Lock ramLock = partitionRamLock.get(partition).readLock();
+      final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
       LinkedNode<K, V> ln = null;
       try {
         ramLock.lock();
@@ -594,7 +559,7 @@ public class PartitionedHTreeMap<K, V>
       }
 
       if (ln == null && persistedStorages.containsKey(partition)) {
-        final Lock persistLock = partitionPersistLock.get(partition).readLock();
+        final Lock persistLock = partitionPersistLock.get(partition)[seg].readLock();
         try {
           persistLock.lock();
           ln = fetchFromPersistedStorage(key, partition,
@@ -1025,8 +990,12 @@ public class PartitionedHTreeMap<K, V>
     }
     partitionRootRec.put(partitionId, segIds);
     //initialize counterRecId
-    long counterRecId = storeSegment.put(0L, Serializer.LONG);
-    counterRecids.put(partitionId, counterRecId);
+    Long [] counterRecIdArray = new Long[16];
+    for (int i = 0; i < 16; i++) {
+      long counterRecId = storeSegment.put(0L, Serializer.LONG);
+      counterRecIdArray[i] = counterRecId;
+    }
+    counterRecids.put(partitionId, counterRecIdArray);
   }
 
   protected void initPartitionIfNecessary(int partitionId) {
@@ -1036,8 +1005,14 @@ public class PartitionedHTreeMap<K, V>
       if (!partitionRamLock.containsKey(partitionId) ||
               !partitionPersistLock.containsKey(partitionId)) {
         initPartition(partitionId);
-        partitionRamLock.put(partitionId, new ReentrantReadWriteLock());
-        partitionPersistLock.put(partitionId, new ReentrantReadWriteLock());
+        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[16];
+        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[16];
+        for (int i = 0; i < 16; i++) {
+          ramLockArray[i] = new ReentrantReadWriteLock();
+          persistLockArray[i] = new ReentrantReadWriteLock();
+        }
+        partitionRamLock.put(partitionId, ramLockArray);
+        partitionPersistLock.put(partitionId, persistLockArray);
       }
     } catch (Exception e){
       e.printStackTrace();
@@ -1072,13 +1047,12 @@ public class PartitionedHTreeMap<K, V>
 
     V ret;
     final int h = hash(key);
-
+    final int seg = h >>> 28;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
     initPartitionIfNecessary(partition);
     try {
-      StoreSegment engine = (StoreSegment) engines.get(partition);
-      partitionRamLock.get(partition).writeLock().lock();
+      partitionRamLock.get(partition)[seg].writeLock().lock();
       //System.out.println("Partition " + partition + " of " + name + " size before put key " +
         //      key + ": " + engine.getCurrSize());
       ret = putInner(key, value, h, partition);
@@ -1088,7 +1062,7 @@ public class PartitionedHTreeMap<K, V>
       e.printStackTrace();
       return null;
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
 
     return ret;
@@ -1203,7 +1177,7 @@ public class PartitionedHTreeMap<K, V>
         dir = putNewRecordIdInDir(dir, parentPos, (nextDirRecid << 1) | 0);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, engine, +1);
+        counter(partition, seg, engine, +1);
 
         return null;
       } else {
@@ -1222,20 +1196,20 @@ public class PartitionedHTreeMap<K, V>
         dir = putNewRecordIdInDir(dir, slot, (newRecid << 1) | 1);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, engine, +1);
+        counter(partition, seg, engine, +1);
         return null;
       }
     }
   }
 
-  protected void counter(int partition, Engine engine, int plus) {
+  protected void counter(int partition, int seg,  Engine engine, int plus) {
     if (counterRecids == null) {
       return;
     }
 
-    long oldCounter = engine.get(counterRecids.get(partition), Serializer.LONG);
+    long oldCounter = engine.get(counterRecids.get(partition)[seg], Serializer.LONG);
     oldCounter += plus;
-    engine.update(counterRecids.get(partition), oldCounter, Serializer.LONG);
+    engine.update(counterRecids.get(partition)[seg], oldCounter, Serializer.LONG);
   }
 
 
@@ -1244,12 +1218,13 @@ public class PartitionedHTreeMap<K, V>
     V ret;
 
     final int h = hash((K) key);
+    final int seg = h >>> 28;
     final int partition = partitioner.getPartition((K) key);
     try {
-      partitionRamLock.get(partition).writeLock().lock();
+      partitionRamLock.get(partition)[seg].writeLock().lock();
       ret = removeInternal(key, partition, h);
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
     return ret;
   }
@@ -1312,7 +1287,7 @@ public class PartitionedHTreeMap<K, V>
             if (CC.ASSERT && !(hash(ln.key) == h))
               throw new DBException.DataCorruption("inconsistent hash");
             engine.delete(recid, LN_SERIALIZER);
-            counter(partition, engine, -1);
+            counter(partition, seg, engine, -1);
             return ln.value;
           }
           prevRecid = recid;
@@ -1361,24 +1336,26 @@ public class PartitionedHTreeMap<K, V>
     Iterator<Integer> partitionIds = partitionRamLock.keySet().iterator();
     while (partitionIds.hasNext()) {
       int partitionId = partitionIds.next();
-      partitionRamLock.get(partitionId).writeLock().lock();
-      try {
-        Engine engine = engines.get(partitionId);
+      for (int segId = 0; segId < 16; segId++) {
+        partitionRamLock.get(partitionId)[segId].writeLock().lock();
+        try {
+          Engine engine = engines.get(partitionId);
 
-        if (counterRecids != null) {
-          engine.update(counterRecids.get(partitionId), 0L, Serializer.LONG);
+          if (counterRecids != null) {
+            engine.update(counterRecids.get(partitionId)[segId], 0L, Serializer.LONG);
+          }
+
+          Long[] dirRecs = partitionRootRec.get(partitionId);
+          for (int i = 0; i < dirRecs.length; i++) {
+            final long dirRecid = dirRecs[i];
+            recursiveDirClear(engine, dirRecid);
+            //set dir to null, as segment recid is immutable
+            engine.update(dirRecid, new int[4], DIR_SERIALIZER);
+          }
+
+        } finally {
+          partitionRamLock.get(partitionId)[segId].writeLock().unlock();
         }
-
-        Long[] dirRecs = partitionRootRec.get(partitionId);
-        for (int i = 0; i < dirRecs.length; i++) {
-          final long dirRecid = dirRecs[i];
-          recursiveDirClear(engine, dirRecid);
-          //set dir to null, as segment recid is immutable
-          engine.update(dirRecid, new int[4], DIR_SERIALIZER);
-        }
-
-      } finally {
-        partitionRamLock.get(partitionId).writeLock().unlock();
       }
     }
   }
@@ -1682,7 +1659,7 @@ public class PartitionedHTreeMap<K, V>
       int partitionId = partition;
       Engine engine = engines.get(partitionId);
       //two phases, first find old item and increase hash
-      Lock lock = partitionRamLock.get(partitionId).readLock();
+      Lock lock = partitionRamLock.get(partitionId)[segment].readLock();
       lock.lock();
       long recId;
       try {
@@ -1723,7 +1700,7 @@ public class PartitionedHTreeMap<K, V>
       for (int segment = Math.max(hash >>> 28, lastSegment); segment < SEG; segment++) {
         Engine engine = engines.get(partition);
         if (partitionRamLock.containsKey(partition)) {
-          final Lock lock = partitionRamLock.get(partition).readLock();
+          final Lock lock = partitionRamLock.get(partition)[segment].readLock();
           try {
             lock.lock();
             lastSegment = Math.max(segment, lastSegment);
@@ -1898,12 +1875,13 @@ public class PartitionedHTreeMap<K, V>
     if (key == null || value == null) throw new NullPointerException();
 
     final int h = hash(key);
+    final int seg = h >>> 28;
     final int partition = partitioner.getPartition(key);
 
     V ret;
 
     try {
-      partitionRamLock.get(partition).writeLock().lock();
+      partitionRamLock.get(partition)[seg].writeLock().lock();
       LinkedNode<K, V> ln = PartitionedHTreeMap.this.getInner(key, h >>> 28, h, partition);
       if (ln == null)
         ret = put(key, value);
@@ -1911,7 +1889,7 @@ public class PartitionedHTreeMap<K, V>
         ret = ln.value;
 
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
     return ret;
   }
@@ -1924,17 +1902,18 @@ public class PartitionedHTreeMap<K, V>
     boolean ret;
 
     final int h = hash((K) key);
+    final int seg = h >>> 28;
     final int partition = partitioner.getPartition((K) key);
 
     try {
-      partitionRamLock.get(partition).writeLock().lock();
+      partitionRamLock.get(partition)[seg].writeLock().lock();
       LinkedNode otherVal = getInner(key, h >>> 28, h, partition);
       ret = (otherVal != null && valueSerializer.equals((V) otherVal.value, (V) value));
       if (ret) {
         removeInternal(key, partition, h);
       }
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
 
     return ret;
@@ -1951,7 +1930,7 @@ public class PartitionedHTreeMap<K, V>
     final int seg = h >>> 28;
     final int partition = partitioner.getPartition(key);
 
-    partitionRamLock.get(partition).writeLock().lock();
+    partitionRamLock.get(partition)[seg].writeLock().lock();
     try {
       LinkedNode<K, V> ln = getInner(key, seg, h, partition);
       ret = (ln != null && valueSerializer.equals(ln.value, oldValue));
@@ -1959,7 +1938,7 @@ public class PartitionedHTreeMap<K, V>
         putInner(key, newValue, h, partition);
 
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
     return ret;
   }
@@ -1970,16 +1949,17 @@ public class PartitionedHTreeMap<K, V>
       throw new NullPointerException();
     V ret;
     final int h = hash(key);
+    final int seg = h >>> 28;
     final int partition = partitioner.getPartition(key);
 
     try {
-      partitionRamLock.get(partition).writeLock().lock();
+      partitionRamLock.get(partition)[seg].writeLock().lock();
       if (getInner(key, h >>> 28, h, partition) != null)
         ret = putInner(key, value, h, partition);
       else
         ret = null;
     } finally {
-      partitionRamLock.get(partition).writeLock().unlock();
+      partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
     return ret;
   }
@@ -2055,6 +2035,26 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
+  private void releaseAllLocksOfPartition(int partitionId) {
+    for (int i = 15; i >= 0; i--) {
+      partitionRamLock.get(partitionId)[i].writeLock().unlock();
+      partitionPersistLock.get(partitionId)[i].writeLock().unlock();
+    }
+  }
+
+  private boolean tryLockPartition(int partitionId) {
+    for (int i = 0; i < 16; i++) {
+      if (!partitionPersistLock.get(partitionId)[i].writeLock().tryLock()) {
+        return false;
+      }
+      if (!partitionRamLock.get(partitionId)[i].writeLock().tryLock()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
   public void runPersistTask(final int partitionId) {
     //TODO: when integrate with Spark, we shall use Spark's threadpool
     if (!partitionPersistLock.containsKey(partitionId)) {
@@ -2066,13 +2066,10 @@ public class PartitionedHTreeMap<K, V>
        // public void run() {
           //TODO: we can use snapshot to allow concurrent write threads
           long persistTimestamp = System.currentTimeMillis();
-          Lock persistLock = partitionPersistLock.get(partitionId).writeLock();
-          Lock ramLock = partitionRamLock.get(partitionId).writeLock();
-          if (!persistLock.tryLock()) {
+          if (!tryLockPartition(partitionId)) {
             //persist is ongoing
             return;
           }
-          ramLock.lock();
           try {
             StoreSegment engine = (StoreSegment) engines.get(partitionId);
             //engine.compact();
@@ -2093,8 +2090,7 @@ public class PartitionedHTreeMap<K, V>
           } catch (Exception e) {
             e.printStackTrace();
           } finally {
-            ramLock.unlock();
-            persistLock.unlock();
+            releaseAllLocksOfPartition(partitionId);
           }
       //  }
      // });
