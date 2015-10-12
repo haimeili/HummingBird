@@ -162,7 +162,7 @@ object HashTreeTest {
           var cnt = 0
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (id, size, indices, values) = Vectors.fromString1(line)
-            val vector = new SparseVector(cnt + cap * base, size, indices, values)
+            val vector = new SparseVector(id, size, indices, values)
             if (cnt >= cap) {
               return
             }
