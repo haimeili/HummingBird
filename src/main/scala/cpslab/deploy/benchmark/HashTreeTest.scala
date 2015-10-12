@@ -181,12 +181,13 @@ object HashTreeTest {
           val random = new Random(Thread.currentThread().getName.hashCode)
           val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
+          /*
           for (i <- 0 until 20) {
             vectorIdToVector.persist(i)
           }
           for (i <- 0 until tableNum; p <- 0 until 20) {
             vectorDatabase(i).persist(p)
-          }
+          }*/
           //println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
