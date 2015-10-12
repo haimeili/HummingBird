@@ -128,9 +128,9 @@ object HashTreeTest {
         if (cnt > cap * threadNumber) {
           return
         }
-        val (id, size, indices, values) = Vectors.fromString1(line)
-        val vector = new SparseVector(id, size, indices, values)
-        vectorIdToVector.put(vector.vectorId, vector)
+        val (_, size, indices, values) = Vectors.fromString1(line)
+        val vector = new SparseVector(cnt, size, indices, values)
+        vectorIdToVector.put(cnt, vector)
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
