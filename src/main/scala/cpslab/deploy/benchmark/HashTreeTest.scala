@@ -162,14 +162,14 @@ object HashTreeTest {
           var cnt = 0
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (id, size, indices, values) = Vectors.fromString1(line)
-            val vector = new SparseVector(id, size, indices, values)
+            val vector = new SparseVector(cnt, size, indices, values)
             if (cnt >= cap) {
               return
             }
             val s = System.nanoTime()
-            vectorIdToVector.put(id, vector)
+            vectorIdToVector.put(cnt, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(id, true)
+              vectorDatabase(i).put(cnt, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
