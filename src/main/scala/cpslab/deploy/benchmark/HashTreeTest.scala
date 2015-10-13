@@ -368,7 +368,7 @@ object HashTreeTest {
           for (i <- 0 until tableNum; p <- 0 until 20) {
             vectorDatabase(i).persist(p)
           }*/
-          // println(cap / (totalTime / 1000000000))
+          println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
       })
