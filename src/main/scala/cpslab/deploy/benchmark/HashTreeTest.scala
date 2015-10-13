@@ -226,7 +226,7 @@ object HashTreeTest {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
           }
-          println ((System.nanoTime() - startTime) / 1000000000)
+          println (requestNumberPerThread / ((System.nanoTime() - startTime) / 1000000000))
         }
       })
     }
