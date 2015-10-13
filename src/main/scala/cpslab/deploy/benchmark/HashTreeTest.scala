@@ -221,7 +221,7 @@ object HashTreeTest {
         override def run(): Unit = {
           val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(170000)
+            val interestVectorId = Random.nextInt(cap)
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
@@ -250,8 +250,8 @@ object HashTreeTest {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
     }
 
-    while (finishedWriteThreadCount.get() < 1) {
-        Thread.sleep(10000)
+    while (finishedWriteThreadCount.get() < threadNumber) {
+        Thread.sleep(1000)
     }
     testReadThreadScalability(conf, requestPerThread, threadNumber)
 
