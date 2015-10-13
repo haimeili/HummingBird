@@ -121,7 +121,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       Serializers.IntSerializer, Serializers.VectorSerializer)
     vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
     for (tableId <- 0 until tableNum) {
-      vectorDatabaseBTree(tableId) = db.treeMap("vectorIdToVector",
+      vectorDatabaseBTree(tableId) = db.treeMap(s"vectorDatabaseBTree - $tableId",
         Serializers.IntSerializer, Serializers.IntSerializer)
     }
   }
