@@ -319,19 +319,19 @@ object HashTreeTest {
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
-    testWriteThreadScalabilityOnheap(conf, requestPerThread, threadNumber)
+   /* testWriteThreadScalabilityOnheap(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
     testReadThreadScalabilityOnheap(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)
+      threadNumber = threadNumber)*/
 
-    /*testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
     testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)*/
+      threadNumber = threadNumber)
 
 
 /*
