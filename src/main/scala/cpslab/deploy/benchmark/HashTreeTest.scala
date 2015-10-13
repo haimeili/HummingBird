@@ -348,7 +348,7 @@ object HashTreeTest {
             val s = System.nanoTime()
             vectorIdToVectorBTree.put(cnt + base * cap, vector)
             for (i <- 0 until tableNum) {
-              val hashValue = lshEngines(i).hash(vector, Serializers.IntSerializer)
+              val hashValue = lshEngines(i).hash(vector, Serializers.VectorSerializer)
               vectorDatabaseBTree(i).put(hashValue, vector.vectorId)
             }
             val e = System.nanoTime()
