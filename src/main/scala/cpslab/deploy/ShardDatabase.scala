@@ -7,7 +7,7 @@ import scala.language.postfixOps
 
 import akka.actor._
 import com.typesafe.config.Config
-import cpslab.db.PartitionedHTreeMap
+import cpslab.db.{PartitionedHTreeMapOnHeap, PartitionedHTreeMap}
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
@@ -62,6 +62,56 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
           hasSentReport = true
         }
     }
+  }
+
+  def initializeMapDBHashMapOnHeap(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
+    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
+    val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
+    val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMapOnHeap[Int, Boolean] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          val newTree = new PartitionedHTreeMapOnHeap[Int, Boolean](
+            tableId,
+            "lsh",
+            workingDirRoot + "-" + tableId,
+            "partitionedTree-" + tableId,
+            new HashPartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            null,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+          newTree
+      }
+    def initializeIdToVectorMap(): PartitionedHTreeMapOnHeap[Int, SparseVector] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          new PartitionedHTreeMapOnHeap(
+            tableNum,
+            "default",
+            workingDirRoot + "-vector",
+            "vectorIdToVector",
+            new HashPartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            Serializers.vectorSerializer,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+      }
+    vectorDatabaseOnheap = new Array[PartitionedHTreeMapOnHeap[Int, Boolean]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabaseOnheap(tableId) = initializeVectorDatabase(tableId)
+    }
+    vectorIdToVectorOnheap = initializeIdToVectorMap()
   }
 
   def initializeMapDBHashMap(conf: Config): Unit = {
@@ -167,4 +217,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
 
   var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
   var vectorIdToVector: PartitionedHTreeMap[Int, SparseVector] = null
+
+  var vectorDatabaseOnheap: Array[PartitionedHTreeMapOnHeap[Int, Boolean]] = null
+  var vectorIdToVectorOnheap: PartitionedHTreeMapOnHeap[Int, SparseVector] = null
 }

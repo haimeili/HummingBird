@@ -232,11 +232,99 @@ object HashTreeTest {
     }
   }
 
+  def testWriteThreadScalabilityOnheap(
+      conf: Config,
+      requestNumberPerThread: Int,
+      threadNumber: Int): Unit = {
+    ShardDatabase.initializeMapDBHashMapOnHeap(conf)
+
+    val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    for (i <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+        val base = i
+        var totalTime = 0L
+
+        private def traverseFile(allFiles: Seq[String]): Unit = {
+          var cnt = 0
+          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+            val (_, size, indices, values) = Vectors.fromString1(line)
+            val vector = new SparseVector(cnt + base * cap, size, indices, values)
+            if (cnt >= cap) {
+              return
+            }
+            val s = System.nanoTime()
+            vectorIdToVectorOnheap.put(cnt + base * cap, vector)
+            for (i <- 0 until tableNum) {
+              vectorDatabaseOnheap(i).put(cnt + base * cap, true)
+            }
+            val e = System.nanoTime()
+            totalTime += e - s
+            cnt += 1
+          }
+        }
+
+        override def run(): Unit = {
+          val random = new Random(Thread.currentThread().getName.hashCode)
+          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+          traverseFile(allFiles)
+          finishedWriteThreadCount.incrementAndGet()
+        }
+      })
+    }
+  }
+
+  def testReadThreadScalabilityOnheap(
+      conf: Config,
+      requestNumberPerThread: Int,
+      threadNumber: Int): Unit = {
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    for (t <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+
+        var max: Long = Int.MinValue
+        var min: Long = Int.MaxValue
+        var average: Long = 0
+
+        override def run(): Unit = {
+          for (i <- 0 until requestNumberPerThread) {
+            val interestVectorId = Random.nextInt(cap)
+            val localStart = System.nanoTime()
+            for (tableId <- 0 until tableNum) {
+              ShardDatabase.vectorDatabaseOnheap(tableId).getSimilar(interestVectorId)
+            }
+            val localEnd = System.nanoTime()
+            val latency = localEnd - localStart
+            max = math.max(latency, max)
+            min = math.min(latency, min)
+          }
+          println(
+            ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
+              max * 1.0 / 1000000000 + "," +
+              min * 1.0 / 1000000000)
+        }
+      })
+    }
+  }
+
+
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+
+    testWriteThreadScalabilityOnheap(conf, requestPerThread, threadNumber)
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(10000)
+    }
+    testReadThreadScalabilityOnheap(conf, requestNumberPerThread = requestPerThread,
+      threadNumber = threadNumber)
+
     /*testWriteThreadScalability(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
@@ -244,6 +332,8 @@ object HashTreeTest {
     testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
       threadNumber = threadNumber)*/
 
+
+/*
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
@@ -253,7 +343,7 @@ object HashTreeTest {
     while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(1000)
     }
-    testReadThreadScalability(conf, requestPerThread, threadNumber)
+    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
     //while (finishedWriteThreadCount.get() < threadNumber) {
       //Thread.sleep(10000)
