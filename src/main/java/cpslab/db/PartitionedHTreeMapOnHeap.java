@@ -911,7 +911,7 @@ public class PartitionedHTreeMapOnHeap <K, V>
     if (hasher instanceof LocalitySensitiveHasher) {
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
-      SparseVector v = ShardDatabase.vectorIdToVector().get(key);
+      SparseVector v = ShardDatabase.vectorIdToVectorOnheap().get(key);
       if (v == null) {
         System.out.println("fetch vector " + key + ", but got NULL");
         System.exit(1);
