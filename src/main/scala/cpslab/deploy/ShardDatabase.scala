@@ -121,7 +121,8 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       Serializers.IntSerializer, Serializers.VectorSerializer)
     vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
     for (tableId <- 0 until tableNum) {
-      vectorDatabaseBTree(tableId) = db.treeMap(s"vectorDatabaseBTree - $tableId",
+      val db1 = DBMaker.memoryUnsafeDB().make()
+      vectorDatabaseBTree(tableId) = db1.treeMap(s"vectorDatabaseBTree - $tableId",
         Serializers.IntSerializer, Serializers.IntSerializer)
     }
   }
