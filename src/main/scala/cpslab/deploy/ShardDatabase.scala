@@ -7,7 +7,7 @@ import scala.language.postfixOps
 
 import akka.actor._
 import com.typesafe.config.Config
-import cpslab.db.{PartitionedHTreeMapOnHeap, PartitionedHTreeMap}
+import cpslab.db._
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
@@ -114,6 +114,19 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorIdToVectorOnheap = initializeIdToVectorMap()
   }
 
+  def initializeBTree(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val db = DBMaker.memoryUnsafeDB().make()
+    vectorIdToVectorBTree = db.treeMap("vectorIdToVector",
+      Serializers.IntSerializer, Serializers.VectorSerializer)
+    vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabaseBTree(tableId) = db.treeMap("vectorIdToVector",
+        Serializers.IntSerializer, Serializers.IntSerializer)
+    }
+  }
+
+
   def initializeMapDBHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
@@ -217,6 +230,9 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
 
   var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
   var vectorIdToVector: PartitionedHTreeMap[Int, SparseVector] = null
+
+  var vectorDatabaseBTree: Array[BTreeMap[Int, Int]] = null
+  var vectorIdToVectorBTree: BTreeMap[Int, SparseVector] = null
 
   var vectorDatabaseOnheap: Array[PartitionedHTreeMapOnHeap[Int, Boolean]] = null
   var vectorIdToVectorOnheap: PartitionedHTreeMapOnHeap[Int, SparseVector] = null

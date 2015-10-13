@@ -17,7 +17,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
-import cpslab.lsh.LSH
+import cpslab.lsh.{LocalitySensitiveHasher, LSH}
 import cpslab.lsh.vector.{SparseVector, Vectors}
 import cpslab.utils.{HashPartitioner, Serializers}
 
@@ -320,6 +320,61 @@ object HashTreeTest {
     }
   }
 
+  def testWriteThreadScalabilityWithBTree(conf: Config,
+                                          requestNumberPerThread: Int,
+                                          threadNumber: Int): Unit = {
+    ShardDatabase.initializeBTree(conf)
+
+    val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    //initialize lsh engine
+    val lshEngines = for (i <- 0 until tableNum)
+      yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, tableNum)
+    for (i <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+        val base = i
+        var totalTime = 0L
+
+        private def traverseFile(allFiles: Seq[String]): Unit = {
+          var cnt = 0
+          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+            val (_, size, indices, values) = Vectors.fromString1(line)
+            val vector = new SparseVector(cnt + base * cap, size, indices, values)
+            if (cnt >= cap) {
+              return
+            }
+            val s = System.nanoTime()
+            vectorIdToVectorBTree.put(cnt + base * cap, vector)
+            for (i <- 0 until tableNum) {
+              val hashValue = lshEngines(i).hash(cnt + base * cap, Serializers.IntSerializer)
+              vectorDatabaseBTree(i).put(hashValue, cnt + base * cap)
+            }
+            val e = System.nanoTime()
+            totalTime += e - s
+            cnt += 1
+          }
+        }
+
+        override def run(): Unit = {
+          val random = new Random(Thread.currentThread().getName.hashCode)
+          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+          traverseFile(allFiles)
+          /*
+          for (i <- 0 until 20) {
+            vectorIdToVector.persist(i)
+          }
+          for (i <- 0 until tableNum; p <- 0 until 20) {
+            vectorDatabase(i).persist(p)
+          }*/
+          // println(cap / (totalTime / 1000000000))
+          finishedWriteThreadCount.incrementAndGet()
+        }
+      })
+    }
+  }
+
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
@@ -334,12 +389,12 @@ object HashTreeTest {
     testReadThreadScalabilityOnheap(conf, requestNumberPerThread = requestPerThread,
       threadNumber = threadNumber)*/
 
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
-    testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)
+    //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
+    //  threadNumber = threadNumber)
 
 
 /*
