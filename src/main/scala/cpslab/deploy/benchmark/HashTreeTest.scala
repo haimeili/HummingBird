@@ -331,7 +331,7 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     //initialize lsh engine
     val lshEngines = for (i <- 0 until tableNum)
-      yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, tableNum)
+      yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)
     for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         val base = i
