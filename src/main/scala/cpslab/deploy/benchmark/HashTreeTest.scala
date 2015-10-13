@@ -153,23 +153,23 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    //for (i <- 0 until threadNumber) {
+    for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
-        val base = 0
+        val base = i
         var totalTime = 0L
 
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (id, size, indices, values) = Vectors.fromString1(line)
-            val vector = new SparseVector(cnt, size, indices, values)
+            val (_, size, indices, values) = Vectors.fromString1(line)
+            val vector = new SparseVector(cnt + base * cap, size, indices, values)
             if (cnt >= cap) {
               return
             }
             val s = System.nanoTime()
-            vectorIdToVector.put(cnt, vector)
+            vectorIdToVector.put(cnt + base * cap, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(cnt, true)
+              vectorDatabase(i).put(cnt + base * cap, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
@@ -192,7 +192,7 @@ object HashTreeTest {
           finishedWriteThreadCount.incrementAndGet()
         }
       })
-    //}
+    }
   }
 
   def testReadThreadScalability(
