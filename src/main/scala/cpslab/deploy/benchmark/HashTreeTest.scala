@@ -291,6 +291,7 @@ object HashTreeTest {
         var average: Long = 0
 
         override def run(): Unit = {
+          startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
             val interestVectorId = Random.nextInt(cap)
             val localStart = System.nanoTime()
