@@ -406,6 +406,22 @@ object HashTreeTest {
   }
 
 
+  def testAccuracy(
+     conf: Config,
+     requestNumberPerThread: Int,
+     threadNumber: Int): Unit = {
+    val id = Random.nextInt(threadNumber * requestNumberPerThread)
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val results = new mutable.HashSet[Int]
+    for (i <- 0 until tableNum) {
+      val r = vectorDatabase(i).getSimilar(id)
+      for (k <- r) {
+        results += k
+      }
+    }
+    println(results.toList)
+  }
+
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
@@ -428,12 +444,19 @@ object HashTreeTest {
 
 
 
-   /* if (args(1) == "async") {
+    if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }*/
+    }
 
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(1000)
+    }
+
+    testAccuracy(conf, requestPerThread, threadNumber)
+
+/*
     testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
@@ -445,6 +468,6 @@ object HashTreeTest {
 
     //while (finishedWriteThreadCount.get() < threadNumber) {
       //Thread.sleep(10000)
-    //}
+    //}*/
   }
 }
