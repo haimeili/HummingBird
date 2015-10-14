@@ -146,6 +146,10 @@ object HashTreeTest {
     conf: Config,
     requestNumberPerThread: Int,
     threadNumber: Int): Unit = {
+    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
+
+
     ShardDatabase.initializeMapDBHashMap(conf)
 
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
@@ -426,9 +430,6 @@ object HashTreeTest {
       }
       0
     }
-    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
-
     val order = Random.nextInt(existingID.size())
     val id = getId(order)
     val queryVector = vectorIdToVector.get(id)
