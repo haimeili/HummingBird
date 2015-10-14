@@ -29,7 +29,7 @@ public class PartitionedHTreeMap<K, V>
 
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
-  protected static final int BUCKET_OVERFLOW = 4;
+  public static int BUCKET_OVERFLOW = 4;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
@@ -319,7 +319,6 @@ public class PartitionedHTreeMap<K, V>
     this.hashSalt = hashSalt;
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
-
     this.valueCreator = valueCreator;
 
     this.executor = executor;

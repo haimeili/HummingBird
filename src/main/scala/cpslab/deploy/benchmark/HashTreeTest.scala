@@ -426,6 +426,8 @@ object HashTreeTest {
       }
       0
     }
+    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
     val order = Random.nextInt(existingID.size())
     val id = getId(order)
