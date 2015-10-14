@@ -410,6 +410,7 @@ object HashTreeTest {
      conf: Config,
      requestNumberPerThread: Int,
      threadNumber: Int): Unit = {
+    import scala.collection.JavaConverters._
     val id = Random.nextInt(threadNumber * requestNumberPerThread)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val results = new mutable.HashSet[Int]
