@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.io.Source
+import scala.io.{Codec, Source}
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -162,7 +162,10 @@ object HashTreeTest {
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
-          for (file <- allFiles; line <- Source.fromFile(file, "UTF-8").getLines()) {
+          implicit val codec = Codec("UTF-8")
+          codec.onMalformedInput(CodingErrorAction.REPLACE)
+          codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + base * cap, size, indices, values)
             if (cnt >= cap) {
