@@ -219,17 +219,15 @@ object HashTreeTest {
         var average: Long = 0
 
         override def run(): Unit = {
-          var totalTime = 0L
+          val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
             val interestVectorId = Random.nextInt(cap)
-            val localStart = System.nanoTime()
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
-            val localEnd = System.nanoTime()
-            totalTime += (localEnd - localStart)
           }
-          println(requestNumberPerThread / (totalTime.toDouble / 1000000000))
+          val duration = System.nanoTime() - startTime
+          println(requestNumberPerThread / (duration.toDouble / 1000000000))
           /*println(
             ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
               max * 1.0 / 1000000000 + "," +
