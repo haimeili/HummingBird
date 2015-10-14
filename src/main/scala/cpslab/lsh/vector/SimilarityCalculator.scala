@@ -44,8 +44,8 @@ private[cpslab] object SimilarityCalculator {
     require(vector1 != null  && vector2 != null)
     require(vector1.size == vector2.size, s"vector1 size: ${vector1.size}, " +
       s"vector2 size: ${vector2.size}")
-    val v1L = math.sqrt(vector1.values.reduce{case (w1, w2) => w1 * w1 + w2 * w2})
-    val v2L = math.sqrt(vector2.values.reduce{case (w1, w2) => w1 * w1 + w2 * w2})
+    val v1L = math.sqrt(vector1.values.foldLeft(0.0){case (sum, weight) => sum  + weight * weight})
+    val v2L = math.sqrt(vector2.values.foldLeft(0.0){case (sum, weight) => sum  + weight * weight})
     var similarity = 0.0
     val validBits = vector1.bitVector.clone().asInstanceOf[util.BitSet]
     validBits.and(vector2.bitVector)
