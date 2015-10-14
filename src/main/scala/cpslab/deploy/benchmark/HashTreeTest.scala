@@ -429,7 +429,6 @@ object HashTreeTest {
 
     val order = Random.nextInt(existingID.size())
     val id = getId(order)
-    println("query vector id: " + id)
     val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val mostK = conf.getInt("cpslab.lsh.k")
@@ -454,7 +453,6 @@ object HashTreeTest {
     val itr = existingID.iterator()
     while (itr.hasNext) {
       val vId = itr.next()
-      println(vId + "," + existingID.contains(vId))
       val vector = vectorIdToVector.get(vId)
       if (vector.vectorId != queryVector.vectorId) {
         groundTruth += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
