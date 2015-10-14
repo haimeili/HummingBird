@@ -430,48 +430,51 @@ object HashTreeTest {
       }
       0
     }
-    val order = Random.nextInt(existingID.size())
-    val id = getId(order)
-    val queryVector = vectorIdToVector.get(id)
-    println("query vector ID:" + queryVector.vectorId)
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val mostK = conf.getInt("cpslab.lsh.k")
-    val kNN = new mutable.HashSet[Int]
-    for (i <- 0 until tableNum) {
-      val r = vectorDatabase(i).getSimilar(queryVector.vectorId)
-      for (k <- r if k != queryVector.vectorId) {
-        kNN += k
+    var ratio = 0.0
+    for (testCnt <- 0 until 10) {
+      val order = Random.nextInt(existingID.size())
+      val id = getId(order)
+      val queryVector = vectorIdToVector.get(id)
+      println("query vector ID:" + queryVector.vectorId)
+      val tableNum = conf.getInt("cpslab.lsh.tableNum")
+      val mostK = conf.getInt("cpslab.lsh.k")
+      val kNN = new mutable.HashSet[Int]
+      for (i <- 0 until tableNum) {
+        val r = vectorDatabase(i).getSimilar(queryVector.vectorId)
+        for (k <- r if k != queryVector.vectorId) {
+          kNN += k
+        }
       }
-    }
-    //step 1: calculate the distance of the fetched objects
-    val distances = new ListBuffer[(Int, Double)]
-    for (vectorId <- kNN) {
-      val vector = vectorIdToVector.get(vectorId)
-      distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
-    }
-    val sortedDistances = distances.sortWith{case (d1, d2) => d1._2 > d2._2}.take(mostK)
-    println(sortedDistances.toList)
-    //step 2: calculate the distance of the ground truth
-    val groundTruth = new ListBuffer[(Int, Double)]
-    val itr = existingID.toList.distinct.iterator
-    while (itr.hasNext) {
-      val vId = itr.next()
-      val vector = vectorIdToVector.get(vId)
-      if (vector.vectorId != queryVector.vectorId) {
-        groundTruth += vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+      //step 1: calculate the distance of the fetched objects
+      val distances = new ListBuffer[(Int, Double)]
+      for (vectorId <- kNN) {
+        val vector = vectorIdToVector.get(vectorId)
+        distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
       }
-    }
+      val sortedDistances = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
+      println(sortedDistances.toList)
+      //step 2: calculate the distance of the ground truth
+      val groundTruth = new ListBuffer[(Int, Double)]
+      val itr = existingID.toList.distinct.iterator
+      while (itr.hasNext) {
+        val vId = itr.next()
+        val vector = vectorIdToVector.get(vId)
+        if (vector.vectorId != queryVector.vectorId) {
+          groundTruth += vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+        }
+      }
 
-    val sortedGroundTruth = groundTruth.sortWith{case (d1, d2) => d1._2 > d2._2}.take(sortedDistances.length)
-    println(sortedGroundTruth.toList)
-    val ratio = {
-      var sum = 0.0
-      for (i <- sortedDistances.indices) {
-        sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+      val sortedGroundTruth = groundTruth.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(sortedDistances.length)
+      println(sortedGroundTruth.toList)
+      ratio += {
+        var sum = 0.0
+        for (i <- sortedDistances.indices) {
+          sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+        }
+        sum / sortedDistances.length
       }
-      sum / sortedDistances.length
     }
-    println(ratio)
+    println(ratio/10)
   }
 
   def main(args: Array[String]): Unit = {
