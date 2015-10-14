@@ -435,8 +435,8 @@ object HashTreeTest {
     val mostK = conf.getInt("cpslab.lsh.k")
     val kNN = new mutable.HashSet[Int]
     for (i <- 0 until tableNum) {
-      val r = vectorDatabase(i).getSimilar(id)
-      for (k <- r) {
+      val r = vectorDatabase(i).getSimilar(queryVector.vectorId)
+      for (k <- r if k != queryVector.vectorId) {
         kNN += k
       }
     }
