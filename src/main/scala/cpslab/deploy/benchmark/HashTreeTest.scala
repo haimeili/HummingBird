@@ -418,6 +418,7 @@ object HashTreeTest {
     val id = Random.nextInt(threadNumber * requestNumberPerThread)
     val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val mostK = conf.getInt("cpslab.lsh.k")
     val kNN = new mutable.HashSet[Int]
     for (i <- 0 until tableNum) {
       val r = vectorDatabase(i).getSimilar(id)
@@ -425,15 +426,14 @@ object HashTreeTest {
         kNN += k
       }
     }
-    println(kNN.toList)
     //step 1: calculate the distance of the fetched objects
     val distances = new ListBuffer[Double]
     for (vectorId <- kNN) {
       val vector = vectorIdToVector.get(vectorId)
       distances += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
     }
-    val sortedDistances = distances.sortWith{case (d1, d2) => d1 > d2}
-    println(sortedDistances.toList)
+    val sortedDistances = distances.sortWith{case (d1, d2) => d1 > d2}.take(mostK)
+    //println(sortedDistances.toList)
     //step 2: calculate the distance of the ground truth
     val groundTruth = new ListBuffer[Double]
     for (id <- 0 until threadNumber * requestNumberPerThread) {
