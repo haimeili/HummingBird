@@ -414,9 +414,8 @@ object HashTreeTest {
      requestNumberPerThread: Int,
      threadNumber: Int): Unit = {
     import scala.collection.JavaConversions._
-    val id = {
+    def getId(order: Int): Int = {
       val iterator = existingID.iterator()
-      val order = Random.nextInt(existingID.size())
       var stepCnt = 0
       while (iterator.hasNext) {
         val r = iterator.next()
@@ -425,8 +424,11 @@ object HashTreeTest {
           return r
         }
       }
+      0
     }
 
+    val order = Random.nextInt(existingID.size())
+    val id = getId(order)
     val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val mostK = conf.getInt("cpslab.lsh.k")
