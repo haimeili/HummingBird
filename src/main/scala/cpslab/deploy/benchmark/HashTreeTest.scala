@@ -1,6 +1,7 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -160,7 +161,9 @@ object HashTreeTest {
 
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
-          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+          val decoder = Charset.forName("UTF-8").newDecoder()
+          decoder.onMalformedInput(CodingErrorAction.IGNORE)
+          for (file <- allFiles; line <- Source.fromFile(file)(decoder).getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + base * cap, size, indices, values)
             if (cnt >= cap) {
