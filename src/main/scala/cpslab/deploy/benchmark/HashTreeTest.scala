@@ -18,7 +18,7 @@ import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.{LocalitySensitiveHasher, LSH}
-import cpslab.lsh.vector.{SparseVector, Vectors}
+import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 import cpslab.utils.{HashPartitioner, Serializers}
 
 object HashTreeTest {
@@ -412,15 +412,25 @@ object HashTreeTest {
      threadNumber: Int): Unit = {
     import scala.collection.JavaConversions._
     val id = Random.nextInt(threadNumber * requestNumberPerThread)
+    val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val results = new mutable.HashSet[Int]
+    val kNN = new mutable.HashSet[Int]
     for (i <- 0 until tableNum) {
       val r = vectorDatabase(i).getSimilar(id)
       for (k <- r) {
-        results += k
+        kNN += k
       }
     }
-    println(results.toList)
+    println(kNN.toList)
+    //step 1: calculate the distance of the fetched objects
+    val distances = new ListBuffer[Double]
+    for (vectorId <- kNN) {
+      val vector = vectorIdToVector.get(vectorId)
+      distances += SimilarityCalculator.calculateSimilarity(queryVector, vector)
+    }
+    val sortedDistances = distances.sortWith{case (d1, d2) => d1 <= d2}
+    println(sortedDistances.toList)
+    //step 2: calculate the distance of the ground truth
   }
 
   def main(args: Array[String]): Unit = {
