@@ -183,7 +183,7 @@ object HashTreeTest {
 
         override def run(): Unit = {
           val random = new Random(Thread.currentThread().getName.hashCode)
-          val allFiles = Utils.buildFileListUnderDirectory(filePath)
+          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
           /*
           for (i <- 0 until 20) {
