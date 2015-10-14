@@ -219,7 +219,7 @@ object HashTreeTest {
         var average: Long = 0
 
         override def run(): Unit = {
-          startTime = System.nanoTime()
+          var totalTime = 0
           for (i <- 0 until requestNumberPerThread) {
             val interestVectorId = Random.nextInt(cap)
             val localStart = System.nanoTime()
@@ -227,14 +227,13 @@ object HashTreeTest {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
             val localEnd = System.nanoTime()
-            val latency = localEnd - localStart
-            max = math.max(latency, max)
-            min = math.min(latency, min)
+            totalTime += (localEnd - localStart)
           }
-          println(
+          println(requestNumberPerThread / (totalTime.toDouble / 1000000000))
+          /*println(
             ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
               max * 1.0 / 1000000000 + "," +
-              min * 1.0 / 1000000000)
+              min * 1.0 / 1000000000)*/
         }
       })
     }
@@ -407,7 +406,9 @@ object HashTreeTest {
     while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(1000)
     }
-    //testReadThreadScalability(conf, requestPerThread, threadNumber)
+
+    println("======read performance======")
+    testReadThreadScalability(conf, requestPerThread, threadNumber)
 
     //while (finishedWriteThreadCount.get() < threadNumber) {
       //Thread.sleep(10000)
