@@ -1,25 +1,23 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
-import java.nio.charset.{Charset, CodingErrorAction}
-import java.util.concurrent.Executors
+import java.util.concurrent.{LinkedBlockingQueue, Executors}
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.io.{Codec, Source}
+import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Random
 
-import akka.actor.{ActorRef, Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
-import cpslab.lsh.{LocalitySensitiveHasher, LSH}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
+import cpslab.lsh.{LSH, LocalitySensitiveHasher}
 import cpslab.utils.{HashPartitioner, Serializers}
 
 object HashTreeTest {
@@ -143,7 +141,7 @@ object HashTreeTest {
   }
 
   val finishedWriteThreadCount = new AtomicInteger(0)
-
+  val existingID = new LinkedBlockingQueue[Int]()
   def testWriteThreadScalability(
     conf: Config,
     requestNumberPerThread: Int,
@@ -164,6 +162,7 @@ object HashTreeTest {
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (id, size, indices, values) = Vectors.fromString1(line)
+            existingID.add(id)
             val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
             val vector = new SparseVector(id, size, indices,
               values.map(_ / squareSum))
@@ -415,7 +414,14 @@ object HashTreeTest {
      requestNumberPerThread: Int,
      threadNumber: Int): Unit = {
     import scala.collection.JavaConversions._
-    val id = Random.nextInt(threadNumber * requestNumberPerThread)
+    val id = {
+      val order = Random.nextInt(existingID.size())
+      for (i <- 0 until order - 1) {
+        existingID.take()
+      }
+      existingID.take()
+    }
+
     val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val mostK = conf.getInt("cpslab.lsh.k")
