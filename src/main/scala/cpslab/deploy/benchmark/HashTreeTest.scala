@@ -429,6 +429,7 @@ object HashTreeTest {
 
     val order = Random.nextInt(existingID.size())
     val id = getId(order)
+    println("query vector id: " + id)
     val queryVector = vectorIdToVector.get(id)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val mostK = conf.getInt("cpslab.lsh.k")
