@@ -161,7 +161,7 @@ object HashTreeTest {
 
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
-          val decoder = Charset.forName("UTF-8").newDecoder()
+          val decoder = Charset.forName("us-ascii").newDecoder()
           decoder.onMalformedInput(CodingErrorAction.IGNORE)
           for (file <- allFiles; line <- Source.fromFile(file)(decoder).getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
