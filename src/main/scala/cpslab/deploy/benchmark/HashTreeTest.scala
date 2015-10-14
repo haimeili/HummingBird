@@ -414,6 +414,9 @@ object HashTreeTest {
      requestNumberPerThread: Int,
      threadNumber: Int): Unit = {
     import scala.collection.JavaConversions._
+    val localIDQueue = new LinkedBlockingQueue[Int]()
+    existingID.drainTo(localIDQueue)
+
     val id = {
       val order = Random.nextInt(existingID.size())
       for (i <- 0 until order - 1) {
@@ -443,7 +446,7 @@ object HashTreeTest {
     //println(sortedDistances.toList)
     //step 2: calculate the distance of the ground truth
     val groundTruth = new ListBuffer[Double]
-    for (id <- 0 until threadNumber * requestNumberPerThread) {
+    for (id <- localIDQueue) {
       val vector = vectorIdToVector.get(id)
       if (vector.vectorId != queryVector.vectorId) {
         groundTruth += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
