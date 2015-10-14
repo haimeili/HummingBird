@@ -430,6 +430,7 @@ object HashTreeTest {
     val order = Random.nextInt(existingID.size())
     val id = getId(order)
     val queryVector = vectorIdToVector.get(id)
+    println("query vector ID:" + queryVector.vectorId)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val mostK = conf.getInt("cpslab.lsh.k")
     val kNN = new mutable.HashSet[Int]
@@ -440,30 +441,30 @@ object HashTreeTest {
       }
     }
     //step 1: calculate the distance of the fetched objects
-    val distances = new ListBuffer[Double]
+    val distances = new ListBuffer[(Int, Double)]
     for (vectorId <- kNN) {
       val vector = vectorIdToVector.get(vectorId)
-      distances += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+      distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
     }
-    val sortedDistances = distances.sortWith{case (d1, d2) => d1 > d2}.take(mostK)
+    val sortedDistances = distances.sortWith{case (d1, d2) => d1._2 > d2._2}.take(mostK)
     println(sortedDistances.toList)
     //step 2: calculate the distance of the ground truth
-    val groundTruth = new ListBuffer[Double]
+    val groundTruth = new ListBuffer[(Int, Double)]
     val itr = existingID.toList.distinct.iterator
     while (itr.hasNext) {
       val vId = itr.next()
       val vector = vectorIdToVector.get(vId)
       if (vector.vectorId != queryVector.vectorId) {
-        groundTruth += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+        groundTruth += vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
       }
     }
 
-    val sortedGroundTruth = groundTruth.sortWith{case (d1, d2) => d1 > d2}.take(sortedDistances.length)
+    val sortedGroundTruth = groundTruth.sortWith{case (d1, d2) => d1._2 > d2._2}.take(sortedDistances.length)
     println(sortedGroundTruth.toList)
     val ratio = {
       var sum = 0.0
       for (i <- sortedDistances.indices) {
-        sum += sortedDistances(i) / sortedGroundTruth(i)
+        sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
       }
       sum / sortedDistances.length
     }
