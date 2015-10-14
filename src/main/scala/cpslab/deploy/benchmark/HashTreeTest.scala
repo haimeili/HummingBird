@@ -432,9 +432,26 @@ object HashTreeTest {
       val vector = vectorIdToVector.get(vectorId)
       distances += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
     }
-    val sortedDistances = distances.sortWith{case (d1, d2) => d1 <= d2}
+    val sortedDistances = distances.sortWith{case (d1, d2) => d1 > d2}
     println(sortedDistances.toList)
     //step 2: calculate the distance of the ground truth
+    val groundTruth = new ListBuffer[Double]
+    for (id <- 0 until threadNumber * requestNumberPerThread) {
+      val vector = vectorIdToVector.get(id)
+      if (vector.vectorId != queryVector.vectorId) {
+        groundTruth += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+      }
+    }
+    val sortedGroundTruth = groundTruth.sortWith{case (d1, d2) => d1 > d2}.take(sortedDistances.length)
+    println(sortedGroundTruth.toList)
+    val ratio = {
+      var sum = 0.0
+      for (i <- sortedDistances.indices) {
+        sum += sortedDistances(i) / sortedGroundTruth(i)
+      }
+      sum / sortedDistances.length
+    }
+    println(ratio)
   }
 
   def main(args: Array[String]): Unit = {
