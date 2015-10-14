@@ -161,9 +161,8 @@ object HashTreeTest {
 
         private def traverseFile(allFiles: Seq[String]): Unit = {
           var cnt = 0
-          val decoder = Charset.forName("US-ASCII").newDecoder()
-          decoder.onMalformedInput(CodingErrorAction.IGNORE)
-          for (file <- allFiles; line <- Source.fromFile(file)(decoder).getLines()) {
+          //val decoder = Charset.forName("US-ASCII").newDecoder()
+          for (file <- allFiles; line <- Source.fromFile(file, "US-ASCII").getLines()) {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + base * cap, size, indices, values)
             if (cnt >= cap) {
