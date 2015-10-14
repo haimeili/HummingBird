@@ -453,7 +453,7 @@ object HashTreeTest {
     val itr = existingID.iterator()
     while (itr.hasNext) {
       val vId = itr.next()
-      println(vId)
+      println(vId + "," + existingID.contains(vId))
       val vector = vectorIdToVector.get(vId)
       if (vector.vectorId != queryVector.vectorId) {
         groundTruth += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
