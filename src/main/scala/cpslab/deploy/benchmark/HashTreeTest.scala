@@ -433,6 +433,7 @@ object HashTreeTest {
       distances += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
     }
     val sortedDistances = distances.sortWith{case (d1, d2) => d1 > d2}.take(mostK)
+    println(sortedDistances.toList)
     //println(sortedDistances.toList)
     //step 2: calculate the distance of the ground truth
     val groundTruth = new ListBuffer[Double]
