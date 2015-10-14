@@ -426,7 +426,7 @@ object HashTreeTest {
     val distances = new ListBuffer[Double]
     for (vectorId <- kNN) {
       val vector = vectorIdToVector.get(vectorId)
-      distances += SimilarityCalculator.calculateSimilarity(queryVector, vector)
+      distances += SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
     }
     val sortedDistances = distances.sortWith{case (d1, d2) => d1 <= d2}
     println(sortedDistances.toList)
