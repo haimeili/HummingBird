@@ -195,10 +195,43 @@ object HashTreeTest {
     }
   }
 
+  def testReadThreadScalabilityBTree(conf: Config,
+                                     requestNumberPerThread: Int,
+                                     threadNumber: Int): Unit = {
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    for (t <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+
+        var max: Long = Int.MinValue
+        var min: Long = Int.MaxValue
+        var average: Long = 0
+
+        override def run(): Unit = {
+          val startTime = System.nanoTime()
+          for (i <- 0 until requestNumberPerThread) {
+            val interestVectorId = Random.nextInt(cap)
+            for (tableId <- 0 until tableNum) {
+              ShardDatabase.vectorDatabaseBTree(tableId).get(interestVectorId)
+            }
+          }
+          val duration = System.nanoTime() - startTime
+          println(requestNumberPerThread / (duration.toDouble / 1000000000))
+          /*println(
+            ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
+              max * 1.0 / 1000000000 + "," +
+              min * 1.0 / 1000000000)*/
+        }
+      })
+    }
+  }
+
+
   def testReadThreadScalability(
-    conf: Config,
-    requestNumberPerThread: Int,
-    threadNumber: Int): Unit = {
+      conf: Config,
+      requestNumberPerThread: Int,
+      threadNumber: Int): Unit = {
 
     //ShardDatabase.initializeMapDBHashMap(conf)
     //init database by filling vectors
@@ -395,11 +428,13 @@ object HashTreeTest {
 
 
 
-    if (args(1) == "async") {
+   /* if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }
+    }*/
+
+    testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(1000)
