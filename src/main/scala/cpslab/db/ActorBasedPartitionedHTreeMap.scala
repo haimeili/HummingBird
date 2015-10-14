@@ -77,10 +77,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
   }
 
   private def putExecuteByActor(
-    partition: Int,
-    h: Int,
-    key: K,
-    value: V): Unit = {
+      partition: Int,
+      h: Int,
+      key: K,
+      value: V): Unit = {
     initPartitionIfNecessary(partition)
     var ret: V = value
     try {

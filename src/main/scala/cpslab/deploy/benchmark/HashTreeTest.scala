@@ -188,7 +188,7 @@ object HashTreeTest {
           for (i <- 0 until tableNum; p <- 0 until 20) {
             vectorDatabase(i).persist(p)
           }*/
-         // println(cap / (totalTime / 1000000000))
+          println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
       })
@@ -389,15 +389,15 @@ object HashTreeTest {
     testReadThreadScalabilityOnheap(conf, requestNumberPerThread = requestPerThread,
       threadNumber = threadNumber)*/
 
-    testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
+    /*testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
-    }
+    }*/
     //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
     //  threadNumber = threadNumber)
 
 
-/*
+
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
@@ -407,7 +407,7 @@ object HashTreeTest {
     while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(1000)
     }
-    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
+    //testReadThreadScalability(conf, requestPerThread, threadNumber)
 
     //while (finishedWriteThreadCount.get() < threadNumber) {
       //Thread.sleep(10000)
