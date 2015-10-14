@@ -163,17 +163,17 @@ object HashTreeTest {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (_, size, indices, values) = Vectors.fromString1(line)
+            val (id, size, indices, values) = Vectors.fromString1(line)
             val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
-            val vector = new SparseVector(cnt + base * cap, size, indices,
+            val vector = new SparseVector(id, size, indices,
               values.map(_ / squareSum))
             if (cnt >= cap) {
               return
             }
             val s = System.nanoTime()
-            vectorIdToVector.put(cnt + base * cap, vector)
+            vectorIdToVector.put(id, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(cnt + base * cap, true)
+              vectorDatabase(i).put(id, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
