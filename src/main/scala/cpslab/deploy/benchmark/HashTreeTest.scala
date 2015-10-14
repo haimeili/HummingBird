@@ -166,9 +166,6 @@ object HashTreeTest {
             val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
             val vector = new SparseVector(id, size, indices,
               values.map(_ / squareSum))
-            if (cnt >= cap) {
-              return
-            }
             val s = System.nanoTime()
             vectorIdToVector.put(id, vector)
             for (i <- 0 until tableNum) {
@@ -177,6 +174,9 @@ object HashTreeTest {
             val e = System.nanoTime()
             totalTime += e - s
             cnt += 1
+            if (cnt >= cap) {
+              return
+            }
           }
         }
 
