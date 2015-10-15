@@ -448,7 +448,11 @@ object HashTreeTest {
         for (i <- sortedDistances.indices) {
           sum += sortedGroundTruth(i)._2 / sortedDistances(i)._2
         }
-        sum / sortedDistances.length
+        if (sortedDistances.size > 0) {
+          sum / sortedDistances.length
+        } else {
+          0.0
+        }
       }
     }
     println(ratio/50)
