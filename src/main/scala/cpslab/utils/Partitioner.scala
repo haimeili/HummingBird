@@ -18,6 +18,7 @@ class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, hashLength: In
   extends Partitioner[K](1 << partitionBits) {
 
   val localitySensitiveHashing = new LSH(conf)
+  println(conf.atPath("cpslab.lsh.vectorDim"))
 
   override def getPartition(hashCode: K): Int = {
     val hashValueInInteger = hashCode.asInstanceOf[Int].hashCode()
