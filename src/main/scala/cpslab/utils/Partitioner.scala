@@ -3,6 +3,8 @@ package cpslab.utils
 import scala.reflect.ClassTag
 
 import cpslab.db.Partitioner
+import cpslab.deploy.LSHServer
+import cpslab.lsh.vector.SparseVector
 
 class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartitions) {
   override def getPartition(value: K): Int = {
@@ -10,12 +12,24 @@ class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartition
   }
 }
 
-class HashBitExtractingPartitioner[K](numBits: Int)
-  extends Partitioner[K](1 << (numBits + 1)) {
+class LocalitySensitivePartitioner[K](tableId: Int, hashLength: Int, partitionBits: Int)
+  extends Partitioner[K](1 << partitionBits) {
 
-  override def getPartition(value: K): Int = {
-    val objHashValue = value.asInstanceOf[Int].hashCode()
-    val partitionId = objHashValue >>> (32 - numBits)
-    partitionId
+  val localitySensitiveHashing = LSHServer.getLSHEngine
+
+  override def getPartition(hashCode: K): Int = {
+    val hashValueInInteger = hashCode.asInstanceOf[Int].hashCode()
+    //val partitionId = objHashValue >>> (32 - numBits)
+    //partitionId
+    //build vector
+    val vector = new Array[Int](32)
+    for (i <- 0 until 32) {
+      vector(i) = (hashValueInInteger & (1 << i)) >>> i
+    }
+    val index = vector.zipWithIndex.filter(_._1 != 0).map(_._2)
+    val values = vector.filter(_ != 0).map(_.toDouble)
+    val v = new SparseVector(0, 32, index, values)
+    //re locality-sensitive hashing
+    localitySensitiveHashing.calculateIndex(v, tableId)(0) >>> (32 - partitionBits)
   }
 }

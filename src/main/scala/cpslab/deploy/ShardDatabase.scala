@@ -11,7 +11,7 @@ import cpslab.db._
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
-import cpslab.utils.{HashPartitioner, Serializers}
+import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
 
 private[cpslab] object ShardDatabase extends DataSetLoader {
 
@@ -134,6 +134,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -142,7 +143,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new HashPartitioner[Int](numPartitions),
+            new LocalitySensitivePartitioner[Int](tableId, partitionBits, numPartitions),
             true,
             1,
             Serializers.scalaIntSerializer,
