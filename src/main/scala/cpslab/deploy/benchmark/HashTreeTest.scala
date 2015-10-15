@@ -141,7 +141,8 @@ object HashTreeTest {
   }
 
   val finishedWriteThreadCount = new AtomicInteger(0)
-  val existingID = new LinkedBlockingQueue[Int]()
+  val trainingIDs = new ListBuffer[Int]
+  val testIDs = new ListBuffer[Int]
 
   def testWriteThreadScalability(
     conf: Config,
@@ -167,7 +168,6 @@ object HashTreeTest {
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (id, size, indices, values) = Vectors.fromString(line)
-            existingID.add(id)
             val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
             val vector = new SparseVector(id, size, indices,
               values.map(_ / squareSum))
@@ -407,28 +407,12 @@ object HashTreeTest {
   }
 
 
-  def testAccuracy(
-     conf: Config,
-     requestNumberPerThread: Int,
-     threadNumber: Int): Unit = {
+  def testAccuracy(conf: Config): Unit = {
     import scala.collection.JavaConversions._
-    def getId(order: Int): Int = {
-      val iterator = existingID.iterator()
-      var stepCnt = 0
-      while (iterator.hasNext) {
-        val r = iterator.next()
-        stepCnt += 1
-        if (stepCnt >= order) {
-          return r
-        }
-      }
-      0
-    }
     var ratio = 0.0
-    for (testCnt <- 0 until 10) {
-      val order = Random.nextInt(existingID.size())
-      val id = getId(order)
-      val queryVector = vectorIdToVector.get(id)
+    for (testCnt <- 0 until 50) {
+      val order = Random.nextInt(testIDs.size)
+      val queryVector = vectorIdToVector.get(testIDs(order))
       println("query vector ID:" + queryVector.vectorId)
       val tableNum = conf.getInt("cpslab.lsh.tableNum")
       val mostK = conf.getInt("cpslab.lsh.k")
@@ -449,7 +433,7 @@ object HashTreeTest {
       println(sortedDistances.toList)
       //step 2: calculate the distance of the ground truth
       val groundTruth = new ListBuffer[(Int, Double)]
-      val itr = existingID.toList.distinct.iterator
+      val itr = trainingIDs.iterator
       while (itr.hasNext) {
         val vId = itr.next()
         val vector = vectorIdToVector.get(vId)
@@ -457,7 +441,6 @@ object HashTreeTest {
           groundTruth += vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
         }
       }
-
       val sortedGroundTruth = groundTruth.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(sortedDistances.length)
       println(sortedGroundTruth.toList)
       ratio += {
@@ -468,7 +451,34 @@ object HashTreeTest {
         sum / sortedDistances.length
       }
     }
-    println(ratio/10)
+    println(1.0 / (ratio/50))
+  }
+
+  def loadAccuracyTestFiles(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int]): Unit = {
+      for (file <- files; line <- Source.fromFile(file).getLines()) {
+        val (id, size, indices, values) = Vectors.fromString(line)
+        updateExistingID += id
+        val squareSum = math.sqrt(values.foldLeft(0.0) { case (sum, weight) => sum + weight * weight })
+        val vector = new SparseVector(id, size, indices,
+          values.map(_ / squareSum))
+        vectorIdToVector.put(id, vector)
+        for (i <- 0 until tableNum) {
+          vectorDatabase(i).put(id, true)
+        }
+      }
+    }
+
+    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
+    ShardDatabase.initializeMapDBHashMap(conf)
+    val trainingPath = conf.getString("cpslab.lsh.trainingPath")
+    val testPath = conf.getString("cpslab.lsh.testPath")
+    val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
+    val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
+    loadFiles(allTrainingFiles, trainingIDs)
+    loadFiles(allTestFiles, testIDs)
   }
 
   def main(args: Array[String]): Unit = {
@@ -477,47 +487,9 @@ object HashTreeTest {
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
-   /* testWriteThreadScalabilityOnheap(conf, requestPerThread, threadNumber)
-    while (finishedWriteThreadCount.get() < threadNumber) {
-      Thread.sleep(10000)
-    }
-    testReadThreadScalabilityOnheap(conf, requestNumberPerThread = requestPerThread,
-      threadNumber = threadNumber)*/
+    loadAccuracyTestFiles(conf)
 
-    /*testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
-    while (finishedWriteThreadCount.get() < threadNumber) {
-      Thread.sleep(10000)
-    }*/
-    //testReadThreadScalability(conf, requestNumberPerThread = requestPerThread,
-    //  threadNumber = threadNumber)
+    testAccuracy(conf)
 
-
-
-/*    if (args(1) == "async") {
-      asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
-    } else {
-      testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }*/
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
-
-    while (finishedWriteThreadCount.get() < threadNumber) {
-      Thread.sleep(1000)
-    }
-
-    testAccuracy(conf, requestPerThread, threadNumber)
-
-/*
-    testWriteThreadScalabilityWithBTree(conf, requestPerThread, threadNumber)
-
-    while (finishedWriteThreadCount.get() < threadNumber) {
-        Thread.sleep(1000)
-    }
-
-    println("======read performance======")
-    testReadThreadScalabilityBTree(conf, requestPerThread, threadNumber)
-
-    //while (finishedWriteThreadCount.get() < threadNumber) {
-      //Thread.sleep(10000)
-    //}*/
   }
 }
