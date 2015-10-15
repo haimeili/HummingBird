@@ -166,7 +166,7 @@ object HashTreeTest {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (id, size, indices, values) = Vectors.fromString1(line)
+            val (id, size, indices, values) = Vectors.fromString(line)
             existingID.add(id)
             val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
             val vector = new SparseVector(id, size, indices,
