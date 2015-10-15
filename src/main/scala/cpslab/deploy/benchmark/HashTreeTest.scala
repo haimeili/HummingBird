@@ -410,7 +410,8 @@ object HashTreeTest {
   def testAccuracy(conf: Config): Unit = {
     import scala.collection.JavaConversions._
     var ratio = 0.0
-    for (testCnt <- 0 until 50) {
+    var totalCnt = 50
+    for (testCnt <- 0 until totalCnt) {
       val order = Random.nextInt(testIDs.size)
       val queryVector = vectorIdToVector.get(testIDs(order))
       println("query vector ID:" + queryVector.vectorId)
@@ -451,11 +452,12 @@ object HashTreeTest {
         if (sortedDistances.size > 0) {
           sum / sortedDistances.length
         } else {
+          totalCnt -= 1
           0.0
         }
       }
     }
-    println(ratio/50)
+    println(ratio/totalCnt)
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
