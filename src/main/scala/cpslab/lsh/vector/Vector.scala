@@ -169,10 +169,10 @@ object Vectors {
       throw new Exception(s"cannot parse $inputString")
     }
     val Array(id, size) = stringArray(0).replace("(", "").split(",").map(_.toInt)
-    val indicesStringArray = stringArray(1).replace("]", "").split(",")
+    val indicesStringArray = stringArray(1).replace("]", "").split(",").filter(_ != "")
     val indices = if (indicesStringArray.nonEmpty) indicesStringArray.map(_.toInt) else
       new Array[Int](0)
-    val valueStringArray = stringArray(2).replace("])", "").split(",")
+    val valueStringArray = stringArray(2).replace("])", "").split(",").filter(_ != "")
     val values = if (valueStringArray.nonEmpty) valueStringArray.map(_.toDouble) else
       new Array[Double](0)
     (id, size, indices, values)
