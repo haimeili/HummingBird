@@ -11,10 +11,12 @@ private[lsh] class AngleHashFamily(
     vectorDim: Int,
     chainLength: Int) extends LSHHashFamily[AngleParameterSet] {
 
+  val rand = new Random(0)
+
   private def getNewUnitVector: SparseVector = {
     val values = {
-      val arr = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
-      arr.map(value => if (Random.nextInt(2) > 0) value else -1 * value)
+      val arr = (for (vectorDim <- 0 until vectorDim) yield rand.nextDouble()).toArray
+      arr.map(value => if (rand.nextInt(2) > 0) value else -1 * value)
     }
     val indices = values.zipWithIndex.filter{case (value, index) => value != 0}.map(_._2)
     //normailization
@@ -38,7 +40,7 @@ private[lsh] class AngleHashFamily(
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[AngleParameterSet]] = {
     val hashFamily = initHashFamily
-    val uniformRandomizer = new Random(System.currentTimeMillis())
+    val uniformRandomizer = new Random(1)
     val generatedHashChains = new Array[LSHTableHashChain[AngleParameterSet]](tableNum)
     for (tableId <- 0 until tableNum) {
       val hashFunctionChain = (0 until chainLength).map(_ =>
