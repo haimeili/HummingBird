@@ -446,12 +446,12 @@ object HashTreeTest {
       ratio += {
         var sum = 0.0
         for (i <- sortedDistances.indices) {
-          sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+          sum += sortedGroundTruth(i)._2 / sortedDistances(i)._2
         }
         sum / sortedDistances.length
       }
     }
-    println(1.0 / (ratio/50))
+    println(ratio/50)
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
@@ -484,8 +484,6 @@ object HashTreeTest {
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
-    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
-    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
     loadAccuracyTestFiles(conf)
 
