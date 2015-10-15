@@ -142,6 +142,7 @@ object HashTreeTest {
 
   val finishedWriteThreadCount = new AtomicInteger(0)
   val existingID = new LinkedBlockingQueue[Int]()
+
   def testWriteThreadScalability(
     conf: Config,
     requestNumberPerThread: Int,
@@ -185,16 +186,9 @@ object HashTreeTest {
         }
 
         override def run(): Unit = {
-          val random = new Random(Thread.currentThread().getName.hashCode)
-          val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+          //val random = new Random(Thread.currentThread().getName.hashCode)
+          val allFiles = Utils.buildFileListUnderDirectory(filePath)
           traverseFile(allFiles)
-          /*
-          for (i <- 0 until 20) {
-            vectorIdToVector.persist(i)
-          }
-          for (i <- 0 until tableNum; p <- 0 until 20) {
-            vectorDatabase(i).persist(p)
-          }*/
           println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
         }
@@ -499,11 +493,12 @@ object HashTreeTest {
 
 
 
-    if (args(1) == "async") {
+/*    if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }
+    }*/
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(1000)
