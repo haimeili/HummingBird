@@ -135,11 +135,11 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-    val confForPartitioner = conf.withFallback(ConfigFactory.parseString(
+    val confForPartitioner = ConfigFactory.parseString(
       """
         |cpslab.lsh.vectorDim=32
         |cpslab.lsh.tableNum=1
-      """.stripMargin))
+      """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
