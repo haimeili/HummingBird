@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import akka.actor._
-import com.typesafe.config.Config
+import com.typesafe.config.{ConfigFactory, Config}
 import cpslab.db._
 import cpslab.deploy.benchmark.DataSetLoader
 import cpslab.lsh.LSH
@@ -135,6 +135,11 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val confForPartitioner = conf.withFallback(ConfigFactory.parseString(
+      """
+        |cpslab.lsh.vectorDim=32
+        |cpslab.lsh.tableNum=1
+      """.stripMargin))
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -143,7 +148,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new LocalitySensitivePartitioner[Int](tableId, partitionBits, numPartitions),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits, numPartitions),
             true,
             1,
             Serializers.scalaIntSerializer,

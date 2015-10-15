@@ -2,8 +2,10 @@ package cpslab.utils
 
 import scala.reflect.ClassTag
 
+import com.typesafe.config.Config
 import cpslab.db.Partitioner
 import cpslab.deploy.LSHServer
+import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 
 class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartitions) {
@@ -12,10 +14,10 @@ class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartition
   }
 }
 
-class LocalitySensitivePartitioner[K](tableId: Int, hashLength: Int, partitionBits: Int)
+class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, hashLength: Int, partitionBits: Int)
   extends Partitioner[K](1 << partitionBits) {
 
-  val localitySensitiveHashing = LSHServer.getLSHEngine
+  val localitySensitiveHashing = new LSH(conf)
 
   override def getPartition(hashCode: K): Int = {
     val hashValueInInteger = hashCode.asInstanceOf[Int].hashCode()
