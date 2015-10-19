@@ -11,7 +11,7 @@ References:
 
 4. Locality sensitive hashing scheme based on dyanmic collision counting
 
-5.Approximate similarity search for online multimedia services on distributed CPU---GPU platforms
+5. Approximate similarity search for online multimedia services on distributed CPU---GPU platforms
 
 6. Fast GPU-based locality sensitive hashing for k-nearest neighbor computation
 
