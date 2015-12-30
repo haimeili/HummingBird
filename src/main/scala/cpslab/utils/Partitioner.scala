@@ -14,7 +14,8 @@ class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartition
   }
 }
 
-class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, hashLength: Int, partitionBits: Int)
+class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, hashLength: Int,
+                                      partitionBits: Int)
   extends Partitioner[K](1 << partitionBits) {
 
   val localitySensitiveHashing = new LSH(conf)
