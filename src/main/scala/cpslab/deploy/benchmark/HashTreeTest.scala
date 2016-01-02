@@ -110,7 +110,7 @@ object HashTreeTest {
   def asyncTestWriteThreadScalability (
     conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
     //implicit val executorContext = ExecutionContext.fromExecutor(
-    //  new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
+    // new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
     initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
@@ -168,7 +168,8 @@ object HashTreeTest {
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
             val (id, size, indices, values) = Vectors.fromString(line)
-            val squareSum = math.sqrt(values.foldLeft(0.0){case (sum, weight) => sum + weight * weight})
+            val squareSum = math.sqrt(values.foldLeft(0.0){
+              case (sum, weight) => sum + weight * weight} )
             val vector = new SparseVector(id, size, indices,
               values.map(_ / squareSum))
             val s = System.nanoTime()
@@ -439,10 +440,12 @@ object HashTreeTest {
         val vId = itr.next()
         val vector = vectorIdToVector.get(vId)
         if (vector.vectorId != queryVector.vectorId) {
-          groundTruth += vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+          groundTruth +=
+            vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
         }
       }
-      val sortedGroundTruth = groundTruth.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(sortedDistances.length)
+      val sortedGroundTruth = groundTruth.sortWith {
+        case (d1, d2) => d1._2 > d2._2 }.take(sortedDistances.length)
       println(sortedGroundTruth.toList)
       ratio += {
         var sum = 0.0
@@ -466,7 +469,8 @@ object HashTreeTest {
       for (file <- files; line <- Source.fromFile(file).getLines()) {
         val (id, size, indices, values) = Vectors.fromString(line)
         updateExistingID += id
-        val squareSum = math.sqrt(values.foldLeft(0.0) { case (sum, weight) => sum + weight * weight })
+        val squareSum = math.sqrt(values.foldLeft(0.0) {
+          case (sum, weight) => sum + weight * weight })
         val vector = new SparseVector(id, size, indices,
           values.map(_ / squareSum))
         vectorIdToVector.put(id, vector)
@@ -490,10 +494,21 @@ object HashTreeTest {
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
+    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
+    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
-    loadAccuracyTestFiles(conf)
+    //loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)
+    //testAccuracy(conf)
+
+    initializeActorBasedHashTree(conf)
+
+    ShardDatabase.initVectorDatabaseFromFS(
+      conf.getString("cpslab.lsh.inputFilePath"),
+      conf.getInt("cpslab.lsh.benchmark.cap"),
+      conf.getInt("cpslab.lsh.tableNum"))
+
+    testReadThreadScalability(conf, requestPerThread, threadNumber)
 
   }
 }
