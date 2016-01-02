@@ -111,7 +111,7 @@ object HashTreeTest {
     conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     // new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
-    initializeActorBasedHashTree(conf)
+    //initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -503,10 +503,15 @@ object HashTreeTest {
 
     initializeActorBasedHashTree(conf)
 
-    ShardDatabase.initVectorDatabaseFromFS(
+    /*ShardDatabase.initVectorDatabaseFromFS(
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.benchmark.cap"),
-      conf.getInt("cpslab.lsh.tableNum"))
+      conf.getInt("cpslab.lsh.tableNum"))*/
+    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(10000)
+    }
 
     testReadThreadScalability(conf, requestPerThread, threadNumber)
 
