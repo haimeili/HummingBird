@@ -507,13 +507,18 @@ object HashTreeTest {
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
+
+
+    /*
     testWriteThreadScalability(conf, requestPerThread, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
     println("======read performance======")
-    testReadThreadScalability(conf, requestPerThread, threadNumber)
+    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
+
+    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
 
   }
 }
