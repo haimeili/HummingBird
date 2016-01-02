@@ -121,15 +121,17 @@ object HashTreeTest {
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
-      val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        cnt += 1
-        if (cnt > cap * threadNumber) {
-          return
+      while (cnt < cap * threadNumber) {
+        val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+        for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+          cnt += 1
+          if (cnt > cap * threadNumber) {
+            return
+          }
+          val (id, size, indices, values) = Vectors.fromString1(line)
+          val vector = new SparseVector(id, size, indices, values)
+          vectorIdToVector.put(id, vector)
         }
-        val (id, size, indices, values) = Vectors.fromString1(line)
-        val vector = new SparseVector(id, size, indices, values)
-        vectorIdToVector.put(id, vector)
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
