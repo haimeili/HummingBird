@@ -501,13 +501,13 @@ object HashTreeTest {
 
     //testAccuracy(conf)
 
-    initializeActorBasedHashTree(conf)
+    //initializeActorBasedHashTree(conf)
 
     /*ShardDatabase.initVectorDatabaseFromFS(
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
-    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    testWriteThreadScalability(conf, requestPerThread, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
