@@ -506,9 +506,10 @@ object HashTreeTest {
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
+    /*
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)
+    testAccuracy(conf)*/
 
     //initializeActorBasedHashTree(conf)
 
@@ -528,12 +529,12 @@ object HashTreeTest {
     testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
 
-    /*
+
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }*/
+    }
 
   }
 }
