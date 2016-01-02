@@ -111,7 +111,7 @@ object HashTreeTest {
     conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     // new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
-    //initializeActorBasedHashTree(conf)
+    initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
