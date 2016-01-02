@@ -256,7 +256,7 @@ object HashTreeTest {
         override def run(): Unit = {
           val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(cap * requestNumberPerThread)
+            val interestVectorId = Random.nextInt(cap * threadNumber)
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
