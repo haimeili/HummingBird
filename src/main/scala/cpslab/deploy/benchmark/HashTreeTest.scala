@@ -170,7 +170,7 @@ object HashTreeTest {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val squareSum = math.sqrt(values.foldLeft(0.0){
               case (sum, weight) => sum + weight * weight} )
-            val vector = new SparseVector(base * requestNumberPerThread + cnt, size, indices,
+            val vector = new SparseVector(base * cap + cnt, size, indices,
               values.map(_ / squareSum))
             val s = System.nanoTime()
             vectorIdToVector.put(vector.vectorId, vector)
