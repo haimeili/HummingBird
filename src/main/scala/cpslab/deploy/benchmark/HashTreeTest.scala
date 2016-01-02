@@ -18,7 +18,7 @@ import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 import cpslab.lsh.{LSH, LocalitySensitiveHasher}
-import cpslab.utils.{HashPartitioner, Serializers}
+import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
 
 object HashTreeTest {
 
@@ -60,6 +60,11 @@ object HashTreeTest {
     val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val confForPartitioner = ConfigFactory.parseString(
+      """
+        |cpslab.lsh.vectorDim=32
+      """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -69,7 +74,8 @@ object HashTreeTest {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new HashPartitioner[Int](numPartitions),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits,
+              partitionBits),
             true,
             1,
             Serializers.scalaIntSerializer,
@@ -121,17 +127,15 @@ object HashTreeTest {
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
-      while (cnt < cap * threadNumber) {
-        val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-        for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-          cnt += 1
-          if (cnt > cap * threadNumber) {
-            return
-          }
-          val (id, size, indices, values) = Vectors.fromString1(line)
-          val vector = new SparseVector(id, size, indices, values)
-          vectorIdToVector.put(id, vector)
+      val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+        cnt += 1
+        if (cnt > cap * threadNumber) {
+          return
         }
+        val (id, size, indices, values) = Vectors.fromString1(line)
+        val vector = new SparseVector(id, size, indices, values)
+        vectorIdToVector.put(id, vector)
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
