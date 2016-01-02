@@ -167,15 +167,15 @@ object HashTreeTest {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (id, size, indices, values) = Vectors.fromString1(line)
+            val (_, size, indices, values) = Vectors.fromString1(line)
             val squareSum = math.sqrt(values.foldLeft(0.0){
               case (sum, weight) => sum + weight * weight} )
-            val vector = new SparseVector(id, size, indices,
+            val vector = new SparseVector(base * requestNumberPerThread + cnt, size, indices,
               values.map(_ / squareSum))
             val s = System.nanoTime()
-            vectorIdToVector.put(id, vector)
+            vectorIdToVector.put(vector.vectorId, vector)
             for (i <- 0 until tableNum) {
-              vectorDatabase(i).put(id, true)
+              vectorDatabase(i).put(vector.vectorId, true)
             }
             val e = System.nanoTime()
             totalTime += e - s
@@ -256,7 +256,7 @@ object HashTreeTest {
         override def run(): Unit = {
           val startTime = System.nanoTime()
           for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(cap)
+            val interestVectorId = Random.nextInt(cap * requestNumberPerThread)
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
             }
