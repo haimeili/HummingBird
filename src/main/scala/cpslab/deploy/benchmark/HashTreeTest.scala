@@ -187,8 +187,8 @@ object HashTreeTest {
         }
 
         override def run(): Unit = {
-          //val random = new Random(Thread.currentThread().getName.hashCode)
-          val allFiles = Utils.buildFileListUnderDirectory(filePath)
+          val random = new Random(Thread.currentThread().getName.hashCode)
+          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
           println(cap / (totalTime / 1000000000))
           finishedWriteThreadCount.incrementAndGet()
