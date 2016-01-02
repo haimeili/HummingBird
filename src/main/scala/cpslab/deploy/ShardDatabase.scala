@@ -136,8 +136,9 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val confForPartitioner = ConfigFactory.parseString(
-      """
-        |cpslab.lsh.vectorDim=32
+      s"""
+         |cpslab.lsh.vectorDim=32
+         |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
@@ -147,8 +148,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits,
-              partitionBits),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
             true,
             1,
             Serializers.scalaIntSerializer,

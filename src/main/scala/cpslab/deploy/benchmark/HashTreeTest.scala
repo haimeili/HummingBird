@@ -62,8 +62,9 @@ object HashTreeTest {
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val confForPartitioner = ConfigFactory.parseString(
-      """
+      s"""
         |cpslab.lsh.vectorDim=32
+        |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
@@ -74,8 +75,7 @@ object HashTreeTest {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits,
-              partitionBits),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
             true,
             1,
             Serializers.scalaIntSerializer,
