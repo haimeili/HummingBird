@@ -512,7 +512,7 @@ object HashTreeTest {
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
-
+    println("======read performance======")
     testReadThreadScalability(conf, requestPerThread, threadNumber)
 
   }
