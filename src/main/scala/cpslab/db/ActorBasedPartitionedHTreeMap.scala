@@ -107,9 +107,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val h: Int = hash(key)
     val partition: Int = partitioner.getPartition(
       (
-        if (hasher.isInstanceOf[LocalitySensitiveHasher])
+        if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
           h
-        else {
+        } else {
           key
         }
       ).asInstanceOf[K])
