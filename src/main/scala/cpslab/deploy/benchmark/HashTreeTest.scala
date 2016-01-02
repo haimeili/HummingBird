@@ -451,7 +451,7 @@ object HashTreeTest {
         }
       }
       val sortedGroundTruth = groundTruth.sortWith {
-        case (d1, d2) => d1._2 > d2._2 }.take(sortedDistances.length)
+        case (d1, d2) => d1._2 > d2._2 }.take(mostK)
       println(sortedGroundTruth.toList)
       ratio += {
         var sum = 0.0
@@ -465,6 +465,7 @@ object HashTreeTest {
           0.0
         }
       }
+      ratio += math.max(mostK - sortedDistances.length, 0)
     }
     println(ratio/totalCnt)
   }
@@ -488,7 +489,9 @@ object HashTreeTest {
 
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
+
     ShardDatabase.initializeMapDBHashMap(conf)
+
     val trainingPath = conf.getString("cpslab.lsh.trainingPath")
     val testPath = conf.getString("cpslab.lsh.testPath")
     val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
