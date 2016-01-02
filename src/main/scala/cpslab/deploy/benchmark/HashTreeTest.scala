@@ -518,7 +518,11 @@ object HashTreeTest {
     println("======read performance======")
     testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
-    asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    if (args(1) == "async") {
+      asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+    } else {
+      testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    }
 
   }
 }
