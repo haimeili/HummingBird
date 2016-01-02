@@ -133,7 +133,7 @@ object HashTreeTest {
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      Props(new MonitorActor(Math.min(cap * threadNumber, cnt))),
+      Props(new MonitorActor(cap * threadNumber)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
