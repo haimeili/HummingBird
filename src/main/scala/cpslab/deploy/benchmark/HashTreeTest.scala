@@ -50,11 +50,12 @@ object HashTreeTest {
         if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000000000))
           println("===SEGMENTS===")
-          for (tableId <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
-            println(s"Table $tableId")
-            for (segmentId <- ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId).indices) {
+          for (partitionId <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
+            println(s"Partition $partitionId")
+            for (segmentId <- ActorBasedPartitionedHTreeMap.histogramOfSegments(partitionId).
+              indices) {
               print(s"$segmentId:" +
-                s"${ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(segmentId)}\t")
+                s"${ActorBasedPartitionedHTreeMap.histogramOfSegments(partitionId)(segmentId)}\t")
             }
             println()
           }
