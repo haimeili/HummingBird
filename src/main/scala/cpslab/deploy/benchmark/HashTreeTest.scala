@@ -49,6 +49,25 @@ object HashTreeTest {
       case Ticket =>
         if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000000000))
+          println("===SEGMENTS===")
+          for (tableId <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
+            println(s"Table $tableId")
+            for (segmentId <- ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId).indices) {
+              print(s"$segmentId:" +
+                s"${ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(segmentId)}\t")
+            }
+          }
+          println()
+          println("===TABLES===")
+          for (tableId <- ActorBasedPartitionedHTreeMap.histogramOfPartitions.indices) {
+            println(s"Table $tableId")
+            for (partitionId <-
+                 ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId).indices) {
+              print(s"$partitionId:" +
+                s"${ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partitionId)}\t")
+            }
+          }
+          println()
         }
     }
   }
@@ -111,6 +130,10 @@ object HashTreeTest {
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Int](
+        math.pow(2, 32 - bucketBits).toInt)
+      ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId) = new Array[Int](
+        math.pow(2, partitionBits).toInt)
     }
     vectorIdToVector = initializeIdToVectorMap(conf)
   }
