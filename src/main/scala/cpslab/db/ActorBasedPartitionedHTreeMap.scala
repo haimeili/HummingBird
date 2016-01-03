@@ -114,7 +114,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           key
         }
       ).asInstanceOf[K])
-    val segmentId = h >>> 28
+    val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       actors(partition)(segmentId) ! Tuple2(value, h)
     } else {

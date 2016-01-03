@@ -10,6 +10,7 @@ import cpslab.lsh.LocalitySensitiveHasher;
 import cpslab.lsh.vector.SparseVector;
 import cpslab.utils.Serializers;
 
+import java.util.Map.Entry;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
-import java.util.Map.Entry;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class PartitionedHTreeMap<K, V>
@@ -30,6 +30,8 @@ public class PartitionedHTreeMap<K, V>
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
   public static int BUCKET_OVERFLOW = 4;
+
+  public static int BUCKET_LENGTH = 28;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
@@ -432,7 +434,7 @@ public class PartitionedHTreeMap<K, V>
           final Object key) {
     //TODO: Finish getSimilar
     final int h = hash((K) key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
 
@@ -473,7 +475,7 @@ public class PartitionedHTreeMap<K, V>
   public V get(final Object o) {
     if (o == null) return null;
     final int h = hash((K) o);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition((K) o);
     LinkedNode<K, V> ln;
     try {
@@ -543,7 +545,7 @@ public class PartitionedHTreeMap<K, V>
   public V getPeek(final Object key) {
     if (key == null) return null;
     final int h = hash((K) key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition((K) key);
 
     V ret;
@@ -562,7 +564,7 @@ public class PartitionedHTreeMap<K, V>
         try {
           persistLock.lock();
           ln = fetchFromPersistedStorage(key, partition,
-                  partitionRootRec.get(partition)[28], h);
+                  partitionRootRec.get(partition)[seg], h);
 
         } finally {
           persistLock.unlock();
@@ -1046,7 +1048,7 @@ public class PartitionedHTreeMap<K, V>
 
     V ret;
     final int h = hash(key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
     initPartitionIfNecessary(partition);
@@ -1077,7 +1079,7 @@ public class PartitionedHTreeMap<K, V>
    * @return null if the corresponding kv pair doesn't exist, otherwise return the existing value
    */
   protected V putInner(K key, V value, int h, int partition) {
-    int seg = h>>>28;
+    int seg = h>>> BUCKET_LENGTH;
     long dirRecid = partitionRootRec.get(partition)[seg];
     Engine engine = engines.get(partition);
 
@@ -1217,7 +1219,7 @@ public class PartitionedHTreeMap<K, V>
     V ret;
 
     final int h = hash((K) key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition((K) key);
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();
@@ -1231,7 +1233,7 @@ public class PartitionedHTreeMap<K, V>
 
   protected V removeInternal(Object key, int partition, int h) {
     Engine engine = engines.get(partition);
-    int seg = h >>> 28;
+    int seg = h >>> BUCKET_LENGTH;
     final long[] dirRecids = new long[4];
     int level = 3;
     dirRecids[level] = partitionRootRec.get(partition)[seg];
@@ -1654,7 +1656,7 @@ public class PartitionedHTreeMap<K, V>
     }
 
     private LinkedNode[] advance(int lastHash) {
-      int segment = lastHash >>> 28;
+      int segment = lastHash >>> BUCKET_LENGTH;
       int partitionId = partition;
       Engine engine = engines.get(partitionId);
       //two phases, first find old item and increase hash
@@ -1696,7 +1698,7 @@ public class PartitionedHTreeMap<K, V>
 
     private LinkedNode[] findNextLinkedNode(int hash) {
       //second phase, start search from increased hash to find next items
-      for (int segment = Math.max(hash >>> 28, lastSegment); segment < SEG; segment++) {
+      for (int segment = Math.max(hash >>> BUCKET_LENGTH, lastSegment); segment < SEG; segment++) {
         Engine engine = engines.get(partition);
         if (partitionRamLock.containsKey(partition)) {
           final Lock lock = partitionRamLock.get(partition)[segment].readLock();
@@ -1874,14 +1876,14 @@ public class PartitionedHTreeMap<K, V>
     if (key == null || value == null) throw new NullPointerException();
 
     final int h = hash(key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(key);
 
     V ret;
 
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();
-      LinkedNode<K, V> ln = PartitionedHTreeMap.this.getInner(key, h >>> 28, h, partition);
+      LinkedNode<K, V> ln = PartitionedHTreeMap.this.getInner(key, h >>> BUCKET_LENGTH, h, partition);
       if (ln == null)
         ret = put(key, value);
       else
@@ -1901,12 +1903,12 @@ public class PartitionedHTreeMap<K, V>
     boolean ret;
 
     final int h = hash((K) key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition((K) key);
 
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();
-      LinkedNode otherVal = getInner(key, h >>> 28, h, partition);
+      LinkedNode otherVal = getInner(key, h >>> BUCKET_LENGTH, h, partition);
       ret = (otherVal != null && valueSerializer.equals((V) otherVal.value, (V) value));
       if (ret) {
         removeInternal(key, partition, h);
@@ -1926,7 +1928,7 @@ public class PartitionedHTreeMap<K, V>
     boolean ret;
 
     final int h = hash(key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(key);
 
     partitionRamLock.get(partition)[seg].writeLock().lock();
@@ -1948,12 +1950,12 @@ public class PartitionedHTreeMap<K, V>
       throw new NullPointerException();
     V ret;
     final int h = hash(key);
-    final int seg = h >>> 28;
+    final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(key);
 
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();
-      if (getInner(key, h >>> 28, h, partition) != null)
+      if (getInner(key, seg, h, partition) != null)
         ret = putInner(key, value, h, partition);
       else
         ret = null;

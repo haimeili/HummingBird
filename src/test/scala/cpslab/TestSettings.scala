@@ -6,6 +6,7 @@ private[cpslab] object TestSettings {
   private val appConf = ConfigFactory.parseString(
     s"""
        |cpslab.lsh.plsh.benchmark.expDuration=0
+       |cpslab.lsh.partitionBits=1
        |cpslab.lsh.benchmark.replica=1
        |cpslab.lsh.benchmark.expDuration=30000
        |cpslab.lsh.benchmark.offset=0

@@ -61,6 +61,7 @@ object HashTreeTest {
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
         |cpslab.lsh.vectorDim=32
@@ -106,6 +107,7 @@ object HashTreeTest {
             ramThreshold)
       }
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    PartitionedHTreeMap.BUCKET_LENGTH = bucketBits
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
