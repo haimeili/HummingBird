@@ -129,11 +129,15 @@ object HashTreeTest {
     PartitionedHTreeMap.BUCKET_LENGTH = bucketBits
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     ActorBasedPartitionedHTreeMap.histogramOfPartitions = new Array[Array[Int]](tableNum)
-    ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Int]](tableNum)
+    ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Array[Int]]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
-      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Int](
-        math.pow(2, 32 - bucketBits).toInt)
+      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Array[Int]](
+        math.pow(2, partitionBits).toInt)
+      for (partition <- 0 until math.pow(2, partitionBits).toInt) {
+        ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(partition) = new Array[Int](
+          math.pow(2, 32 - bucketBits).toInt)
+      }
       ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId) = new Array[Int](
         math.pow(2, partitionBits).toInt)
     }

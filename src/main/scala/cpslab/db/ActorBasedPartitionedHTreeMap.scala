@@ -120,7 +120,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(segmentId) += 1
+      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(partition)(segmentId) += 1
       ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partition) += 1
     }
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
@@ -136,7 +136,7 @@ object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
   var tableNum: Int = 0
 
-  var histogramOfSegments: Array[Array[Int]] = null
+  var histogramOfSegments: Array[Array[Array[Int]]] = null
     //new Array[Int](math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt)
   var histogramOfPartitions: Array[Array[Int]] = null
 
