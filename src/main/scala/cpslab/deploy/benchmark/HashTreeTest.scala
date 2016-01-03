@@ -56,9 +56,9 @@ object HashTreeTest {
               print(s"$segmentId:" +
                 s"${ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(segmentId)}\t")
             }
+            println()
           }
-          println()
-          println("===TABLES===")
+          println("===PARTITIONS===")
           for (tableId <- ActorBasedPartitionedHTreeMap.histogramOfPartitions.indices) {
             println(s"Table $tableId")
             for (partitionId <-
@@ -66,8 +66,8 @@ object HashTreeTest {
               print(s"$partitionId:" +
                 s"${ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partitionId)}\t")
             }
+            println()
           }
-          println()
         }
     }
   }
