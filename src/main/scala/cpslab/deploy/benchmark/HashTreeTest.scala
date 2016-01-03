@@ -128,6 +128,8 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     PartitionedHTreeMap.BUCKET_LENGTH = bucketBits
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
+    ActorBasedPartitionedHTreeMap.histogramOfPartitions = new Array[Array[Int]](tableNum)
+    ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Int]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
       ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Int](
