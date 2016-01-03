@@ -57,7 +57,7 @@ object HashTreeTest {
               println(s"Partition $partitionId")
               val partitionTable =
                 ActorBasedPartitionedHTreeMap.histogramOfSegments(tableID)(partitionId)
-              for (segmendId <- partitionTable) {
+              for (segmendId <- partitionTable.indices) {
                 print(s"$segmendId:${partitionTable(segmendId)}\t")
               }
             }
