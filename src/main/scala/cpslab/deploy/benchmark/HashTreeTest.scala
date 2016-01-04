@@ -493,16 +493,16 @@ object HashTreeTest {
       ratio += {
         var sum = 0.0
         for (i <- sortedDistances.indices) {
-          sum += sortedGroundTruth(i)._2 / sortedDistances(i)._2
+          sum += sortedDistances(i)._2 /sortedGroundTruth(i)._2
+          //sortedGroundTruth(i)._2 / sortedDistances(i)._2
         }
+        //sum += math.max(mostK - sortedDistances.length, 0)
         if (sortedDistances.size > 0) {
-          sum / sortedDistances.length
+          sum / sortedGroundTruth.length
         } else {
-          totalCnt -= 1
-          0.0
+          0
         }
       }
-      ratio += math.max(mostK - sortedDistances.length, 0)
     }
     println(ratio/totalCnt)
   }
@@ -543,10 +543,10 @@ object HashTreeTest {
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
-    /*
+
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)*/
+    testAccuracy(conf)
 
     //initializeActorBasedHashTree(conf)
 
@@ -566,12 +566,12 @@ object HashTreeTest {
     testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
 
-
+/*
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }
+    }*/
 
   }
 }
