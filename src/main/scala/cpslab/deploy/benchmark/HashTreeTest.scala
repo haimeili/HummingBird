@@ -48,6 +48,7 @@ object HashTreeTest {
         }
       case Ticket =>
         if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
+          println(s"total number of receivedActors: ${receivedActors.size}")
           println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000000000))
           println("===SEGMENTS===")
           for (tableID <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
