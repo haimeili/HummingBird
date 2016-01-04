@@ -500,8 +500,8 @@ public class PartitionedHTreeMap<K, V>
         }
       }
     } catch (NullPointerException npe) {
-      //npe.printStackTrace();
-      //System.out.println("fetch null at partition " + partition + ", at key " + o);
+      npe.printStackTrace();
+      System.out.println("fetch null at partition " + partition + ", at key " + o);
       return null;
     }
 

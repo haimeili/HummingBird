@@ -120,6 +120,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
+      //not thread-safe
       ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(partition)(segmentId) += 1
       ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partition) += 1
     }
