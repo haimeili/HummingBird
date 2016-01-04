@@ -500,6 +500,7 @@ object HashTreeTest {
         if (sortedDistances.size > 0) {
           sum / sortedGroundTruth.length
         } else {
+          totalCnt -= 1
           0
         }
       }
