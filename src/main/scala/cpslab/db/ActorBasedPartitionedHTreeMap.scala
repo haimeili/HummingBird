@@ -114,6 +114,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
           key
         }
       ).asInstanceOf[K])
+    if (partition < 0) {
+      println(s"partition is less than 0 in table $tableId")
+    }
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       //if MainTable
       partition = math.abs(partition)
