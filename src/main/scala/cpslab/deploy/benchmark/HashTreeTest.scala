@@ -499,9 +499,9 @@ object HashTreeTest {
         }
         //sum += math.max(mostK - sortedDistances.length, 0)
         if (sortedDistances.size > 0) {
-          sum / sortedGroundTruth.length
+          sum / sortedDistances.length
         } else {
-          totalCnt -= 1
+          //totalCnt -= 1
           0
         }
       }
