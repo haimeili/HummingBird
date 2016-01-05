@@ -538,11 +538,11 @@ object HashTreeTest {
     LSHServer.lshEngine = new LSH(conf)
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
-/*
+
 
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)*/
+    testAccuracy(conf)
 
     //initializeActorBasedHashTree(conf)
 
@@ -561,12 +561,12 @@ object HashTreeTest {
     println("======read performance======")
     testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
-
+/*
 
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
     } else {
       testWriteThreadScalability(conf, requestPerThread, threadNumber)
-    }
+    }*/
   }
 }
