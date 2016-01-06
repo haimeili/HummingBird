@@ -21,6 +21,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
+import static cpslab.db.PartitionedHTreeMap.*;
+
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class PartitionedHTreeMap<K, V>
         extends AbstractMap<K, V>
@@ -824,13 +826,18 @@ public class PartitionedHTreeMap<K, V>
    * @return negative -offset if the slot hasn't been occupied, positive offset if the slot is set
    */
   protected static final int dirOffsetFromSlot(int[] dir, int slot) {
-    if (CC.ASSERT && slot > 127)
+    if (CC.ASSERT && slot > DIRECTORY_NODE_SIZE - 1)
       throw new DBException.DataCorruption("slot too high");
     //Nan's comments below
-    //the bitmap is divided into 4 * 32 bits, the highest two bits indicate which range
+    //the bitmap is divided into BITMAP_SIZE * 32 bits, the highest few bits indicate which range
     //this slot belongs to
-    int bitmapRange = slot >>> 5;
-    int slotWithinRange = slot & 31;
+    int rangeDecidingBits = NUM_BITS_PER_COMPARISON - (int) (Math.log(BITMAP_SIZE) / Math.log(2));
+    int bitmapRange = 0;
+    if (BITMAP_SIZE > 1) {
+      bitmapRange = slot >>> rangeDecidingBits;
+    }
+    int slotWithinRange = slot & (int)(Math.pow(2, rangeDecidingBits) - 1);
+
     //check if bit at given slot is set
     int isSet = ((dir[bitmapRange] >>> (slotWithinRange)) & 1);
     isSet <<= 1; //multiply by two, so it is usable in multiplication
@@ -849,8 +856,10 @@ public class PartitionedHTreeMap<K, V>
     int maskForBitsBeforeSlots = (1 << (slotWithinRange)) - 1;
     //Nan's comments below
     //count how many slots have been occupied in dir[dirPos]
-    //the first 4 * 32 bits in the dir node are bitmap (where 4+ comes from)
-    offset += 4 + Integer.bitCount(dir[bitmapRange] & maskForBitsBeforeSlots);
+    //the first BITMAP_SIZE * 32 bits in the dir node are bitmap (where BITMAP_SIZE+ comes from)
+    // the second item is calculating how many bits have been occupied before this slot
+    // within the bitmap
+    offset += BITMAP_SIZE + Integer.bitCount(dir[bitmapRange] & maskForBitsBeforeSlots);
 
     //turn into negative value if bit is not set, do not use conditions
     //Nan's comments below
