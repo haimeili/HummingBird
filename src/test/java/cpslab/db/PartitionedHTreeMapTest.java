@@ -20,6 +20,7 @@ public class PartitionedHTreeMapTest {
   public static void onlyOnce() {
     try {
       tempDirFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()));
+      PartitionedHTreeMap.updateDirectoryNodeSize(128);
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -43,7 +43,7 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
         Executors.newCachedThreadPool(),
         true,
         Int.MaxValue)
-
+    PartitionedHTreeMap.updateDirectoryNodeSize(128)
   }
 
   test("write the vector correctly") {
