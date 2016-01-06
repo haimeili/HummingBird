@@ -150,7 +150,5 @@ object ActorBasedPartitionedHTreeMap {
   var tableNum: Int = 0
 
   var histogramOfSegments: Array[Array[Array[Int]]] = null
-    //new Array[Int](math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt)
   var histogramOfPartitions: Array[Array[Int]] = null
-
 }

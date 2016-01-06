@@ -30,8 +30,12 @@ public class PartitionedHTreeMap<K, V>
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
   public static int BUCKET_OVERFLOW = 4;
-
   public static int BUCKET_LENGTH = 28;
+
+  private static int DIRECTORY_NODE_SIZE = 128;
+  private static int NUM_BITS_PER_COMPARISON = 7;
+  private static int BITMAP_SIZE = 128 / 32;
+  private static int MAX_TREE_LEVEL = PartitionedHTreeMap.BUCKET_LENGTH / NUM_BITS_PER_COMPARISON - 1;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
@@ -188,32 +192,37 @@ public class PartitionedHTreeMap<K, V>
       int[] c = (int[]) value;
 
       if (CC.ASSERT) {
-        int len = 4 +
-                Integer.bitCount(c[0]) +
-                Integer.bitCount(c[1]) +
-                Integer.bitCount(c[2]) +
-                Integer.bitCount(c[3]);
 
+        //4 is the bitmap, Integer.bitCount(c[0]) to Integer.bitCount(c[3]) are counting the real
+        // data
+        int totalDataBits = 0;
+        for (int i = 0; i < BITMAP_SIZE; i++) {
+          totalDataBits += Integer.bitCount(c[i]);
+        }
+
+        int len = BITMAP_SIZE + totalDataBits;
+        
         if (len != c.length)
           throw new DBException.DataCorruption("bitmap!=len");
       }
 
       //write bitmaps
-      out2.writeInt(c[0]);
-      out2.writeInt(c[1]);
-      out2.writeInt(c[2]);
-      out2.writeInt(c[3]);
+      for (int i = 0; i < BITMAP_SIZE; i++) {
+        out2.writeInt(c[i]);
+      }
 
-      if (c.length == 4)
+      if (c.length == BITMAP_SIZE) {
         return;
+      }
 
-      out2.packLong((((long) c[4]) << 1) | 1L);
-      for (int i = 5; i < c.length; i++) {
+      out2.packLong((((long) c[BITMAP_SIZE]) << 1) | 1L);
+      for (int i = BITMAP_SIZE + 1; i < c.length; i++) {
         out2.packLong(c[i]);
       }
     }
 
     private void serializeLong(DataIO.DataOutputByteArray out, Object value) throws IOException {
+      /*
       long[] c = (long[]) value;
 
       if (CC.ASSERT) {
@@ -233,7 +242,8 @@ public class PartitionedHTreeMap<K, V>
       out.packLong(c[2] << 1);
       for (int i = 3; i < c.length; i++) {
         out.packLong(c[i]);
-      }
+      }*/
+      throw new IOException("PartitionedHTreeMap does not support serializeLong for now");
     }
 
 
@@ -245,40 +255,28 @@ public class PartitionedHTreeMap<K, V>
       //to save memory zero values are skipped,
       //there is bitmap at first 16 bytes, each non-zero long has bit set
       //to determine offset one must traverse bitmap and count number of bits set
-      int bitmap1 = in.readInt();
-      int bitmap2 = in.readInt();
-      int bitmap3 = in.readInt();
-      int bitmap4 = in.readInt();
-      int len = Integer.bitCount(bitmap1) + Integer.bitCount(bitmap2) + Integer.bitCount(bitmap3) +
-              Integer.bitCount(bitmap4);
+      int[] bitmaps = new int[BITMAP_SIZE];
+      int len = 0;
+      for (int i = 0; i < BITMAP_SIZE; i++) {
+        bitmaps[i] = in.readInt();
+        len += Integer.bitCount(bitmaps[i]);
+      }
 
       if (len == 0) {
-        return new int[4];
+        return new int[BITMAP_SIZE];
       }
 
       long firstVal = in2.unpackLong();
 
-      if ((firstVal & 1) == 0) {
-        //return longs
-        long[] ret = new long[2 + len];
-        ret[0] = ((long) bitmap1 << 32) | (bitmap2 & 0xFFFFFFFF);
-        ret[1] = ((long) bitmap3 << 32) | (bitmap4 & 0xFFFFFFFF);
-        ret[2] = firstVal >>> 1;
-        len += 2;
-        in2.unpackLongArray(ret, 3, len);
-        return ret;
-      } else {
-        //return int[]
-        int[] ret = new int[4 + len];
-        ret[0] = bitmap1;
-        ret[1] = bitmap2;
-        ret[2] = bitmap3;
-        ret[3] = bitmap4;
-        ret[4] = (int) (firstVal >>> 1);
-        len += 4;
-        in2.unpackIntArray(ret, 5, len);
-        return ret;
+      //return int[]
+      int[] ret = new int[BITMAP_SIZE + len];
+      for (int i = 0; i < BITMAP_SIZE; i++) {
+        ret[i] = bitmaps[i];
       }
+      ret[BITMAP_SIZE] = (int) (firstVal >>> 1);
+      len += BITMAP_SIZE;
+      in2.unpackIntArray(ret, BITMAP_SIZE + 1, len);
+      return ret;
     }
 
     @Override
@@ -339,6 +337,17 @@ public class PartitionedHTreeMap<K, V>
         return new LocalitySensitiveHasher(LSHServer.getLSHEngine(), tableId);
       default:
         return new DefaultHasher(hashSalt);
+    }
+  }
+
+  public static void updateDirectoryNodeSize(int newNodeSize) {
+    DIRECTORY_NODE_SIZE = newNodeSize;
+    NUM_BITS_PER_COMPARISON = (int) Math.log(DIRECTORY_NODE_SIZE);
+    MAX_TREE_LEVEL = BUCKET_LENGTH / NUM_BITS_PER_COMPARISON - 1;
+    BITMAP_SIZE = newNodeSize / 32;
+    if (BITMAP_SIZE < 1) {
+      System.out.println("Fault: the minimum allowed directory node size is 32");
+      System.exit(1);
     }
   }
 
