@@ -13,6 +13,12 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     LSHServer.lshEngine = new LSH(TestSettings.testBaseConf)
+    PartitionedHTreeMap.updateBucketLength(28)
+    PartitionedHTreeMap.updateDirectoryNodeSize(128)
+    initLSHTables()
+  }
+
+  private def initLSHTables(): Unit = {
     ShardDatabase.vectorIdToVector  =
       new PartitionedHTreeMap(
         1,
@@ -30,20 +36,19 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
         Int.MaxValue)
     ShardDatabase.vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](1)
     ShardDatabase.vectorDatabase(0) = new PartitionedHTreeMap(
-        0,
-        "lsh",
-        s"${getClass.getClassLoader.getResource("testdir").getFile}-vector",
-        "lshtable",
-        new HashPartitioner[Int](2),
-        true,
-        1,
-        Serializers.scalaIntSerializer,
-        null,
-        null,
-        Executors.newCachedThreadPool(),
-        true,
-        Int.MaxValue)
-    PartitionedHTreeMap.updateDirectoryNodeSize(128)
+      0,
+      "lsh",
+      s"${getClass.getClassLoader.getResource("testdir").getFile}-vector",
+      "lshtable",
+      new HashPartitioner[Int](2),
+      true,
+      1,
+      Serializers.scalaIntSerializer,
+      null,
+      null,
+      Executors.newCachedThreadPool(),
+      true,
+      Int.MaxValue)
   }
 
   test("write the vector correctly") {
@@ -56,7 +61,7 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
     assert(v.values.toSeq === Seq(1.0, 2.0))
   }
 
-  test("write the vector and get similar correctly") {
+  private def testWriteAndGetSimilar(): Unit = {
     val vectorIdToVector = ShardDatabase.vectorIdToVector
     val vectorDB = ShardDatabase.vectorDatabase(0)
     vectorIdToVector.put(1, new SparseVector(1, 3, Seq(0, 2).toArray, Seq(1.0, 2.0).toArray))
@@ -69,4 +74,21 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
     assert(v === 1)
   }
 
+  test("write the vector and get similar correctly (128-length directory node)") {
+    testWriteAndGetSimilar()
+  }
+
+  test("write the vector and get similar correctly (64-length directory node)") {
+    PartitionedHTreeMap.updateBucketLength(30)
+    PartitionedHTreeMap.updateDirectoryNodeSize(64)
+    initLSHTables()
+    testWriteAndGetSimilar()
+  }
+
+  test("write the vector and get similar correctly (32-length directory node)") {
+    PartitionedHTreeMap.updateBucketLength(30)
+    PartitionedHTreeMap.updateDirectoryNodeSize(32)
+    initLSHTables()
+    testWriteAndGetSimilar()
+  }
 }

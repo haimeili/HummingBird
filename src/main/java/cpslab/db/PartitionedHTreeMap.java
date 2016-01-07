@@ -32,7 +32,7 @@ public class PartitionedHTreeMap<K, V>
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
   public static int BUCKET_OVERFLOW = 4;
-  public static int BUCKET_LENGTH = 28;
+  protected static int BUCKET_LENGTH = 28;
 
   private static int DIRECTORY_NODE_SIZE = 0;
   private static int NUM_BITS_PER_COMPARISON = 0;
@@ -44,7 +44,7 @@ public class PartitionedHTreeMap<K, V>
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
 
-  static final int SEG = 16;
+  static int SEG = 0;
   /**
    * is this a Map or Set?  if false, entries do not have values, only keys are allowed
    */
@@ -207,7 +207,8 @@ public class PartitionedHTreeMap<K, V>
         int len = BITMAP_SIZE + totalDataBits;
 
         if (len != c.length)
-          throw new DBException.DataCorruption("bitmap!=len");
+          throw new DBException.DataCorruption("bitmap!=len, bitmap:" + len + ", len:" + c.length +
+           ", BITMAP_SIZE:" + BITMAP_SIZE);
       }
 
       //write bitmaps
@@ -344,6 +345,11 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
+  public static void updateBucketLength(int bucketLength) {
+    BUCKET_LENGTH = bucketLength;
+    SEG = (int) Math.pow(2, 32 - BUCKET_LENGTH);
+  }
+
   public static void updateDirectoryNodeSize(int newNodeSize) {
     DIRECTORY_NODE_SIZE = newNodeSize;
     NUM_BITS_PER_COMPARISON = (int) (Math.log(DIRECTORY_NODE_SIZE) / Math.log(2));
@@ -351,14 +357,12 @@ public class PartitionedHTreeMap<K, V>
     for (int i = 0; i < NUM_BITS_PER_COMPARISON; i++) {
       BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
     }
-    //System.out.println("BITS_COMPARISON_MASK:" + BITS_COMPARISON_MASK);
     MAX_TREE_LEVEL = BUCKET_LENGTH / NUM_BITS_PER_COMPARISON - 1;
     BITMAP_SIZE = newNodeSize / 32;
     if (BITMAP_SIZE < 1) {
       System.out.println("Fault: the minimum allowed directory node size is 32");
       System.exit(1);
     }
-    //System.out.println(DIRECTORY_NODE_SIZE, );
   }
 
   @Override
@@ -603,14 +607,14 @@ public class PartitionedHTreeMap<K, V>
           long recId,
           int h) {
     LinkedList<K> ret = new LinkedList<>();
-    for (int level = 3; level >= 0; level--) {
+    for (int level = MAX_TREE_LEVEL; level >= 0; level--) {
       Object dir = engine.get(recId, DIR_SERIALIZER);
       if (dir == null) {
         return null;
       }
 
-      final int slot = (h >>> (level * 7)) & 0x7F;
-      if (CC.ASSERT && slot > 128) {
+      final int slot = (h >>> (level * NUM_BITS_PER_COMPARISON)) & BITS_COMPARISON_MASK;
+      if (CC.ASSERT && slot > DIRECTORY_NODE_SIZE - 1) {
         throw new DBException.DataCorruption("slot too high");
       }
       recId = dirGetSlot(dir, slot);
@@ -827,7 +831,7 @@ public class PartitionedHTreeMap<K, V>
    */
   protected static final int dirOffsetFromSlot(int[] dir, int slot) {
     if (CC.ASSERT && slot > DIRECTORY_NODE_SIZE - 1)
-      throw new DBException.DataCorruption("slot too high");
+      throw new DBException.DataCorruption("slot " + slot +  " too high");
     //Nan's comments below
     //the bitmap is divided into BITMAP_SIZE * 32 bits, the highest few bits indicate which range
     //this slot belongs to
@@ -917,6 +921,7 @@ public class PartitionedHTreeMap<K, V>
                   updatedDir.length - 1 - offset);
           //and update bitmap
           //TODO assert slot bit was not set
+          //Nan Zhu: we assume the minimum directory node size is 32
           int bytePos = slot / 32;
           int bitPos = slot % 32;
           updatedDir[bytePos] = (updatedDir[bytePos] | (1 << bitPos));
@@ -1009,16 +1014,16 @@ public class PartitionedHTreeMap<K, V>
       engines.get(partitionId).close();
     }
     engines.put(partitionId, storeSegment);
-    Long[] segIds = new Long[16];
+    Long[] segIds = new Long[SEG];
     for (int i = 0; i < SEG; i++) {
-      long partitionRoot = engines.get(partitionId).put(new int[4], DIR_SERIALIZER);
+      long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
       //partitionRootRec.put(partitionId, partitionRoot);
       segIds[i] = partitionRoot;
     }
     partitionRootRec.put(partitionId, segIds);
     //initialize counterRecId
-    Long [] counterRecIdArray = new Long[16];
-    for (int i = 0; i < 16; i++) {
+    Long [] counterRecIdArray = new Long[SEG];
+    for (int i = 0; i < SEG; i++) {
       long counterRecId = storeSegment.put(0L, Serializer.LONG);
       counterRecIdArray[i] = counterRecId;
     }
@@ -1032,9 +1037,9 @@ public class PartitionedHTreeMap<K, V>
       if (!partitionRamLock.containsKey(partitionId) ||
               !partitionPersistLock.containsKey(partitionId)) {
         initPartition(partitionId);
-        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[16];
-        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[16];
-        for (int i = 0; i < 16; i++) {
+        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
+        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
+        for (int i = 0; i < SEG; i++) {
           ramLockArray[i] = new ReentrantReadWriteLock();
           persistLockArray[i] = new ReentrantReadWriteLock();
         }
@@ -1108,7 +1113,7 @@ public class PartitionedHTreeMap<K, V>
     int level = MAX_TREE_LEVEL;
     while (true) {
       Object dir = engine.get(dirRecid, DIR_SERIALIZER);
-      //Nan: every 7 bits present the slot ID of the record
+      //Nan: every NUM_BITS_PER_COMPARISON bits present the slot ID of the record
       final int slot = (h >>> (NUM_BITS_PER_COMPARISON * level)) & BITS_COMPARISON_MASK;
 
       if (CC.ASSERT && (slot > DIRECTORY_NODE_SIZE - 1))

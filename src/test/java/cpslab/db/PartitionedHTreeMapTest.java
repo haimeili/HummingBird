@@ -21,6 +21,7 @@ public class PartitionedHTreeMapTest {
     try {
       tempDirFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()));
       PartitionedHTreeMap.updateDirectoryNodeSize(128);
+      PartitionedHTreeMap.updateBucketLength(28);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -37,7 +38,7 @@ public class PartitionedHTreeMapTest {
     }
 
     DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-    HTreeMap.DIR_SERIALIZER.serialize(out, dir);
+    PartitionedHTreeMap.DIR_SERIALIZER.serialize(out, dir);
 
     DataIO.DataInputByteBuffer in = swap(out);
 
