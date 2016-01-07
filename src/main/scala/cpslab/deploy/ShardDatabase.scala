@@ -136,7 +136,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
-    val bucketBits = conf.getInt("pslab.lsh.bucketBits")
+    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
