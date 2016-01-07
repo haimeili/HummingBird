@@ -135,6 +135,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
@@ -182,6 +183,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
     }
     vectorIdToVector = initializeIdToVectorMap()
+    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
   }
 
   /**

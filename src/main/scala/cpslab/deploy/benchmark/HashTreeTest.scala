@@ -87,6 +87,7 @@ object HashTreeTest {
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
+    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
         |cpslab.lsh.vectorDim=32
@@ -134,6 +135,8 @@ object HashTreeTest {
       }
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     PartitionedHTreeMap.BUCKET_LENGTH = bucketBits
+    //PartitionedHTreeMap.DIRECTORY_NODE_SIZE = dirNodeSize
+    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     ActorBasedPartitionedHTreeMap.histogramOfPartitions = new Array[Array[Int]](tableNum)
     ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Array[Int]]](tableNum)

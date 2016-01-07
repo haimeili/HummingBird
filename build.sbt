@@ -11,7 +11,10 @@ scalaVersion := "2.10.4"
 
 test in assembly :={}
 
-scalacOptions ++= Seq("-unchecked", "-Xlint", "-deprecation", "-Yno-adapted-args", "-feature", "-Xfatal-warnings")
+testOptions += Tests.Argument(TestFrameworks.JUnit, "-v", "-a")
+
+scalacOptions ++=
+  Seq("-unchecked", "-Xlint", "-deprecation", "-Yno-adapted-args", "-feature", "-Xfatal-warnings")
 
 fork := true
 
