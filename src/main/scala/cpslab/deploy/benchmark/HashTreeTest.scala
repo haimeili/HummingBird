@@ -134,8 +134,7 @@ object HashTreeTest {
             ramThreshold)
       }
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
-    PartitionedHTreeMap.BUCKET_LENGTH = bucketBits
-    //PartitionedHTreeMap.DIRECTORY_NODE_SIZE = dirNodeSize
+    PartitionedHTreeMap.updateBucketLength(bucketBits)
     PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     ActorBasedPartitionedHTreeMap.histogramOfPartitions = new Array[Array[Int]](tableNum)

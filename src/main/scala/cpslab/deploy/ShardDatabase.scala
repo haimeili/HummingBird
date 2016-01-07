@@ -184,6 +184,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
     }
     vectorIdToVector = initializeIdToVectorMap()
+    PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.updateBucketLength(bucketBits)
     PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
   }
