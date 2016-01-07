@@ -458,6 +458,7 @@ object HashTreeTest {
     import scala.collection.JavaConversions._
     var ratio = 0.0
     var totalCnt = 50
+    var sum: Double = 0.0
     for (testCnt <- 0 until totalCnt) {
       val order = Random.nextInt(testIDs.size)
       val queryVector = vectorIdToVector.get(testIDs(order))
@@ -465,6 +466,8 @@ object HashTreeTest {
       val tableNum = conf.getInt("cpslab.lsh.tableNum")
       val mostK = conf.getInt("cpslab.lsh.k")
       val kNN = new mutable.HashSet[Int]
+
+      val startTime = System.nanoTime()
       for (i <- 0 until tableNum) {
         val r = vectorDatabase(i).getSimilar(queryVector.vectorId)
         for (k <- r if k != queryVector.vectorId) {
@@ -478,6 +481,8 @@ object HashTreeTest {
         distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
       }
       val sortedDistances = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
+      sum += (System.nanoTime() - startTime)
+
       println(sortedDistances.toList)
       //step 2: calculate the distance of the ground truth
       val groundTruth = new ListBuffer[(Int, Double)]
@@ -503,6 +508,7 @@ object HashTreeTest {
       }
     }
     println(ratio/totalCnt)
+    println("efficiency:" +  (sum / totalCnt / 1000000000) + " s")
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
