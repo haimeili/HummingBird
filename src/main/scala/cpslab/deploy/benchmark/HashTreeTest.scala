@@ -468,19 +468,20 @@ object HashTreeTest {
       val kNN = new mutable.HashSet[Int]
 
       val startTime = System.nanoTime()
+
       for (i <- 0 until tableNum) {
         val r = vectorDatabase(i).getSimilar(queryVector.vectorId)
         for (k <- r if k != queryVector.vectorId) {
           kNN += k
         }
       }
+      sum += (System.nanoTime() - startTime)
       //step 1: calculate the distance of the fetched objects
       val distances = new ListBuffer[(Int, Double)]
       for (vectorId <- kNN) {
         val vector = vectorIdToVector.get(vectorId)
         distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
       }
-      sum += (System.nanoTime() - startTime)
 
       val sortedDistances = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
 
