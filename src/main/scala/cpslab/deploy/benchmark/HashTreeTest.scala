@@ -483,7 +483,7 @@ object HashTreeTest {
     import scala.collection.JavaConversions._
     var ratio = 0.0
     val totalCnt = 50
-    var efficiencySum: Double = 0.0
+    var efficiencySum = new ListBuffer[Double]
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     for (testCnt <- 0 until totalCnt) {
       val order = Random.nextInt(testIDs.size)
@@ -526,7 +526,7 @@ object HashTreeTest {
       }
     }
     println(ratio/totalCnt)
-    println("efficiency:" +  efficiencySum)
+    println("efficiency:" +  efficiencySum.sum / efficiencySum.length)
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
