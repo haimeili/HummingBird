@@ -528,7 +528,7 @@ object HashTreeTest {
       }
     }
     println(ratio/totalCnt)
-    println("efficiency:" +  efficiencySum.sum / efficiencySum.length)
+    println("efficiency:" +  efficiencySum.sum)
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
