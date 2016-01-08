@@ -475,7 +475,7 @@ object HashTreeTest {
           kNN += k
         }
       }
-      sum += (System.nanoTime() - startTime)
+
       //step 1: calculate the distance of the fetched objects
       val distances = new ListBuffer[(Int, Double)]
       for (vectorId <- kNN) {
@@ -484,6 +484,7 @@ object HashTreeTest {
       }
 
       val sortedDistances = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
+      sum += (distances.length * 1.0 / sortedDistances.length)
 
       println(sortedDistances.toList)
       //step 2: calculate the distance of the ground truth
@@ -510,7 +511,7 @@ object HashTreeTest {
       }
     }
     println(ratio/totalCnt)
-    println("efficiency:" +  (sum / totalCnt / 1000000000) + " s")
+    println("efficiency:" +  sum / totalCnt)
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
