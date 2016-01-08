@@ -470,7 +470,7 @@ object HashTreeTest {
     (Double, ListBuffer[(Int, Double)]) = {
     val kNN = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
     val efficiency = {
-      if (distances.size >= mostK) {
+      if (distances.length >= mostK) {
         distances.length / mostK
       } else {
         0.0
@@ -500,7 +500,9 @@ object HashTreeTest {
         distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
       }
       val (efficiency, sortedDistances) = getkNN(distances, mostK)
-      efficiencySum += efficiency
+      if (efficiency > 0.0) {
+        efficiencySum += efficiency
+      }
       println(sortedDistances.toList)
       //step 2: calculate the distance of the ground truth
       val groundTruth = new ListBuffer[(Int, Double)]
