@@ -4,6 +4,7 @@ import java.io.File
 import java.util.concurrent.{LinkedBlockingQueue, Executors}
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.StringBuilder
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -481,54 +482,74 @@ object HashTreeTest {
 
   def testAccuracy(conf: Config): Unit = {
     import scala.collection.JavaConversions._
-    var ratio = 0.0
-    val totalCnt = 50
-    var efficiencySum = new ListBuffer[Double]
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    for (testCnt <- 0 until totalCnt) {
-      val order = Random.nextInt(testIDs.size)
-      val queryVector = vectorIdToVector.get(testIDs(order))
-      println("query vector ID:" + queryVector.vectorId)
-      val mostK = conf.getInt("cpslab.lsh.k")
+    val ratiosInstances = new ListBuffer[Double]
+    val effSumInstances = new ListBuffer[Double]
+    val experimentalInstances = conf.getInt("cpslab.expInstance")
+    for (exp <- 0 until experimentalInstances) {
+      var ratio = 0.0
+      val totalCnt = 50
+      var efficiencySum = new ListBuffer[Double]
+      val tableNum = conf.getInt("cpslab.lsh.tableNum")
+      for (testCnt <- 0 until totalCnt) {
+        val order = Random.nextInt(testIDs.size)
+        val queryVector = vectorIdToVector.get(testIDs(order))
+        println("query vector ID:" + queryVector.vectorId)
+        val mostK = conf.getInt("cpslab.lsh.k")
 
-      val startTime = System.nanoTime()
-      val kNN = readSimilarVectorId(queryVector, tableNum)
-      //step 1: calculate the distance of the fetched objects
-      val distances = new ListBuffer[(Int, Double)]
-      for (vectorId <- kNN) {
-        val vector = vectorIdToVector.get(vectorId)
-        distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
-      }
-      val (efficiency, sortedDistances) = getkNN(distances, mostK)
-      if (efficiency > 0.0) {
-        efficiencySum += efficiency
-      }
-      println(sortedDistances.toList)
-      //step 2: calculate the distance of the ground truth
-      val groundTruth = new ListBuffer[(Int, Double)]
-      val itr = trainingIDs.iterator
-      while (itr.hasNext) {
-        val vId = itr.next()
-        val vector = vectorIdToVector.get(vId)
-        if (vector.vectorId != queryVector.vectorId) {
-          groundTruth +=
-            vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+        val startTime = System.nanoTime()
+        val kNN = readSimilarVectorId(queryVector, tableNum)
+        //step 1: calculate the distance of the fetched objects
+        val distances = new ListBuffer[(Int, Double)]
+        for (vectorId <- kNN) {
+          val vector = vectorIdToVector.get(vectorId)
+          distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+        }
+        val (efficiency, sortedDistances) = getkNN(distances, mostK)
+        if (efficiency > 0.0) {
+          efficiencySum += efficiency
+        }
+        println(sortedDistances.toList)
+        //step 2: calculate the distance of the ground truth
+        val groundTruth = new ListBuffer[(Int, Double)]
+        val itr = trainingIDs.iterator
+        while (itr.hasNext) {
+          val vId = itr.next()
+          val vector = vectorIdToVector.get(vId)
+          if (vector.vectorId != queryVector.vectorId) {
+            groundTruth +=
+              vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
+          }
+        }
+        val sortedGroundTruth = groundTruth.sortWith {
+          case (d1, d2) => d1._2 > d2._2
+        }.take(mostK)
+        println(sortedGroundTruth.toList)
+        ratio += {
+          var sum = 0.0
+          for (i <- sortedDistances.indices) {
+            sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+            //sortedGroundTruth(i)._2 / sortedDistances(i)._2
+          }
+          sum / mostK
         }
       }
-      val sortedGroundTruth = groundTruth.sortWith {
-        case (d1, d2) => d1._2 > d2._2 }.take(mostK)
-      println(sortedGroundTruth.toList)
-      ratio += {
-        var sum = 0.0
-        for (i <- sortedDistances.indices) {
-          sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
-          //sortedGroundTruth(i)._2 / sortedDistances(i)._2
-        }
-        sum / mostK
-      }
+      //println(ratio / totalCnt)
+      //println("efficiency:" + efficiencySum.sum)
+      ratiosInstances += ratio / totalCnt
+      effSumInstances += efficiencySum.sum
     }
-    println(ratio/totalCnt)
-    println("efficiency:" +  efficiencySum.sum)
+    assert(ratiosInstances.length == experimentalInstances)
+    assert(effSumInstances.length == experimentalInstances)
+    val ratioOutputStr = new StringBuilder()
+    val effSumOutputStr = new StringBuilder()
+    for (i <- 0 until experimentalInstances) {
+      ratioOutputStr.append(ratiosInstances(i).toString)
+      ratioOutputStr.append("\t")
+      effSumOutputStr.append(effSumInstances(i).toString)
+      effSumOutputStr.append("\t")
+    }
+    println("ratios:" + ratioOutputStr.toString())
+    println("efficiency:" + effSumOutputStr.toString())
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
