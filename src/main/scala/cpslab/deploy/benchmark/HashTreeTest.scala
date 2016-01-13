@@ -94,7 +94,6 @@ object HashTreeTest {
     val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
-        |cpslab.lsh.vectorDim=32
         |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
@@ -158,7 +157,7 @@ object HashTreeTest {
   }
 
   def asyncTestWriteThreadScalability (
-    conf: Config, requestNumberPerThread: Int, threadNumber: Int): Unit = {
+    conf: Config, threadNumber: Int): Unit = {
     //implicit val executorContext = ExecutionContext.fromExecutor(
     // new ForkJoinPool(threadNumber, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, false))
     initializeActorBasedHashTree(conf)
@@ -196,7 +195,6 @@ object HashTreeTest {
 
   def testWriteThreadScalability(
     conf: Config,
-    requestNumberPerThread: Int,
     threadNumber: Int): Unit = {
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
@@ -586,7 +584,6 @@ object HashTreeTest {
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
-    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.requestNumberPerThread")
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
 /*
@@ -614,9 +611,9 @@ object HashTreeTest {
 
 
     if (args(1) == "async") {
-      asyncTestWriteThreadScalability(conf, requestPerThread, threadNumber)
+      asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
-      testWriteThreadScalability(conf, requestPerThread, threadNumber)
+      testWriteThreadScalability(conf, threadNumber)
     }
   }
 }
