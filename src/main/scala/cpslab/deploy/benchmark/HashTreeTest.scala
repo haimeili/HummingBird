@@ -94,6 +94,7 @@ object HashTreeTest {
     val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
+        |cpslab.lsh.vectorDim=32
         |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
