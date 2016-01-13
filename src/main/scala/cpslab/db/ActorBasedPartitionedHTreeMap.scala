@@ -49,27 +49,24 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
 
-    var actorType: String = null
-
     override def receive: Receive = {
       case (vector: SparseVector, h: Int) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        if (earliestStartTime == Long.MaxValue) {
+          earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        }
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
       case (vectorId: Int, h: Int) =>
-        if (actorType == null) {
-          actorType = "LSH"
-        }
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        latestEndTime = math.max(System.nanoTime(), latestEndTime)
-      case ReceiveTimeout =>
-        if (actorType == "LSH") {
-          context.actorSelection("akka://AK/user/monitor") !
-            Tuple2(earliestStartTime, latestEndTime)
+        if (latestEndTime == Long.MinValue) {
+          latestEndTime = math.max(System.nanoTime(), latestEndTime)
         }
+      case ReceiveTimeout =>
+        context.actorSelection("akka://AK/user/monitor") !
+          Tuple2(earliestStartTime, latestEndTime)
     }
   }
 
@@ -79,8 +76,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
     actors.put(partitionId, new Array[ActorRef](actorNum))
     for (segmentId <- 0 until actorNum) {
-      actors(partitionId)(segmentId) =
-        ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+      actors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
           Props(new WriterActor(partitionId, segmentId)))
     }
   }
