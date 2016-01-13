@@ -139,6 +139,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
+         |cpslab.lsh.vectorDim=32
          |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
