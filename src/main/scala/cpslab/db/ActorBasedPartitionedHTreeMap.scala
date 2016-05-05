@@ -65,8 +65,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
           latestEndTime = math.max(System.nanoTime(), latestEndTime)
         }
       case ReceiveTimeout =>
-        context.actorSelection("akka://AK/user/monitor") !
-          Tuple2(earliestStartTime, latestEndTime)
+        if (earliestStartTime < latestEndTime) {
+          context.actorSelection("akka://AK/user/monitor") !
+            Tuple2(earliestStartTime, latestEndTime)
+        }
     }
   }
 
