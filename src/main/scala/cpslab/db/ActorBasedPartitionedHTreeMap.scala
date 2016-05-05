@@ -42,7 +42,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     closeExecutor,
     ramThreshold) {
 
-  class WriterActor(partitionId: Int, segmentId: Int) extends Actor {
+  private class WriterActor(partitionId: Int, segmentId: Int) extends Actor {
 
     context.setReceiveTimeout(60000 milliseconds)
 
