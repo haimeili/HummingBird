@@ -164,26 +164,29 @@ object HashTreeTest {
     initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
-    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val cap = conf.getInt("cpslab.lsh.benchmark.asyncCap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
-    //val replica = conf.getInt("cpslab.lsh.benchmark.replica")
+    val replica = conf.getInt("cpslab.lsh.benchmark.replica")
+    val base = conf.getInt("cpslab.lsh.benchmark.base")
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
       val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
       for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        cnt += 1
-        if (cnt > cap * threadNumber) {
+        if (cnt > cap) {
           return
         }
-        val (_, size, indices, values) = Vectors.fromString1(line)
-        val vector = new SparseVector(cnt, size, indices, values)
-        vectorIdToVector.put(cnt, vector)
+        val (vectorId, size, indices, values) = Vectors.fromString1(line)
+        for (i <- 0 until replica) {
+          val vector = new SparseVector(vectorId + i * base, size, indices, values)
+          vectorIdToVector.put(vectorId + i * base, vector)
+          cnt += 1
+        }
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      props = Props(new MonitorActor(cap * threadNumber)),
+      props = Props(new MonitorActor(cap)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
