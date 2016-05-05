@@ -499,7 +499,14 @@ public class PartitionedHTreeMap<K, V>
     if (o == null) return null;
     final int h = hash((K) o);
     final int seg = h >>> BUCKET_LENGTH;
-    final int partition = partitioner.getPartition((K) o);
+    final int partition1 = partitioner.getPartition((K) o);
+    int partition = 0;
+    if (!(hasher instanceof LocalitySensitiveHasher)) {
+      //if MainTable
+      partition = Math.abs(partition1);
+    } else {
+      partition = partition1;
+    }
     LinkedNode<K, V> ln;
     try {
       final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
