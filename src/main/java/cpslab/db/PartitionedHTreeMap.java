@@ -774,7 +774,8 @@ public class PartitionedHTreeMap<K, V>
         persist(partition);
       }
       return search(key, engine, recId, h);
-    } catch (NullPointerException npe) {
+    } catch (Exception npe) {
+      npe.printStackTrace();
       return null;
     }
   }
