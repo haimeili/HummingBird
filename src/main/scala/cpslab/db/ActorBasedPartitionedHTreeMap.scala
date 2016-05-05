@@ -50,7 +50,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var latestEndTime = Long.MinValue
 
     override def receive: Receive = {
-      case (vector: SparseVector, h: Int) =>
+      case ValueAndHash(vector: SparseVector, h: Int) =>
         if (earliestStartTime == Long.MaxValue) {
           earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         }
@@ -58,7 +58,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
-      case (vectorId: Int, h: Int) =>
+      case KeyAndHash(vectorId: Int, h: Int) =>
         //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         latestEndTime = math.max(System.nanoTime(), latestEndTime)
@@ -125,19 +125,17 @@ class ActorBasedPartitionedHTreeMap[K, V](
       partition = math.abs(partition)
     }
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
-    if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      //not thread-safe
-      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(partition)(segmentId) += 1
-      ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partition) += 1
-    }
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      actors(partition)(segmentId) ! Tuple2(value, h)
+      actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
     } else {
-      actors(partition)(segmentId) ! Tuple2(key, h)
+      actors(partition)(segmentId) ! KeyAndHash(key.asInstanceOf[Int], h)
     }
     value
   }
 }
+
+final case class ValueAndHash(vector: SparseVector, hash: Int)
+final case class KeyAndHash(vectorId: Int, hash: Int)
 
 object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
