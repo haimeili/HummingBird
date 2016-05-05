@@ -529,7 +529,7 @@ public class PartitionedHTreeMap<K, V>
           persistLock.unlock();
         }
       }
-    } catch (NullPointerException npe) {
+    } catch (Exception npe) {
       npe.printStackTrace();
       System.out.println("fetch null at partition " + partition + ", at key " + o);
       return null;
