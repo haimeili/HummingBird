@@ -530,7 +530,7 @@ object HashTreeTest {
         println(sortedGroundTruth.toList)
         ratio += {
           var sum = 0.0
-          for (i <- sortedDistances.indices) {
+          for (i <- sortedGroundTruth.indices) {
             if (sortedDistances.length < i + 1) {
               sum += math.acos(0) / math.acos(sortedGroundTruth(i)._2)
             } else {
