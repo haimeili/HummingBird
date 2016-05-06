@@ -532,9 +532,9 @@ object HashTreeTest {
           var sum = 0.0
           for (i <- sortedGroundTruth.indices) {
             if (sortedDistances.length < i + 1) {
-              sum += math.toDegrees(0) / math.toDegrees(sortedGroundTruth(i)._2)
+              sum += math.acos(0) / math.acos(sortedGroundTruth(i)._2)
             } else {
-              sum += math.toDegrees(sortedDistances(i)._2) / math.toDegrees(sortedGroundTruth(i)._2)
+              sum += math.acos(sortedDistances(i)._2) / math.acos(sortedGroundTruth(i)._2)
             }
           }
           sum / mostK
