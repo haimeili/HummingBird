@@ -530,8 +530,12 @@ object HashTreeTest {
         println(sortedGroundTruth.toList)
         ratio += {
           var sum = 0.0
-          for (i <- sortedDistances.indices) {
-            sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+          for (i <- sortedGroundTruth.indices) {
+            if (sortedDistances.length < i + 1) {
+              sum += math.toDegrees(0) / math.toDegrees(sortedGroundTruth(i)._2)
+            } else {
+              sum += math.toDegrees(sortedDistances(i)._2) / math.toDegrees(sortedGroundTruth(i)._2)
+            }
           }
           sum / mostK
         }
