@@ -531,7 +531,11 @@ object HashTreeTest {
         ratio += {
           var sum = 0.0
           for (i <- sortedDistances.indices) {
-            sum += sortedDistances(i)._2 / sortedGroundTruth(i)._2
+            if (sortedDistances.length < i + 1) {
+              sum += (1 / (1 - sortedGroundTruth(i)._2))
+            } else {
+              sum += (1 - sortedDistances(i)._2) / (1 - sortedGroundTruth(i)._2)
+            }
           }
           sum / mostK
         }
