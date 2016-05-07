@@ -490,8 +490,8 @@ object HashTreeTest {
     import scala.collection.JavaConversions._
     val ratiosInstances = new ListBuffer[Double]
     val effSumInstances = new ListBuffer[Double]
-    val overHitInstances = new ListBuffer[Int]
     val experimentalInstances = conf.getInt("cpslab.expInstance")
+    val overHitInstances = new Array[Int](experimentalInstances)
     for (exp <- 0 until experimentalInstances) {
       var ratio = 0.0
       val totalCnt = 50
