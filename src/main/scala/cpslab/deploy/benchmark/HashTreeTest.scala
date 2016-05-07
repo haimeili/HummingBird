@@ -472,22 +472,25 @@ object HashTreeTest {
   }
 
   private def getkNN(distances: ListBuffer[(Int, Double)], mostK: Int):
-    (Double, ListBuffer[(Int, Double)]) = {
+    (Double, ListBuffer[(Int, Double)], Boolean) = {
     val kNN = distances.sortWith { case (d1, d2) => d1._2 > d2._2 }.take(mostK)
+    var ifOverHit = false
     val efficiency = {
       if (distances.length >= mostK) {
+        ifOverHit = true
         distances.length / mostK
       } else {
         0.0
       }
     }
-    (efficiency, kNN)
+    (efficiency, kNN, ifOverHit)
   }
 
   def testAccuracy(conf: Config): Unit = {
     import scala.collection.JavaConversions._
     val ratiosInstances = new ListBuffer[Double]
     val effSumInstances = new ListBuffer[Double]
+    val overHitInstances = new ListBuffer[Int]
     val experimentalInstances = conf.getInt("cpslab.expInstance")
     for (exp <- 0 until experimentalInstances) {
       var ratio = 0.0
@@ -508,9 +511,11 @@ object HashTreeTest {
           val vector = vectorIdToVector.get(vectorId)
           distances += vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
         }
-        val (efficiency, sortedDistances) = getkNN(distances, mostK)
+        val (efficiency, sortedDistances, ifOverfit) = getkNN(distances, mostK)
         if (efficiency > 0.0) {
           efficiencySum += efficiency
+          assert(ifOverfit)
+          overHitInstances(exp) += 1
         }
         println(sortedDistances.toList)
         //step 2: calculate the distance of the ground truth
@@ -544,6 +549,7 @@ object HashTreeTest {
       //println("efficiency:" + efficiencySum.sum)
       ratiosInstances += ratio / totalCnt
       effSumInstances += efficiencySum.sum
+      overHitInstances
     }
     assert(ratiosInstances.length == experimentalInstances)
     assert(effSumInstances.length == experimentalInstances)
@@ -557,6 +563,7 @@ object HashTreeTest {
     }
     println("ratios:" + ratioOutputStr.toString())
     println("efficiency:" + effSumOutputStr.toString())
+    println("hitNum:" + overHitInstances.toString())
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
