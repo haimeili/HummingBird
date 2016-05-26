@@ -2157,4 +2157,8 @@ public class PartitionedHTreeMap<K, V>
   public void persist(int partitionId) {
     runPersistTask(partitionId);
   }
+
+  public void initStructureLocks() {
+
+  }
 }

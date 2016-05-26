@@ -67,7 +67,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   }
 
   protected void initPartitionIfNecessary(int partitionId, int segId) {
+    Lock structureLock = structureLocks.get(buildStorageName(partitionId, segId)).writeLock();
     try {
+      structureLock.lock();
       if (!partitionRamLock.containsKey(partitionId) ||
               !partitionPersistLock.containsKey(partitionId)) {
         initPartition(partitionId, segId);
@@ -82,6 +84,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       }
     } catch (Exception e){
       e.printStackTrace();
+    } finally {
+      structureLock.unlock();
     }
   }
 
@@ -269,6 +273,17 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         //update counter
         counter(partition, seg, engine, +1);
         return null;
+      }
+    }
+  }
+
+  @Override
+  public void initStructureLocks() {
+    int partitionNum = partitioner.numPartitions;
+    int segNum = PartitionedHTreeMap.SEG;
+    for (int i = 0; i < partitionNum; i++) {
+      for (int j = 0; j < segNum; j++) {
+        structureLocks.put(buildStorageName(i, j), new ReentrantReadWriteLock());
       }
     }
   }

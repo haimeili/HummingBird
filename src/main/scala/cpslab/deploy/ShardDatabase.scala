@@ -187,6 +187,10 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.updateBucketLength(bucketBits)
     PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId).initStructureLocks()
+    }
+    vectorIdToVector.initStructureLocks()
   }
 
   /**
