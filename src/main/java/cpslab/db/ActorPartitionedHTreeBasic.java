@@ -16,6 +16,12 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
 
+  protected final ConcurrentHashMap<String, ReentrantReadWriteLock> partitionRamLock =
+          new ConcurrentHashMap<String, ReentrantReadWriteLock>();
+
+  protected final ConcurrentHashMap<String, ReentrantReadWriteLock> partitionPersistLock =
+          new ConcurrentHashMap<String, ReentrantReadWriteLock>();
+
   public ActorPartitionedHTreeBasic(
           int tableId, String hasherName, String workingDirectory,
           String name, Partitioner<K> partitioner,
@@ -67,20 +73,17 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   }
 
   protected void initPartitionIfNecessary(int partitionId, int segId) {
-    Lock structureLock = structureLocks.get(buildStorageName(partitionId, segId)).writeLock();
+    String storageName = buildStorageName(partitionId, segId);
+    Lock structureLock = structureLocks.get(storageName).writeLock();
     try {
       structureLock.lock();
-      if (!partitionRamLock.containsKey(partitionId) ||
-              !partitionPersistLock.containsKey(partitionId)) {
+      if (!partitionRamLock.containsKey(storageName) ||
+              !partitionPersistLock.containsKey(storageName)) {
         initPartition(partitionId, segId);
-        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
-        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
-        for (int i = 0; i < SEG; i++) {
-          ramLockArray[i] = new ReentrantReadWriteLock();
-          persistLockArray[i] = new ReentrantReadWriteLock();
-        }
-        partitionRamLock.put(partitionId, ramLockArray);
-        partitionPersistLock.put(partitionId, persistLockArray);
+        ReentrantReadWriteLock ramLockArray = new ReentrantReadWriteLock();
+        ReentrantReadWriteLock persistLockArray = new ReentrantReadWriteLock();
+        partitionRamLock.put(storageName, ramLockArray);
+        partitionPersistLock.put(storageName, persistLockArray);
       }
     } catch (Exception e){
       e.printStackTrace();
