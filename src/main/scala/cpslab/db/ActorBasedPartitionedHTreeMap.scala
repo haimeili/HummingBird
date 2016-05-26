@@ -55,7 +55,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() < 10) {
-        Thread.sleep(100000)
+        Thread.sleep(1000)
       }
     }
 
