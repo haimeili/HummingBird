@@ -172,10 +172,10 @@ object HashTreeTest {
     var cnt = 0
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
-      val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
       for (i <- 0 until threadNumber) {
         new Thread(new Runnable {
           override def run(): Unit = {
+            val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
                 println(s"all requests sent in thread ${Thread.currentThread().getName}")
