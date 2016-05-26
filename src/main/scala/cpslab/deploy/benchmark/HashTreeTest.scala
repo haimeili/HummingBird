@@ -15,7 +15,7 @@ import scala.util.Random
 
 import akka.actor.{Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
-import cpslab.db.{ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
+import cpslab.db.{PerformanceReport, ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
@@ -28,10 +28,8 @@ object HashTreeTest {
 
   class MonitorActor(totalCount: Long) extends Actor {
 
-    var earliestStartTime = Long.MaxValue
-    var latestEndTime = Long.MinValue
-
     val receivedActors = new mutable.HashSet[String]
+    var totalThroughput = 0L
 
     override def preStart() {
       val system = context.system
@@ -41,17 +39,16 @@ object HashTreeTest {
 
 
     override def receive: Receive = {
-      case (startTime: Long, endTime:Long) =>
+      case PerformanceReport(throughput: Double) =>
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath)) {
-          earliestStartTime = math.min(earliestStartTime, startTime)
-          latestEndTime = math.max(latestEndTime, endTime)
+          totalThroughput += throughput
           receivedActors += senderPath
         }
       case Ticket =>
-        if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
+        if (totalThroughput != 0) {
           println(s"total number of receivedActors: ${receivedActors.size}")
-          println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000))
+          println(s"total Throughput: $totalThroughput")
 
           /*
           println("===SEGMENTS===")
@@ -200,7 +197,6 @@ object HashTreeTest {
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
-
   }
 
   val finishedWriteThreadCount = new AtomicInteger(0)
