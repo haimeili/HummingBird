@@ -345,6 +345,7 @@ object HashTreeTest {
             val (_, size, indices, values) = Vectors.fromString1(line)
             val vector = new SparseVector(cnt + base * cap, size, indices, values)
             if (cnt >= cap) {
+              println("all requests sent")
               return
             }
             val s = System.nanoTime()
