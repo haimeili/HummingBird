@@ -178,6 +178,7 @@ object HashTreeTest {
           override def run(): Unit = {
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
+                println(s"all requests sent in thread ${Thread.currentThread().getName}")
                 return
               }
               val (vectorId, size, indices, values) = Vectors.fromString1(line)
@@ -188,7 +189,7 @@ object HashTreeTest {
               }
             }
           }
-        }).start()
+        }, s"thread-$i").start()
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
