@@ -1,6 +1,7 @@
 package cpslab.db
 
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -51,6 +52,13 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     var totalMsgs = 0L
     var sent = false
+
+    override def preStart(): Unit = {
+      while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() < 10) {
+        Thread.sleep(100000)
+      }
+    }
+
     override def receive: Receive = {
       case ValueAndHash(vector: SparseVector, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -67,10 +75,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
         totalMsgs += 1
       case ReceiveTimeout =>
         if (!sent && totalMsgs != 0L) {
-          context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
-            ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
-          //context.actorSelection("akka://AK/user/monitor") !
-          //Tuple2(earliestStartTime, latestEndTime)
+          // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
+            // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
+          context.actorSelection("akka://AK/user/monitor") !
+            Tuple2(earliestStartTime, latestEndTime)
           sent = true
         }
     }
@@ -150,4 +158,7 @@ object ActorBasedPartitionedHTreeMap {
 
   var histogramOfSegments: Array[Array[Array[Int]]] = null
   var histogramOfPartitions: Array[Array[Int]] = null
+
+  // just for testing
+  var stoppedFeedingThreads = new AtomicInteger(0)
 }

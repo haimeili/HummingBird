@@ -58,9 +58,9 @@ object HashTreeTest {
       case Ticket =>
         if (totalThroughput != 0){
           println(s"total number of receivedActors: ${receivedActors.size}")
-          println(s"total throughput: $totalThroughput")
-          // println(s"total Throughput: ${totalCount * 1.0 /
-            // ((latestEndTime - earliestStartTime) / 1000000000)}")
+          // println(s"total throughput: $totalThroughput")
+          println(s"total Throughput: ${totalCount * 1.0 /
+            ((latestEndTime - earliestStartTime) / 1000000000)}")
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
           println("===SEGMENTS===")
@@ -191,6 +191,7 @@ object HashTreeTest {
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
                 println(s"all requests sent in thread ${Thread.currentThread().getName}")
+                ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.incrementAndGet()
                 return
               }
               val (vectorId, size, indices, values) = Vectors.fromString1(line)
