@@ -27,7 +27,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     executor: ExecutorService,
     closeExecutor: Boolean,
     ramThreshold: Long)
-  extends PartitionedHTreeMap[K, V](
+  extends ActorPartitionedHTreeBasic[K, V](
     tableId,
     hasherName,
     workingDirectory,
@@ -89,9 +89,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
       h: Int,
       key: K,
       value: V): Unit = {
-    initPartitionIfNecessary(partition)
-    var ret: V = value
     val seg: Int = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+    initPartitionIfNecessary(partition, seg)
+    var ret: V = value
     try {
       partitionRamLock.get(partition)(seg).writeLock.lock()
       ret = putInner(key, value, h, partition)
