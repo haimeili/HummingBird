@@ -51,27 +51,27 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var sent = false
     override def receive: Receive = {
       case ValueAndHash(vector: SparseVector, h: Int) =>
-        val s = System.currentTimeMillis()
+        val s = System.nanoTime()
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
-        val elapseTime = System.currentTimeMillis() - s
-        totalTime += elapseTime
+        val elapseTime = System.nanoTime() - s
+        totalTime += (elapseTime * 1.0)
         totalMsgs += 1
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        val s = System.currentTimeMillis()
+        val s = System.nanoTime()
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        val elapseTime = System.currentTimeMillis() - s
-        totalTime += elapseTime
+        val elapseTime = System.nanoTime() - s
+        totalTime += (elapseTime * 1.0)
         totalMsgs += 1
       case ReceiveTimeout =>
         if (!sent && totalMsgs != 0L) {
           context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
-            (totalTime * 1.0 / 1000))
+            (totalTime * 1.0 / 1000000000))
           sent = true
         }
     }
