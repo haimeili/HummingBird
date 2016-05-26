@@ -46,29 +46,32 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     context.setReceiveTimeout(60000 milliseconds)
 
-    var earliestStartTime = Long.MaxValue
-    var latestEndTime = Long.MinValue
-
+    var totalTime = 0L
+    var totalMsgs = 0L
     var sent = false
     override def receive: Receive = {
       case ValueAndHash(vector: SparseVector, h: Int) =>
-        if (earliestStartTime == Long.MaxValue) {
-          earliestStartTime = math.min(earliestStartTime, System.currentTimeMillis())
-        }
+        val s = System.currentTimeMillis()
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
+        val elapseTime = System.currentTimeMillis() - s
+        totalTime += elapseTime
+        totalMsgs += 1
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        val s = System.currentTimeMillis()
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        latestEndTime = math.max(System.currentTimeMillis(), latestEndTime)
+        val elapseTime = System.currentTimeMillis() - s
+        totalTime += elapseTime
+        totalMsgs += 1
       case ReceiveTimeout =>
-        if (!sent && (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue)) {
-          context.actorSelection("akka://AK/user/monitor") !
-            Tuple2(earliestStartTime, latestEndTime)
+        if (!sent && totalMsgs != 0L) {
+          context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
+            (totalTime * 1.0 / 1000))
           sent = true
         }
     }
@@ -130,10 +133,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
     if (partition < 0) {
       println(s"partition is less than 0 in table $tableId")
     }
-    if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      //if MainTable
-      partition = math.abs(partition)
-    }
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       writerActors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
@@ -144,6 +143,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
   }
 }
 
+final case class PerformanceReport(throughput: Double)
 final case class ValueAndHash(vector: SparseVector, hash: Int)
 final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
 
