@@ -54,17 +54,15 @@ class ActorBasedPartitionedHTreeMap[K, V](
     override def receive: Receive = {
       case ValueAndHash(vector: SparseVector, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
-          putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           vectorDatabase(i).put(vector.vectorId, true)
         }
         latestEndTime = math.max(latestEndTime, System.nanoTime())
         totalMsgs += 1
-      case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
+      case KeyAndHash(vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
-          putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+        putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         latestEndTime = math.max(latestEndTime, System.nanoTime())
         totalMsgs += 1
       case ReceiveTimeout =>
@@ -76,16 +74,14 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-  import ActorBasedPartitionedHTreeMap._
+  val writerActors = new mutable.HashMap[Int, Array[ActorRef]]
 
-  if (writerActors.size <= 0) {
-    for (partitionId <- 0 until partitioner.numPartitions) {
-      val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
-      writerActors.put(partitionId, new Array[ActorRef](actorNum))
-      for (segmentId <- 0 until actorNum) {
-        writerActors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-          Props(new WriterActor(partitionId, segmentId)))
-      }
+  for (partitionId <- 0 until partitioner.numPartitions) {
+    val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
+    writerActors.put(partitionId, new Array[ActorRef](actorNum))
+    for (segmentId <- 0 until actorNum) {
+      writerActors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+        Props(new WriterActor(partitionId, segmentId)))
     }
   }
 
@@ -136,7 +132,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       writerActors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
     } else {
-      writerActors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+      writerActors(partition)(segmentId) ! KeyAndHash(key.asInstanceOf[Int], h)
     }
     value
   }
@@ -144,7 +140,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
 final case class PerformanceReport(throughput: Double)
 final case class ValueAndHash(vector: SparseVector, hash: Int)
-final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
+final case class KeyAndHash(vectorId: Int, hash: Int)
 
 object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
@@ -152,6 +148,4 @@ object ActorBasedPartitionedHTreeMap {
 
   var histogramOfSegments: Array[Array[Array[Int]]] = null
   var histogramOfPartitions: Array[Array[Int]] = null
-
-  val writerActors = new mutable.HashMap[Int, Array[ActorRef]]
 }
