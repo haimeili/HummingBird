@@ -37,7 +37,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
             keySerializer, valueSerializer, valueCreator, executor, closeExecutor, ramThreshold);
   }
 
-  private String buildStorageName(int partitionId, int segId) {
+  protected String buildStorageName(int partitionId, int segId) {
     StringBuilder sb = new StringBuilder();
     sb.append("partition-" + partitionId + "-" + segId);
     return sb.toString();
@@ -120,9 +120,10 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } else {
       partition = partition1;
     }
+    String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
     try {
-      final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
+      final Lock ramLock = partitionRamLock.get(storageName).readLock();
       try {
         ramLock.lock();
         ln = getInner(o, seg, h, partition);
