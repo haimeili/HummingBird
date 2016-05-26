@@ -61,7 +61,6 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       System.out.println("FAULT: duplicate " + storageName);
     }
     storageSpaces.put(storageName, storeSegment);
-    System.out.println("Table " + tableId + " adding storage space for " + storageName);
     Long[] segIds = new Long[SEG];
     for (int i = 0; i < SEG; i++) {
       long partitionRoot = storageSpaces.get(storageName).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
