@@ -51,7 +51,7 @@ object HashTreeTest {
       case Ticket =>
         if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           println(s"total number of receivedActors: ${receivedActors.size}")
-          println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000000000))
+          println(totalCount * 1.0 / ((latestEndTime - earliestStartTime) / 1000))
 
           /*
           println("===SEGMENTS===")
@@ -232,12 +232,12 @@ object HashTreeTest {
               case (sum, weight) => sum + weight * weight} )
             val vector = new SparseVector(base * cap + cnt, size, indices,
               values.map(_ / squareSum))
-            val s = System.nanoTime()
+            val s = System.currentTimeMillis()
             vectorIdToVector.put(vector.vectorId, vector)
             for (i <- 0 until tableNum) {
               vectorDatabase(i).put(vector.vectorId, true)
             }
-            val e = System.nanoTime()
+            val e = System.currentTimeMillis()
             totalTime += e - s
             cnt += 1
             if (cnt >= cap) {
@@ -250,7 +250,7 @@ object HashTreeTest {
           val random = new Random(Thread.currentThread().getName.hashCode)
           val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
           traverseFile(allFiles)
-          println(cap / (totalTime / 1000000000))
+          println(cap / (totalTime / 1000))
           finishedWriteThreadCount.incrementAndGet()
         }
       })
