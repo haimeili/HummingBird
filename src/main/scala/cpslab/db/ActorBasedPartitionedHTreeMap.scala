@@ -13,6 +13,8 @@ import cpslab.deploy.ShardDatabase._
 import cpslab.lsh.LocalitySensitiveHasher
 import cpslab.lsh.vector.SparseVector
 
+import scala.util.Random
+
 class ActorBasedPartitionedHTreeMap[K, V](
     conf: Config,
     tableId: Int,
@@ -59,12 +61,17 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     override def receive: Receive = {
+      case Dispatch(tableId: Int, vectorId: Int) =>
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        vectorDatabase(tableId).put(vectorId, true)
+        latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
           partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-          vectorDatabase(i).put(vector.vectorId, true)
+          ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
+            Dispatch(tableId, vector.vectorId)
         }
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
@@ -153,6 +160,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
 final case class PerformanceReport(throughput: Double)
 final case class ValueAndHash(vector: SparseVector, hash: Int)
+final case class Dispatch(tableId: Int, vectorId: Int)
 final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
 
 object ActorBasedPartitionedHTreeMap {
@@ -163,6 +171,12 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfPartitions: Array[Array[Int]] = null
 
   val writerActors = new mutable.HashMap[Int, Array[ActorRef]]
+
+  def chooseRandomActor(partitionNum: Int): ActorRef = {
+    val partitionId = Random.nextInt(partitionNum)
+    val actors = writerActors(partitionId)
+    actors(Random.nextInt(actors.length))
+  }
 
   // just for testing
   var stoppedFeedingThreads = new AtomicInteger(0)
