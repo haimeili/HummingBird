@@ -65,6 +65,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case ReceiveTimeout =>
         context.actorSelection("akka://AK/user/monitor") !
           Tuple2(earliestStartTime, latestEndTime)
+        context.stop(self)
     }
   }
 
