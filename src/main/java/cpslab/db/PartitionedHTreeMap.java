@@ -34,12 +34,12 @@ public class PartitionedHTreeMap<K, V>
   public static int BUCKET_OVERFLOW = 4;
   protected static int BUCKET_LENGTH = 28;
 
-  private static int DIRECTORY_NODE_SIZE = 0;
-  private static int NUM_BITS_PER_COMPARISON = 0;
-  private static int BITS_COMPARISON_MASK = 0;
+  protected static int DIRECTORY_NODE_SIZE = 0;
+  protected static int NUM_BITS_PER_COMPARISON = 0;
+  protected static int BITS_COMPARISON_MASK = 0;
 
-  private static int BITMAP_SIZE = 0;
-  private static int MAX_TREE_LEVEL = 0;
+  protected static int BITMAP_SIZE = 0;
+  protected static int MAX_TREE_LEVEL = 0;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
@@ -61,7 +61,7 @@ public class PartitionedHTreeMap<K, V>
   protected final Serializer<K> keySerializer;
   protected final Serializer<V> valueSerializer;
 
-  protected final ConcurrentHashMap<Integer, Engine> engines = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, Engine> engines = new ConcurrentHashMap<>();
   protected final ConcurrentHashMap<Integer, Engine> snapshots = new ConcurrentHashMap<>();
   protected final boolean closeEngine;
 
@@ -78,7 +78,7 @@ public class PartitionedHTreeMap<K, V>
   public final ExecutorService executor;
 
   private final int structureLockScale = 256;
-  private HashMap<Integer, ReentrantReadWriteLock> structureLocks =
+  protected HashMap<Integer, ReentrantReadWriteLock> structureLocks =
           new HashMap<Integer, ReentrantReadWriteLock>();
 
 
@@ -94,7 +94,7 @@ public class PartitionedHTreeMap<K, V>
           new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
   //partitioner
-  private final Partitioner<K> partitioner;
+  protected final Partitioner<K> partitioner;
   private final String hasherName;
   protected final Hasher hasher;
 
@@ -657,7 +657,7 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
-  private LinkedNode<K, V> search(Object key, Engine engine, long recId, int h) {
+  protected LinkedNode<K, V> search(Object key, Engine engine, long recId, int h) {
     for (int level = MAX_TREE_LEVEL; level >= 0; level--) {
       Object dir = engine.get(recId, DIR_SERIALIZER);
       if (dir == null) {
