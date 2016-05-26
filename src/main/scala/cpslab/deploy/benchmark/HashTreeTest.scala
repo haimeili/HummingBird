@@ -29,7 +29,7 @@ object HashTreeTest {
   class MonitorActor(totalCount: Long) extends Actor {
 
     val receivedActors = new mutable.HashSet[String]
-    var totalThroughput = 0L
+    var totalThroughput = 0.0
 
     override def preStart() {
       val system = context.system
