@@ -145,6 +145,7 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Array[Int]]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+      vectorDatabase(tableId).initStructureLocks()
       ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Array[Int]](
         math.pow(2, partitionBits).toInt)
       for (partition <- 0 until math.pow(2, partitionBits).toInt) {
@@ -155,6 +156,7 @@ object HashTreeTest {
         math.pow(2, partitionBits).toInt)
     }
     vectorIdToVector = initializeIdToVectorMap(conf)
+    vectorIdToVector.initStructureLocks()
   }
 
   def asyncTestWriteThreadScalability (
