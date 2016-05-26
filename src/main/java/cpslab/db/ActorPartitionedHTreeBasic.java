@@ -12,6 +12,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> {
 
+  final int tableId;
+
   ConcurrentHashMap<String, StoreSegment> storageSpaces = new ConcurrentHashMap<>();
 
   protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
@@ -35,6 +37,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
           long ramThreshold) {
     super(tableId, hasherName, workingDirectory, name, partitioner, closeEngine, hashSalt,
             keySerializer, valueSerializer, valueCreator, executor, closeExecutor, ramThreshold);
+    this.tableId = tableId;
   }
 
   protected String buildStorageName(int partitionId, int segId) {
@@ -54,8 +57,10 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     if (storageSpaces.containsKey(storageName)) {
       storageSpaces.get(storageName).close();
     }
+    if (storageSpaces.containsKey(storageName)) {
+      System.out.println("FAULT: duplicate " + storageName);
+    }
     storageSpaces.put(storageName, storeSegment);
-    System.out.println("adding storage space for " + storageName);
     Long[] segIds = new Long[SEG];
     for (int i = 0; i < SEG; i++) {
       long partitionRoot = storageSpaces.get(storageName).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
