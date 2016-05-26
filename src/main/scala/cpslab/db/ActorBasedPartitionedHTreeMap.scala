@@ -50,7 +50,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
 
-    var totalMsgs = 0L
     var sent = false
 
     override def preStart(): Unit = {
@@ -68,20 +67,20 @@ class ActorBasedPartitionedHTreeMap[K, V](
           vectorDatabase(i).put(vector.vectorId, true)
         }
         latestEndTime = math.max(latestEndTime, System.nanoTime())
-        totalMsgs += 1
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         latestEndTime = math.max(latestEndTime, System.nanoTime())
-        totalMsgs += 1
       case ReceiveTimeout =>
-        if (!sent && totalMsgs != 0L) {
+        if (!sent && (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue)) {
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
             Tuple2(earliestStartTime, latestEndTime)
           sent = true
+        } else {
+          context.stop(self)
         }
     }
   }
