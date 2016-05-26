@@ -67,10 +67,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
         totalMsgs += 1
       case ReceiveTimeout =>
         if (!sent && totalMsgs != 0L) {
-          // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
-            // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
-          context.actorSelection("akka://AK/user/monitor") !
-            Tuple2(earliestStartTime, latestEndTime)
+          context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
+            ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
+          //context.actorSelection("akka://AK/user/monitor") !
+          //Tuple2(earliestStartTime, latestEndTime)
           sent = true
         }
     }

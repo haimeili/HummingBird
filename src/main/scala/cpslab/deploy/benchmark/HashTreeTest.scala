@@ -45,6 +45,10 @@ object HashTreeTest {
       case Tuple2(startTime: Long, endTime: Long) =>
         earliestStartTime = math.min(earliestStartTime, startTime)
         latestEndTime = math.max(latestEndTime, endTime)
+        val senderPath = sender().path.toString
+        if (!receivedActors.contains(senderPath)) {
+          receivedActors += senderPath
+        }
       case PerformanceReport(throughput: Double) =>
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath)) {
@@ -52,11 +56,12 @@ object HashTreeTest {
           receivedActors += senderPath
         }
       case Ticket =>
-        if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
+        if (totalThroughput != 0){
           println(s"total number of receivedActors: ${receivedActors.size}")
-          println(s"total Throughput: ${totalCount * 1.0 /
-            ((latestEndTime - earliestStartTime) / 1000000000)}")
-
+          println(s"total throughput: $totalThroughput")
+          // println(s"total Throughput: ${totalCount * 1.0 /
+            // ((latestEndTime - earliestStartTime) / 1000000000)}")
+          //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
           println("===SEGMENTS===")
           for (tableID <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
