@@ -52,7 +52,7 @@ object HashTreeTest {
           receivedActors += senderPath
         }
       case Ticket =>
-        if (totalThroughput != 0) {
+        if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           println(s"total number of receivedActors: ${receivedActors.size}")
           println(s"total Throughput: ${totalCount * 1.0 /
             ((latestEndTime - earliestStartTime) / 1000000000)}")
