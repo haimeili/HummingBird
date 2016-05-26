@@ -49,6 +49,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       storageSpaces.get(storageName).close();
     }
     storageSpaces.put(storageName, storeSegment);
+    System.out.println("adding storage space for " + storageName);
     Long[] segIds = new Long[SEG];
     for (int i = 0; i < SEG; i++) {
       long partitionRoot = storageSpaces.get(storageName).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
@@ -153,6 +154,10 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     long dirRecid = partitionRootRec.get(partition)[seg];
     String storageName = buildStorageName(partition, seg);
     Engine engine = storageSpaces.get(storageName);
+    if (engine == null) {
+      System.out.println("FAULT: cannot find engine for " + storageName);
+      System.exit(1);
+    }
 
     int level = MAX_TREE_LEVEL;
     while (true) {
