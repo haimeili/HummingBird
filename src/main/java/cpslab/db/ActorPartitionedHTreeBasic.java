@@ -14,8 +14,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   ConcurrentHashMap<String, StoreSegment> storageSpaces = new ConcurrentHashMap<>();
 
-  protected HashMap<String, ReentrantReadWriteLock> structureLocks =
-          new HashMap<String, ReentrantReadWriteLock>();
+  protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
 
   public ActorPartitionedHTreeBasic(
           int tableId, String hasherName, String workingDirectory,
