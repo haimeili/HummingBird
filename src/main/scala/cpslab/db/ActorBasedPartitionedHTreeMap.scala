@@ -53,7 +53,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     override def receive: Receive = {
       case ValueAndHash(vector: SparseVector, h: Int) =>
         if (earliestStartTime == Long.MaxValue) {
-          earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+          earliestStartTime = math.min(earliestStartTime, System.currentTimeMillis())
         }
         putExecuteByActor(partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
@@ -62,7 +62,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case KeyAndHash(vectorId: Int, h: Int) =>
         //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        latestEndTime = math.max(System.nanoTime(), latestEndTime)
+        latestEndTime = math.max(System.currentTimeMillis(), latestEndTime)
       case ReceiveTimeout =>
         if (!sent && (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue)) {
           context.actorSelection("akka://AK/user/monitor") !
