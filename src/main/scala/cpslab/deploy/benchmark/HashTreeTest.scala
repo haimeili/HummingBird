@@ -31,6 +31,9 @@ object HashTreeTest {
     val receivedActors = new mutable.HashSet[String]
     var totalThroughput = 0.0
 
+    var earliestStartTime = Long.MaxValue
+    var latestEndTime = Long.MinValue
+
     override def preStart() {
       val system = context.system
       import system.dispatcher
@@ -39,6 +42,9 @@ object HashTreeTest {
 
 
     override def receive: Receive = {
+      case Tuple2(startTime: Long, endTime: Long) =>
+        earliestStartTime = math.min(earliestStartTime, startTime)
+        latestEndTime = math.max(latestEndTime, endTime)
       case PerformanceReport(throughput: Double) =>
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath)) {
@@ -48,7 +54,8 @@ object HashTreeTest {
       case Ticket =>
         if (totalThroughput != 0) {
           println(s"total number of receivedActors: ${receivedActors.size}")
-          println(s"total Throughput: $totalThroughput")
+          println(s"total Throughput: ${totalCount * 1.0 /
+            ((latestEndTime - earliestStartTime) / 1000000000)}")
 
           /*
           println("===SEGMENTS===")
