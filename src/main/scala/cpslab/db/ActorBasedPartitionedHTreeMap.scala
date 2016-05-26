@@ -87,15 +87,16 @@ class ActorBasedPartitionedHTreeMap[K, V](
       value: V): Unit = {
     initPartitionIfNecessary(partition)
     var ret: V = value
+    val seg: Int = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     try {
-      //partitionRamLock.get(partition).writeLock.lock
+      partitionRamLock.get(partition)(seg).writeLock.lock()
       ret = putInner(key, value, h, partition)
     } catch {
       case e: Exception =>
         e.printStackTrace()
         sys.exit(1)
     } finally {
-      //partitionRamLock.get(partition).writeLock.unlock
+      partitionRamLock.get(partition)(seg).writeLock.unlock()
     }
   }
 
