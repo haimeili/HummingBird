@@ -90,7 +90,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       key: K,
       value: V): Unit = {
     val seg: Int = h >>> PartitionedHTreeMap.BUCKET_LENGTH
-    val storageName = buildStorageName(partition, seg);
+    val storageName = buildStorageName(partition, seg)
     initPartitionIfNecessary(partition, seg)
     var ret: V = value
     try {
