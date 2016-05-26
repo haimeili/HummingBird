@@ -169,12 +169,13 @@ object HashTreeTest {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
     val base = conf.getInt("cpslab.lsh.benchmark.base")
-    var cnt = 0
+
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
         new Thread(new Runnable {
           override def run(): Unit = {
+            var cnt = 0
             val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
@@ -193,7 +194,7 @@ object HashTreeTest {
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      props = Props(new MonitorActor(cap)),
+      props = Props(new MonitorActor(cap * threadNumber)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
