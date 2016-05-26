@@ -58,7 +58,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           vectorDatabase(i).put(vector.vectorId, true)
         }
         val elapseTime = System.nanoTime() - s
-        totalTime += (elapseTime * 1.0)
+        totalTime += elapseTime
         totalMsgs += 1
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         //earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -66,7 +66,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         val elapseTime = System.nanoTime() - s
-        totalTime += (elapseTime * 1.0)
+        totalTime += elapseTime
         totalMsgs += 1
       case ReceiveTimeout =>
         if (!sent && totalMsgs != 0L) {
