@@ -226,7 +226,8 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfPartitions: Array[Array[Int]] = null
 
   //new mutable.HashMap[Int, Array[ActorRef]]
-  var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var writerActors: mutable.HashMap[Int, Array[ActorRef]] =
+    new mutable.HashMap[Int, Array[ActorRef]]
   var writerActorsNumPerPartition: Int = 0
 
   var shareActor = true
