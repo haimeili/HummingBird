@@ -49,6 +49,13 @@ class ActorBasedPartitionedHTreeMap[K, V](
     closeExecutor,
     ramThreshold) {
 
+  // partitionId-actorIndex -> (SparseVector, hash)
+  private val bufferOfMainTable = new mutable.HashMap[String, ListBuffer[(SparseVector, Int)]]
+  private val bufferOfMainTableLocks = new mutable.HashMap[String, ReentrantReadWriteLock]()
+  // partitionId-actorIndex -> (vectorId, hash)
+  private val bufferOfLSHTable = new mutable.HashMap[String, ListBuffer[(Int, Int)]]
+  private val bufferOfLSHTableLocks = new mutable.HashMap[String, ReentrantReadWriteLock]()
+  
   private class WriterActor(partitionId: Int) extends Actor {
 
     context.setReceiveTimeout(60000 milliseconds)
@@ -237,13 +244,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
       partitionRamLock.get(storageName).writeLock.unlock()
     }
   }
-
-  // partitionId-actorIndex -> (SparseVector, hash)
-  private val bufferOfMainTable = new mutable.HashMap[String, ListBuffer[(SparseVector, Int)]]
-  private val bufferOfMainTableLocks = new mutable.HashMap[String, ReentrantReadWriteLock]()
-  // partitionId-actorIndex -> (vectorId, hash)
-  private val bufferOfLSHTable = new mutable.HashMap[String, ListBuffer[(Int, Int)]]
-  private val bufferOfLSHTableLocks = new mutable.HashMap[String, ReentrantReadWriteLock]()
 
   private def bufferingPutForMainTable(partitionId: Int, actorId: Int, vector: SparseVector,
                                        h: Int): Unit = {
