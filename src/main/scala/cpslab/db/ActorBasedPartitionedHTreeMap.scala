@@ -129,6 +129,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   if (shareActor) {
     if (writerActors == null) {
+      writerActors = new mutable.HashMap[Int, Array[ActorRef]]
       for (partitionId <- 0 until partitioner.numPartitions) {
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         for (i <- 0 until writerActorsNumPerPartition) {
@@ -226,8 +227,7 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfPartitions: Array[Array[Int]] = null
 
   //new mutable.HashMap[Int, Array[ActorRef]]
-  var writerActors: mutable.HashMap[Int, Array[ActorRef]] =
-    new mutable.HashMap[Int, Array[ActorRef]]
+  var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
   var writerActorsNumPerPartition: Int = 0
 
   var shareActor = true
