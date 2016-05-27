@@ -194,7 +194,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       if (shareActor) {
         writerActors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       } else {
-        actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+        actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       }
     }
     value
