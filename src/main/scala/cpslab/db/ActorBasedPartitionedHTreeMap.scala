@@ -227,7 +227,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   def dumpLSHTableBuffer(): Unit = synchronized {
     for ((id, buffer) <- bufferOfLSHTable) {
-      val lock = bufferOfMainTableLocks(id).writeLock()
+      val lock = bufferOfLSHTableLocks(id).writeLock()
       try {
         lock.lock()
         val Array(partitionId, actorId) = id.split("-")
