@@ -644,6 +644,7 @@ object HashTreeTest {
     testReadThreadScalability(conf, requestPerThread, threadNumber)*/
 
 
+    ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
