@@ -185,9 +185,17 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      writerActors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+      if (shareActor) {
+        writerActors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+      } else {
+        actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+      }
     } else {
-      writerActors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+      if (shareActor) {
+        writerActors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+      } else {
+        actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+      }
     }
     value
   }
