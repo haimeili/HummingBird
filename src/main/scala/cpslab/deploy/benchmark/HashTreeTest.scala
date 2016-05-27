@@ -180,7 +180,9 @@ object HashTreeTest {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
     val base = conf.getInt("cpslab.lsh.benchmark.base")
+    val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.actorNum")
 
+    ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition = actorNumPerPartition
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {

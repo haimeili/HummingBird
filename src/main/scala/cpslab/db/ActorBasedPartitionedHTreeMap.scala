@@ -47,9 +47,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
     closeExecutor,
     ramThreshold) {
 
-  private class WriterActor(partitionId: Int, segmentId: Int) extends Actor {
+  private class WriterActor(partitionId: Int) extends Actor {
 
-    context.setReceiveTimeout(60000 milliseconds)
+    context.setReceiveTimeout(30000 milliseconds)
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
@@ -128,13 +128,12 @@ class ActorBasedPartitionedHTreeMap[K, V](
   val actors = new mutable.HashMap[Int, Array[ActorRef]]
 
   if (shareActor) {
-    if (writerActors.size <= 0) {
+    if (writerActors == null) {
       for (partitionId <- 0 until partitioner.numPartitions) {
-        val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
-        writerActors.put(partitionId, new Array[ActorRef](actorNum))
-        for (segmentId <- 0 until actorNum) {
-          writerActors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-            Props(new WriterActor(partitionId, segmentId)))
+        writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
+        for (i <- 0 until writerActorsNumPerPartition) {
+          writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new WriterActor(partitionId)))
         }
       }
     }
@@ -144,7 +143,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       actors.put(partitionId, new Array[ActorRef](actorNum))
       for (segmentId <- 0 until actorNum) {
         actors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-          Props(new WriterActor(partitionId, segmentId)))
+          Props(new WriterActor(partitionId)))
       }
     }
   }
@@ -195,13 +194,17 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
-        writerActors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+        writerActors(partition)(
+          math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition) !
+          ValueAndHash(value.asInstanceOf[SparseVector], h)
       } else {
         actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
       }
     } else {
       if (shareActor) {
-        writerActors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+        writerActors(partition)(
+          math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition) !
+          KeyAndHash(tableId, key.asInstanceOf[Int], h)
       } else {
         actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       }
@@ -222,7 +225,10 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfSegments: Array[Array[Array[Int]]] = null
   var histogramOfPartitions: Array[Array[Int]] = null
 
-  val writerActors = new mutable.HashMap[Int, Array[ActorRef]]
+  //new mutable.HashMap[Int, Array[ActorRef]]
+  var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var writerActorsNumPerPartition: Int = 0
+
   var shareActor = true
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {
