@@ -3,6 +3,8 @@ package cpslab.db
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicInteger
 
+import cpslab.deploy.ShardDatabase
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -60,6 +62,29 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
     }
 
+    import ActorBasedPartitionedHTreeMap._
+
+    private def chooseRandomActor: ActorRef = {
+      val tableId = Random.nextInt(ShardDatabase.vectorDatabase.length)
+      val partitionId = Random.nextInt(partitioner.numPartitions)
+      val actors = vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
+        actors(partitionId)
+      actors(Random.nextInt(actors.length))
+    }
+
+    private def dispatchLSHCalculation(vectorId: Int): Unit = {
+      if (shareActor) {
+        for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
+            Dispatch(tableId, vectorId)
+        }
+      } else {
+        for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          chooseRandomActor ! Dispatch(tableId, vectorId)
+        }
+      }
+    }
+
     override def receive: Receive = {
       case Dispatch(tableId: Int, vectorId: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -69,10 +94,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
           partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
-        for (i <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-          ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
-            Dispatch(tableId, vector.vectorId)
-        }
+        dispatchLSHCalculation(vector.vectorId)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -94,12 +116,25 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   import ActorBasedPartitionedHTreeMap._
 
-  if (writerActors.size <= 0) {
+  val actors = new mutable.HashMap[Int, Array[ActorRef]]
+
+  if (shareActor) {
+    if (writerActors.size <= 0) {
+      for (partitionId <- 0 until partitioner.numPartitions) {
+        val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
+        writerActors.put(partitionId, new Array[ActorRef](actorNum))
+        for (segmentId <- 0 until actorNum) {
+          writerActors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new WriterActor(partitionId, segmentId)))
+        }
+      }
+    }
+  } else {
     for (partitionId <- 0 until partitioner.numPartitions) {
       val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
-      writerActors.put(partitionId, new Array[ActorRef](actorNum))
+      actors.put(partitionId, new Array[ActorRef](actorNum))
       for (segmentId <- 0 until actorNum) {
-        writerActors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+        actors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
           Props(new WriterActor(partitionId, segmentId)))
       }
     }
@@ -171,6 +206,7 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfPartitions: Array[Array[Int]] = null
 
   val writerActors = new mutable.HashMap[Int, Array[ActorRef]]
+  var shareActor = true
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {
     val partitionId = Random.nextInt(partitionNum)
