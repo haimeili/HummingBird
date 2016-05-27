@@ -72,13 +72,25 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     private def dispatchLSHCalculation(vectorId: Int): Unit = {
       if (shareActor) {
-        for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-          ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
-            Dispatch(tableId, vectorId)
+        if (parallelLSHComputation) {
+          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
+              Dispatch(tableId, vectorId)
+          }
+        } else {
+          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            vectorDatabase(tableId).put(vectorId, true)
+          }
         }
       } else {
-        for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-          chooseRandomActor ! Dispatch(tableId, vectorId)
+        if (parallelLSHComputation) {
+          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            chooseRandomActor ! Dispatch(tableId, vectorId)
+          }
+        } else {
+          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            vectorDatabase(tableId).put(vectorId, true)
+          }
         }
       }
     }
@@ -226,6 +238,7 @@ object ActorBasedPartitionedHTreeMap {
   var writerActorsNumPerPartition: Int = 0
 
   var shareActor = true
+  var parallelLSHComputation = false
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {
     val partitionId = Random.nextInt(partitionNum)
