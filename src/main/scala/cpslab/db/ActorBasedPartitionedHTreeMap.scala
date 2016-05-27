@@ -49,7 +49,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   private class WriterActor(partitionId: Int) extends Actor {
 
-    context.setReceiveTimeout(30000 milliseconds)
+    context.setReceiveTimeout(60000 milliseconds)
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
