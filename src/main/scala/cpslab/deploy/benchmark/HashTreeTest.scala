@@ -172,6 +172,8 @@ object HashTreeTest {
     conf: Config, threadNumber: Int): Unit = {
     val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.actorNum")
     ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition = actorNumPerPartition
+    val parallelLSHCalculation = conf.getBoolean("cpslab.lsh.benchmark.parallelLSH")
+    ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
 
     initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
