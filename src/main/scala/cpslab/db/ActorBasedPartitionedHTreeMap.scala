@@ -92,14 +92,23 @@ class ActorBasedPartitionedHTreeMap[K, V](
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
-          partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        if (shareActor) {
+          vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
+            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        } else {
+          putExecuteByActor(
+            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+        }
         dispatchLSHCalculation(vector.vectorId)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
+        if (shareActor) {
+          vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
+            putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+        } else {
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+        }
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ReceiveTimeout =>
         if (!sent && (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue)) {
@@ -172,7 +181,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     val h: Int = hash(key)
-    var partition: Int = partitioner.getPartition(
+    val partition: Int = partitioner.getPartition(
       (
         if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
           h
