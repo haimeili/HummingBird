@@ -132,7 +132,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
       writerActors = new mutable.HashMap[Int, Array[ActorRef]]
       for (partitionId <- 0 until partitioner.numPartitions) {
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
-        println(s"init partition $partitionId with $writerActorsNumPerPartition actors")
         for (i <- 0 until writerActorsNumPerPartition) {
           writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
             Props(new WriterActor(partitionId)))
@@ -196,7 +195,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
-        println(s"=====partition $partition length: ${writerActors(partition).length}")
         writerActors(partition)(
           math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition) !
           ValueAndHash(value.asInstanceOf[SparseVector], h)
