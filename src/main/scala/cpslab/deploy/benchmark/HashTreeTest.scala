@@ -248,7 +248,6 @@ object HashTreeTest {
             val vector = new SparseVector(base * cap + cnt, size, indices,
               values.map(_ / squareSum))
             val s = System.currentTimeMillis()
-            val dummyReq = ValueAndHash(vector, 0)
             vectorIdToVector.put(vector.vectorId, vector)
             for (i <- 0 until tableNum) {
               vectorDatabase(i).put(vector.vectorId, true)

@@ -158,6 +158,32 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   }
 
   @Override
+  public V put(final K key, final V value) {
+    if (key == null)
+      throw new IllegalArgumentException("null key");
+
+    if (value == null)
+      throw new IllegalArgumentException("null value");
+
+    V ret;
+    final int h = hash(key);
+    final int seg = h >>> BUCKET_LENGTH;
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    initPartitionIfNecessary(partition, seg);
+    try {
+      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().lock();
+      ret = putInner(key, value, h, partition);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return null;
+    } finally {
+      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().unlock();
+    }
+    return ret;
+  }
+
+  @Override
   protected V putInner(K key, V value, int h, int partition) {
     int seg = h>>> BUCKET_LENGTH;
     long dirRecid = partitionRootRec.get(partition)[seg];
