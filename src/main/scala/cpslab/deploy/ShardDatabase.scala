@@ -145,7 +145,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
-          val newTree = new PartitionedHTreeMap[Int, Boolean](
+          val newTree = new ActorPartitionedHTreeBasic[Int, Boolean](
             tableId,
             "lsh",
             workingDirRoot + "-" + tableId,
@@ -164,7 +164,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     def initializeIdToVectorMap(): PartitionedHTreeMap[Int, SparseVector] =
       concurrentCollectionType match {
         case "Doraemon" =>
-          new PartitionedHTreeMap(
+          new ActorPartitionedHTreeBasic[Int, SparseVector](
             tableNum,
             "default",
             workingDirRoot + "-vector",
