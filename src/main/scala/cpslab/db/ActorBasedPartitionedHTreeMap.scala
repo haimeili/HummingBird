@@ -355,11 +355,13 @@ class ActorBasedPartitionedHTreeMap[K, V](
     } else {
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
+        writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+        /*
         if (bufferSize <= 0) {
           writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
         } else {
           bufferingPutForLSHTable(partition, actorId, key.asInstanceOf[Int], h)
-        }
+        }*/
       } else {
         actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       }
