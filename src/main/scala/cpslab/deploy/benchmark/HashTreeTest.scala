@@ -15,7 +15,7 @@ import scala.util.Random
 
 import akka.actor.{Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
-import cpslab.db.{PerformanceReport, ActorBasedPartitionedHTreeMap, PartitionedHTreeMap}
+import cpslab.db._
 import cpslab.deploy.ShardDatabase._
 import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
@@ -248,6 +248,7 @@ object HashTreeTest {
             val vector = new SparseVector(base * cap + cnt, size, indices,
               values.map(_ / squareSum))
             val s = System.currentTimeMillis()
+            val dummyReq = ValueAndHash(vector, 0)
             vectorIdToVector.put(vector.vectorId, vector)
             for (i <- 0 until tableNum) {
               vectorDatabase(i).put(vector.vectorId, true)
