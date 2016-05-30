@@ -99,7 +99,7 @@ object HashTreeTest {
               totalMainTableMsgCnt.clear()
               asyncTestReadThreadScalability(conf, requestNumPerThread)
             }
-          })
+          }).start()
         }
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
