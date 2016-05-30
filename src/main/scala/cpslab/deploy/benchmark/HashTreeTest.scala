@@ -29,7 +29,8 @@ object HashTreeTest {
   case object TicketForRead
 
   class MonitorActor(conf: Config, requestNumPerThread: Int, threadNum: Int,
-                     totalWriteCount: Int, totalReadCount: Int) extends Actor {
+                     totalWriteCount: Int, totalReadCount: Int, ifRunReadTest: Boolean)
+    extends Actor {
 
     val receivedActors = new mutable.HashMap[String, (Int, Int)]
 
@@ -95,7 +96,8 @@ object HashTreeTest {
 
     private def processingTicket(): Unit = {
       val (mainMsgNum, lshTableMsgNum) = report()
-      if (mainMsgNum >= totalWriteCount && lshTableMsgNum == 10 * mainMsgNum && !readStarted) {
+      if (ifRunReadTest && mainMsgNum >= totalWriteCount &&
+        lshTableMsgNum == 10 * mainMsgNum && !readStarted) {
         println("===Read Performance ===")
         val system = context.system
         import system.dispatcher
@@ -235,6 +237,7 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
+    val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
@@ -264,7 +267,7 @@ object HashTreeTest {
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
       props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber,
-        readCap * threadNumber)),
+        readCap * threadNumber, ifRunRead)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
