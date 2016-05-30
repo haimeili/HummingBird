@@ -62,8 +62,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
-    var mainTableMsgCnt = 0
-    var lshTableMsgCnt = 0
 
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedReadingThreads.get() <
@@ -85,7 +83,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case ReceiveTimeout =>
         if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple4(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt)
+            Tuple2(earliestStartTime, latestEndTime)
         }
     }
   }

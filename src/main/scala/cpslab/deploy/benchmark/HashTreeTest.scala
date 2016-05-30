@@ -25,6 +25,7 @@ import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
 object HashTreeTest {
 
   case object Ticket
+  case object TicketForRead
 
   class MonitorActor(conf: Config, requestNumPerThread: Int, threadNum: Int,
                      totalCount: Int) extends Actor {
@@ -34,7 +35,12 @@ object HashTreeTest {
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
 
+    var earliestReadStartTime = Long.MaxValue
+    var latestReadEndTime = Long.MinValue
+
     var ticketScheduler: Cancellable = null
+
+    var readStarted = false
 
     override def preStart() {
       val system = context.system
@@ -45,6 +51,17 @@ object HashTreeTest {
 
     var totalMainTableMsgCnt = new mutable.HashMap[String, Int]()
     var totalLSHTableMsgCnt = new mutable.HashMap[String, Int]()
+
+    private def reportReadPerf(): Unit = {
+      if (earliestReadStartTime != Long.MaxValue && latestReadEndTime != Long.MinValue) {
+        println(s"total number of receivedActors: ${receivedActors.size}")
+        // println(s"total throughput: $totalThroughput")
+        println(s"total Throughput: ${
+          totalCount * 1.0 /
+            ((latestReadEndTime - earliestReadStartTime) / 1000000000)
+        }")
+      }
+    }
 
     private def report(): (Int, Int) = {
       if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
@@ -75,6 +92,24 @@ object HashTreeTest {
       }
     }
 
+    private def processingTicket(): Unit = {
+      val (mainMsgNum, _) = report()
+      if (mainMsgNum >= totalCount && !readStarted) {
+        println("===Read Performance ===")
+        val system = context.system
+        import system.dispatcher
+        earliestStartTime = Long.MaxValue
+        latestEndTime = Long.MinValue
+        totalLSHTableMsgCnt.clear()
+        totalMainTableMsgCnt.clear()
+        ticketScheduler.cancel()
+        ticketScheduler = context.system.scheduler.schedule(0 milliseconds,
+          30 * 1000 milliseconds, self, TicketForRead)
+        readStarted = true
+        asyncTestReadThreadScalability(conf, requestNumPerThread)
+      }
+    }
+
     override def receive: Receive = {
       case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
         earliestStartTime = math.min(earliestStartTime, startTime)
@@ -87,43 +122,17 @@ object HashTreeTest {
           totalMainTableMsgCnt += (senderPath -> mainTableCnt)
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
-      case Ticket =>
-        val (mainMsgNum, _) = report()
-        if (mainMsgNum >= totalCount) {
-          println("===Read Performance ===")
-          earliestStartTime = Long.MaxValue
-          latestEndTime = Long.MinValue
-          totalLSHTableMsgCnt.clear()
-          totalMainTableMsgCnt.clear()
-          asyncTestReadThreadScalability(conf, requestNumPerThread)
+      case Tuple2(startTime: Long, endTime: Long) =>
+        earliestReadStartTime = math.min(earliestReadStartTime, startTime)
+        latestReadEndTime = math.max(latestReadEndTime, endTime)
+        val senderPath = sender().path.toString
+        if (!receivedActors.contains(senderPath)) {
+          receivedActors += senderPath -> Tuple2(0, 0)
         }
-          //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
-          /*
-          println("===SEGMENTS===")
-          for (tableID <- ActorBasedPartitionedHTreeMap.histogramOfSegments.indices) {
-            println(s"Table $tableID")
-            for (partitionId <- ActorBasedPartitionedHTreeMap.histogramOfSegments(tableID).
-              indices) {
-              println(s"Partition $partitionId")
-              val partitionTable =
-                ActorBasedPartitionedHTreeMap.histogramOfSegments(tableID)(partitionId)
-              for (segmendId <- partitionTable.indices) {
-                print(s"$segmendId:${partitionTable(segmendId)}\t")
-              }
-            }
-            println()
-          }
-          println("===PARTITIONS===")
-          for (tableId <- ActorBasedPartitionedHTreeMap.histogramOfPartitions.indices) {
-            println(s"Table $tableId")
-            for (partitionId <-
-                 ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId).indices) {
-              print(s"$partitionId:" +
-                s"${ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId)(partitionId)}\t")
-            }
-            println()
-          }*/
-
+      case Ticket =>
+        processingTicket()
+      case TicketForRead =>
+        reportReadPerf()
     }
   }
 
