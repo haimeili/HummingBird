@@ -78,7 +78,6 @@ object HashTreeTest {
           (receivedActors(senderPath)._1 != mainTableCnt ||
             receivedActors(senderPath)._2 != lshTableCnt)) {
           receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
-          println(s"update message count for $senderPath as $mainTableCnt, $lshTableCnt")
           totalMainTableMsgCnt += (senderPath -> mainTableCnt)
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }

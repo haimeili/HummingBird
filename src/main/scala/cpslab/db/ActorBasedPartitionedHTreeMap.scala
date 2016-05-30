@@ -185,13 +185,23 @@ class ActorBasedPartitionedHTreeMap[K, V](
   val actors = new mutable.HashMap[Int, Array[ActorRef]]
 
   if (shareActor) {
-    if (writerActors == null) {
-      writerActors = new mutable.HashMap[Int, Array[ActorRef]]
+    if (lshTableWriterActors == null) {
+      lshTableWriterActors = new mutable.HashMap[Int, Array[ActorRef]]
       for (partitionId <- 0 until partitioner.numPartitions) {
-        writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
+        lshTableWriterActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         for (i <- 0 until writerActorsNumPerPartition) {
-          writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-            Props(new WriterActor(partitionId)), name = s"writer-$partitionId-$i")
+          lshTableWriterActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new WriterActor(partitionId)), name = s"lshwriter-$partitionId-$i")
+        }
+      }
+    }
+    if (mainTableWriterActors == null) {
+      mainTableWriterActors = new mutable.HashMap[Int, Array[ActorRef]]
+      for (partitionId <- 0 until partitioner.numPartitions) {
+        mainTableWriterActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
+        for (i <- 0 until writerActorsNumPerPartition) {
+          mainTableWriterActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new WriterActor(partitionId)), name = s"mainwriter-$partitionId-$i")
         }
       }
     }
@@ -234,7 +244,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       try {
         lock.lock()
         val Array(partitionId, actorId) = id.split("-")
-        writerActors(partitionId.toInt)(actorId.toInt) ! BatchKeyAndHash(buffer.toList)
+        lshTableWriterActors(partitionId.toInt)(actorId.toInt) ! BatchKeyAndHash(buffer.toList)
         bufferOfLSHTable(id) = new ListBuffer[(Int, Int)]
       } catch {
         case e: Exception =>
@@ -251,7 +261,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       try {
         lock.lock()
         val Array(partitionId, actorId) = id.split("-")
-        writerActors(partitionId.toInt)(actorId.toInt) ! BatchValueAndHash(buffer.toList)
+        mainTableWriterActors(partitionId.toInt)(actorId.toInt) ! BatchValueAndHash(buffer.toList)
         bufferOfMainTable(id) = new ListBuffer[(SparseVector, Int)]
       } catch {
         case e: Exception =>
@@ -292,7 +302,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       val buffer = bufferOfLSHTable(s"$partitionId-$actorId")
       buffer += (vectorId -> h)
       if (buffer.size >= bufferSize) {
-        writerActors(partitionId)(actorId) ! BatchKeyAndHash(buffer.toList)
+        lshTableWriterActors(partitionId)(actorId) ! BatchKeyAndHash(buffer.toList)
         bufferOfLSHTable(s"$partitionId-$actorId") = new ListBuffer[(Int, Int)]
       }
     } catch {
@@ -311,7 +321,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       val buffer = bufferOfMainTable(s"$partitionId-$actorId")
       buffer += (vector.asInstanceOf[SparseVector] -> h)
       if (buffer.size >= bufferSize) {
-        writerActors(partitionId)(actorId) ! BatchValueAndHash(buffer.toList)
+        mainTableWriterActors(partitionId)(actorId) ! BatchValueAndHash(buffer.toList)
         bufferOfMainTable(s"$partitionId-$actorId") = new ListBuffer[(SparseVector, Int)]
       }
     } catch {
@@ -348,7 +358,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
         if (bufferSize <= 0) {
-          writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+          mainTableWriterActors(partition)(actorId) !
+            ValueAndHash(value.asInstanceOf[SparseVector], h)
         } else {
           bufferingPutForMainTable(partition, actorId, value.asInstanceOf[SparseVector], h)
         }
@@ -358,7 +369,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     } else {
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
-        writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+        lshTableWriterActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
         /*
         if (bufferSize <= 0) {
           writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
@@ -388,7 +399,8 @@ object ActorBasedPartitionedHTreeMap {
   var histogramOfPartitions: Array[Array[Int]] = null
 
   //new mutable.HashMap[Int, Array[ActorRef]]
-  var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var mainTableWriterActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var lshTableWriterActors: mutable.HashMap[Int, Array[ActorRef]] = null
   var writerActorsNumPerPartition: Int = 0
 
   var shareActor = true
@@ -397,7 +409,7 @@ object ActorBasedPartitionedHTreeMap {
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {
     val partitionId = Random.nextInt(partitionNum)
-    val actors = writerActors(partitionId)
+    val actors = lshTableWriterActors(partitionId)
     actors(Random.nextInt(actors.length))
   }
 
