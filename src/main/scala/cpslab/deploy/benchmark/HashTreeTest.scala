@@ -28,7 +28,7 @@ object HashTreeTest {
 
   class MonitorActor(totalCount: Long) extends Actor {
 
-    val receivedActors = new mutable.HashSet[String]
+    val receivedActors = new mutable.HashMap[String, (Int, Int)]
     var totalThroughput = 0.0
 
     var earliestStartTime = Long.MaxValue
@@ -48,16 +48,11 @@ object HashTreeTest {
         earliestStartTime = math.min(earliestStartTime, startTime)
         latestEndTime = math.max(latestEndTime, endTime)
         val senderPath = sender().path.toString
-        if (!receivedActors.contains(senderPath)) {
-          receivedActors += senderPath
+        if (!receivedActors.contains(senderPath) ||
+          (receivedActors(senderPath) != (mainTableCnt, lshTableCnt))) {
+          receivedActors += (senderPath -> (mainTableCnt, lshTableCnt))
           totalMainTableMsgCnt += mainTableCnt
           totalLSHTableMsgCnt += lshTableCnt
-        }
-      case PerformanceReport(throughput: Double) =>
-        val senderPath = sender().path.toString
-        if (!receivedActors.contains(senderPath)) {
-          totalThroughput += throughput
-          receivedActors += senderPath
         }
       case Ticket =>
         if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {

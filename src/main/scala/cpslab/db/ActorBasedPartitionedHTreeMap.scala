@@ -97,6 +97,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           }
         } else {
           for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            lshTableMsgCnt += 1
             vectorDatabase(tableId).put(vectorId, true)
           }
         }
