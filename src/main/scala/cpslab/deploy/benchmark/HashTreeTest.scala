@@ -242,11 +242,9 @@ object HashTreeTest {
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
         new Thread(new Runnable {
+          val base = i
           override def run(): Unit = {
             var cnt = 0
-            val str = Thread.currentThread().getName.split("-")(1)
-            val id = str.toInt
-            val base = id
             val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
