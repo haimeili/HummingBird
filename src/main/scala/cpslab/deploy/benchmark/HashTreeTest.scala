@@ -53,14 +53,14 @@ object HashTreeTest {
         }")
         val mainTableMsgCount = {
           var r = 0
-          for (v <- totalMainTableMsgCnt.values) {
+          for (v <- totalMainTableMsgCnt.valuesIterator) {
             r += v
           }
           r
         }
         val lshTableMsgCount = {
           var r = 0
-          for (v <- totalLSHTableMsgCnt.values) {
+          for (v <- totalLSHTableMsgCnt.valuesIterator) {
             r += v
           }
           r
