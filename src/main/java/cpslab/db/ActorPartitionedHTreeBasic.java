@@ -226,6 +226,23 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     return lns;
   }
 
+  protected LinkedList<K> getInnerWithSimilarity(
+          final Object key,
+          int seg,
+          int h,
+          int partition) {
+    try {
+      long recId = partitionRootRec.get(partition)[seg];
+      Engine engine = storageSpaces.get(buildStorageName(partition, seg));
+      if (((Store) engine).getCurrSize() >= ramThreshold) {
+        persist(partition);
+      }
+      return searchWithSimilarity(key, engine, recId, h);
+    } catch (NullPointerException npe) {
+      return null;
+    }
+  }
+
   @Override
   protected V putInner(K key, V value, int h, int partition) {
     int seg = h>>> BUCKET_LENGTH;
