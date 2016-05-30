@@ -1,6 +1,7 @@
 package cpslab.deploy.benchmark
 
 import java.io.File
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{LinkedBlockingQueue, Executors}
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -375,6 +376,31 @@ object HashTreeTest {
         initReaderActors()
     }
 
+    val buffer = new mutable.HashMap[String, ListBuffer[(Int, Int)]]
+    val bufferLocks = new mutable.HashMap[String, ReentrantReadWriteLock]
+
+    for (partitionId <- 0 until vectorDatabase(0).partitioner.numPartitions;
+         actorId <- 0 until ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition) {
+      val actorIndex = s"$partitionId-$actorId"
+      buffer.put(actorIndex, new ListBuffer[(Int, Int)])
+      bufferLocks.put(actorIndex, new ReentrantReadWriteLock())
+    }
+
+    def dumpBuffer(): Unit = {
+      for ((actorIndex, bufferLock) <- bufferLocks) {
+        val bufferWriteLock = bufferLock.writeLock()
+        try {
+          bufferWriteLock.lock()
+          val Array(partitionId, actorId) = actorIndex.split("-")
+          val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId.toInt)(actorId.toInt)
+          actor ! BatchQueryRequest(buffer(actorIndex).toList)
+          buffer(actorIndex) = new ListBuffer[(Int, Int)]
+        } finally {
+          bufferWriteLock.unlock()
+        }
+      }
+    }
+
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         override def run(): Unit = {
@@ -390,10 +416,25 @@ object HashTreeTest {
               val segId = hash >>> PartitionedHTreeMap.SEG
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
-              val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
-              actor ! QueryRequest(tableId, interestVectorId)
+              val actorIndex = s"$partitionId-$actorId"
+              val bufferLock = bufferLocks(actorIndex).writeLock()
+              try {
+                bufferLock.lock()
+                buffer(actorIndex) += Tuple2(tableId, interestVectorId)
+                if (buffer(actorIndex).length >= bufferSize) {
+                  val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
+                  actor ! BatchQueryRequest(buffer(actorIndex).toList)
+                  buffer(actorIndex) = new ListBuffer[(Int, Int)]
+                }
+              } catch {
+                case e: Exception =>
+                  e.printStackTrace()
+              } finally {
+                bufferLock.unlock()
+              }
             }
           }
+          dumpBuffer()
           println(s"thread $t finished sending read requests")
           ActorBasedPartitionedHTreeMap.stoppedReadingThreads.getAndIncrement()
         }

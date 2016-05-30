@@ -74,7 +74,17 @@ class ActorBasedPartitionedHTreeMap[K, V](
       vectorDatabase(tableId).getSimilar(vectorKey)
     }
 
+    private def processingBatchQueryRequest(batch: List[(Int, Int)]): Unit = {
+      for ((tableId, vectorId) <- batch) {
+        vectorDatabase(tableId).getSimilar(vectorId)
+      }
+    }
+
     override def receive: Receive = {
+      case BatchQueryRequest(batch: List[(Int, Int)]) =>
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        processingBatchQueryRequest(batch)
+        latestEndTime = math.max(latestEndTime, System.nanoTime())
       case QueryRequest(tableId: Int, vectorKey: Int) =>
         //NOTE: it is just for performance testing,
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -433,6 +443,7 @@ final case class BatchKeyAndHash(batch: List[(Int, Int)])
 final case class Dispatch(tableId: Int, vectorId: Int)
 final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
 final case class QueryRequest(tableId: Int, key: Int)
+final case class BatchQueryRequest(batch: List[(Int, Int)])
 
 object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
