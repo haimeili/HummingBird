@@ -220,6 +220,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         processingBatchKeyAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
+        mainTableMsgCnt += 1
         processingValueAndHash(vector, h)
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         processingKeyAndHash(tableId, vectorId, h)
