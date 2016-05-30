@@ -617,6 +617,7 @@ public class PartitionedHTreeMap<K, V>
     for (int level = MAX_TREE_LEVEL; level >= 0; level--) {
       Object dir = engine.get(recId, DIR_SERIALIZER);
       if (dir == null) {
+        System.out.println("cannot find dir for " + key + " with hash value " + h);
         return null;
       }
 

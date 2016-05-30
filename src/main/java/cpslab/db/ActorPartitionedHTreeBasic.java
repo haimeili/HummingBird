@@ -193,7 +193,6 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
 
     LinkedList<K> lns;
-    String engineName = buildStorageName(partition, seg);
     try {
       lns = getInnerWithSimilarity(key, seg, h, partition);
     } catch (NullPointerException npe) {
@@ -219,6 +218,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       }
       return searchWithSimilarity(key, engine, recId, h);
     } catch (NullPointerException npe) {
+      npe.printStackTrace();
       return null;
     }
   }

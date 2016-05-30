@@ -61,7 +61,6 @@ object HashTreeTest {
           totalReadCount * 1.0 /
             ((latestReadEndTime - earliestReadStartTime) / 1000000000)
         }")
-        var totalMsgCnt = 0
       }
     }
 
@@ -95,8 +94,8 @@ object HashTreeTest {
     }
 
     private def processingTicket(): Unit = {
-      val (mainMsgNum, _) = report()
-      if (mainMsgNum >= totalWriteCount && !readStarted) {
+      val (mainMsgNum, lshTableMsgNum) = report()
+      if (mainMsgNum >= totalWriteCount && lshTableMsgNum == 10 * mainMsgNum && !readStarted) {
         println("===Read Performance ===")
         val system = context.system
         import system.dispatcher
@@ -416,9 +415,8 @@ object HashTreeTest {
               val table = ShardDatabase.vectorDatabase(tableId).
                 asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
               val hash = table.hash(interestVectorId)
-              val partitionId =
-                table.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].partitioner.
-                  getPartition(hash)
+              val partitionId = table.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].
+                partitioner.getPartition(hash)
               val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
@@ -778,7 +776,7 @@ object HashTreeTest {
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
-      asyncTestWriteThreadScalability(conf, threadNumber)
+      testWriteThreadScalability(conf, threadNumber)
 
       while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(10000)
