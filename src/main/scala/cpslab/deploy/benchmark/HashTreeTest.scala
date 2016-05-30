@@ -773,11 +773,10 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
 
-    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.cap")
-
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
+      val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
       testWriteThreadScalability(conf, threadNumber)
 
       while (finishedWriteThreadCount.get() < threadNumber) {
