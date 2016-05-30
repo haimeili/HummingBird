@@ -181,6 +181,8 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
     val bufferSize = conf.getInt("cpslab.lsh.benchmark.bufferSize")
     ActorBasedPartitionedHTreeMap.bufferSize = bufferSize
+    ActorBasedPartitionedHTreeMap.totalFeedingThreads = threadNumber
+
 
     initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
@@ -191,7 +193,6 @@ object HashTreeTest {
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
     val base = conf.getInt("cpslab.lsh.benchmark.base")
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
-    ActorBasedPartitionedHTreeMap.totalFeedingThreads = threadNumber
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
         new Thread(new Runnable {
