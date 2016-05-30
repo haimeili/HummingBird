@@ -53,14 +53,14 @@ object HashTreeTest {
         }")
         val mainTableMsgCount = {
           var r = 0
-          for (v <- totalMainTableMsgCnt.valuesIterator) {
+          for ((actorName, v) <- totalMainTableMsgCnt) {
             r += v
           }
           r
         }
         val lshTableMsgCount = {
           var r = 0
-          for (v <- totalLSHTableMsgCnt.valuesIterator) {
+          for ((actorName, v) <- totalLSHTableMsgCnt) {
             r += v
           }
           r
@@ -79,12 +79,8 @@ object HashTreeTest {
             receivedActors(senderPath)._2 != lshTableCnt)) {
           receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
           println(s"update message count for $senderPath as $mainTableCnt, $lshTableCnt")
-          if (receivedActors(senderPath)._1 != mainTableCnt) {
-            totalMainTableMsgCnt += (senderPath -> mainTableCnt)
-          }
-          if (receivedActors(senderPath)._2 != lshTableCnt) {
-            totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
-          }
+          totalMainTableMsgCnt += (senderPath -> mainTableCnt)
+          totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
       case Ticket =>
           report()
