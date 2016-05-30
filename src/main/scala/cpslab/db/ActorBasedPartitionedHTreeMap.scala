@@ -71,6 +71,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private def processingQueryRequest(tableId: Int, vectorKey: Int): Unit = {
+      msgCnt += 1
       vectorDatabase(tableId).getSimilar(vectorKey)
     }
 

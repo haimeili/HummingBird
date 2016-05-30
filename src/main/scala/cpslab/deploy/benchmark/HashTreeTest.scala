@@ -425,21 +425,26 @@ object HashTreeTest {
               val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
-              val actorIndex = s"$partitionId-$actorId"
-              val bufferLock = bufferLocks(actorIndex).writeLock()
-              try {
-                bufferLock.lock()
-                buffer(actorIndex) += Tuple2(tableId, interestVectorId)
-                if (buffer(actorIndex).length >= bufferSize) {
-                  val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
-                  actor ! BatchQueryRequest(buffer(actorIndex).toList)
-                  buffer(actorIndex) = new ListBuffer[(Int, Int)]
+              if (bufferSize > 0) {
+                val actorIndex = s"$partitionId-$actorId"
+                val bufferLock = bufferLocks(actorIndex).writeLock()
+                try {
+                  bufferLock.lock()
+                  buffer(actorIndex) += Tuple2(tableId, interestVectorId)
+                  if (buffer(actorIndex).length >= bufferSize) {
+                    val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
+                    actor ! BatchQueryRequest(buffer(actorIndex).toList)
+                    buffer(actorIndex) = new ListBuffer[(Int, Int)]
+                  }
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                } finally {
+                  bufferLock.unlock()
                 }
-              } catch {
-                case e: Exception =>
-                  e.printStackTrace()
-              } finally {
-                bufferLock.unlock()
+              } else {
+                ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId) !
+                  QueryRequest(tableId, interestVectorId)
               }
             }
           }
