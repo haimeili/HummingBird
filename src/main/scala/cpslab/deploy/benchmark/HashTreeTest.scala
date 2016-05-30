@@ -90,16 +90,13 @@ object HashTreeTest {
       case Ticket =>
         val (mainMsgNum, lshMsgNum) = report()
         if (mainMsgNum >= totalCount) {
-          new Thread(new Runnable {
-            override def run(): Unit = {
-              println("===Read Performance ===")
-              earliestStartTime = Long.MaxValue
-              latestEndTime = Long.MinValue
-              totalLSHTableMsgCnt.clear()
-              totalMainTableMsgCnt.clear()
-              asyncTestReadThreadScalability(conf, requestNumPerThread)
-            }
-          }).start()
+          println("===Read Performance ===")
+          earliestStartTime = Long.MaxValue
+          receivedActors.clear()
+          latestEndTime = Long.MinValue
+          totalLSHTableMsgCnt.clear()
+          totalMainTableMsgCnt.clear()
+          asyncTestReadThreadScalability(conf, requestNumPerThread)
         }
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
