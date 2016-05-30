@@ -44,7 +44,7 @@ public class PartitionedHTreeMap<K, V>
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
 
-  static int SEG = 0;
+  public static int SEG = 0;
   /**
    * is this a Map or Set?  if false, entries do not have values, only keys are allowed
    */
@@ -94,7 +94,7 @@ public class PartitionedHTreeMap<K, V>
           new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
   //partitioner
-  protected final Partitioner<K> partitioner;
+  public final Partitioner<K> partitioner;
   private final String hasherName;
   protected final Hasher hasher;
 
@@ -1061,7 +1061,7 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  protected int hash(final K key) {
+  public int hash(final K key) {
     if (hasher instanceof LocalitySensitiveHasher) {
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value

@@ -13,7 +13,7 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Random
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Cancellable, Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db._
 import cpslab.deploy.ShardDatabase._
@@ -26,24 +26,27 @@ object HashTreeTest {
 
   case object Ticket
 
-  class MonitorActor(totalCount: Long) extends Actor {
+  class MonitorActor(conf: Config, requestNumPerThread: Int, threadNum: Int,
+                     totalCount: Int) extends Actor {
 
     val receivedActors = new mutable.HashMap[String, (Int, Int)]
-    var totalThroughput = 0.0
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
 
+    var ticketScheduler: Cancellable = null
+
     override def preStart() {
       val system = context.system
       import system.dispatcher
-      context.system.scheduler.schedule(0 milliseconds, 30 * 1000 milliseconds, self, Ticket)
+      ticketScheduler =
+        context.system.scheduler.schedule(0 milliseconds, 30 * 1000 milliseconds, self, Ticket)
     }
 
     var totalMainTableMsgCnt = new mutable.HashMap[String, Int]()
     var totalLSHTableMsgCnt = new mutable.HashMap[String, Int]()
 
-    private def report(): Unit = {
+    private def report(): (Int, Int) = {
       if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
         println(s"total number of receivedActors: ${receivedActors.size}")
         // println(s"total throughput: $totalThroughput")
@@ -66,6 +69,9 @@ object HashTreeTest {
           r
         }
         println(s"total message number: $mainTableMsgCount, $lshTableMsgCount")
+        (mainTableMsgCount, lshTableMsgCount)
+      } else {
+        (0, 0)
       }
     }
 
@@ -82,7 +88,19 @@ object HashTreeTest {
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
       case Ticket =>
-          report()
+        val (mainMsgNum, lshMsgNum) = report()
+        if (mainMsgNum >= totalCount) {
+          new Thread(new Runnable {
+            override def run(): Unit = {
+              println("===Read Performance ===")
+              earliestStartTime = Long.MaxValue
+              latestEndTime = Long.MinValue
+              totalLSHTableMsgCnt.clear()
+              totalMainTableMsgCnt.clear()
+              asyncTestReadThreadScalability(conf, requestNumPerThread)
+            }
+          })
+        }
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
           println("===SEGMENTS===")
@@ -234,7 +252,7 @@ object HashTreeTest {
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      props = Props(new MonitorActor(cap * threadNumber)),
+      props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
@@ -330,19 +348,57 @@ object HashTreeTest {
     }
   }
 
+  def asyncTestReadThreadScalability(conf: Config,
+                                     requestNumberPerThread: Int): Unit = {
+    val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.readerActorNum")
+    ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition = actorNumPerPartition
+    val parallelLSHCalculation = conf.getBoolean("cpslab.lsh.benchmark.parallelLSH")
+    ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
+    val bufferSize = conf.getInt("cpslab.lsh.benchmark.bufferSize")
+    ActorBasedPartitionedHTreeMap.bufferSize = bufferSize
+    val threadNumber = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
+    ActorBasedPartitionedHTreeMap.totalReadingThreads = threadNumber
+
+    val cap = conf.getInt("cpslab.lsh.benchmark.asyncCap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[Int,  Boolean]].
+        initReaderActors()
+    }
+
+    for (t <- 0 until threadNumber) {
+      threadPool.execute(new Runnable {
+        override def run(): Unit = {
+          for (i <- 0 until cap) {
+            val interestVectorId = Random.nextInt(cap * threadNumber)
+            for (tableId <- 0 until tableNum) {
+              val table = ShardDatabase.vectorDatabase(tableId).
+                asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
+              val hash = table.hash(interestVectorId)
+              val partitionId =
+                table.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].partitioner.
+                  getPartition(hash)
+              val segId = hash >>> PartitionedHTreeMap.SEG
+              val actorId = math.abs(s"$tableId-$segId".hashCode) %
+                ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
+              val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
+              actor ! QueryRequest(tableId, interestVectorId)
+            }
+          }
+          println(s"thread $t finished sending read requests")
+          ActorBasedPartitionedHTreeMap.stoppedReadingThreads.getAndIncrement()
+        }
+      })
+    }
+  }
+
 
   def testReadThreadScalability(
       conf: Config,
       requestNumberPerThread: Int,
       threadNumber: Int): Unit = {
-
-    //ShardDatabase.initializeMapDBHashMap(conf)
-    //init database by filling vectors
-    /*
-    ShardDatabase.initVectorDatabaseFromFS(
-      conf.getString("cpslab.lsh.inputFilePath"),
-      conf.getInt("cpslab.lsh.benchmark.cap"),
-      conf.getInt("cpslab.lsh.tableNum"))*/
 
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -665,13 +721,17 @@ object HashTreeTest {
 
     val requestPerThread = conf.getInt("cpslab.lsh.benchmark.cap")
 
-    testWriteThreadScalability(conf, threadNumber)
+    if (args(1) == "async") {
+      asyncTestWriteThreadScalability(conf, threadNumber)
+    } else {
+      asyncTestWriteThreadScalability(conf, threadNumber)
 
-    while (finishedWriteThreadCount.get() < threadNumber) {
-      Thread.sleep(10000)
+      while (finishedWriteThreadCount.get() < threadNumber) {
+        Thread.sleep(10000)
+      }
+      println("======read performance======")
+      testReadThreadScalability(conf, requestPerThread, threadNumber)
     }
-    println("======read performance======")
-    testReadThreadScalability(conf, requestPerThread, threadNumber)
 
 
     //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean

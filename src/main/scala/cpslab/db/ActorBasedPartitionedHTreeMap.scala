@@ -56,6 +56,40 @@ class ActorBasedPartitionedHTreeMap[K, V](
   private val bufferOfLSHTable = new mutable.HashMap[String, ListBuffer[(Int, Int)]]
   private val bufferOfLSHTableLocks = new mutable.HashMap[String, ReentrantReadWriteLock]()
 
+  private class ReaderActor(partitionId: Int) extends Actor {
+
+    context.setReceiveTimeout(60000 milliseconds)
+
+    var earliestStartTime = Long.MaxValue
+    var latestEndTime = Long.MinValue
+    var mainTableMsgCnt = 0
+    var lshTableMsgCnt = 0
+
+    override def preStart(): Unit = {
+      while (ActorBasedPartitionedHTreeMap.stoppedReadingThreads.get() <
+        ActorBasedPartitionedHTreeMap.totalReadingThreads) {
+        Thread.sleep(1000)
+      }
+    }
+
+    private def processingQueryRequest(tableId: Int, vectorKey: Int): Unit = {
+      vectorDatabase(tableId).getSimilar(vectorKey)
+    }
+
+    override def receive: Receive = {
+      case QueryRequest(tableId: Int, vectorKey: Int) =>
+        //NOTE: it is just for performance testing,
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        processingQueryRequest(tableId, vectorKey)
+        latestEndTime = math.max(latestEndTime, System.nanoTime())
+      case ReceiveTimeout =>
+        if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
+          context.actorSelection("akka://AK/user/monitor") !
+            Tuple4(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt)
+        }
+    }
+  }
+
   private class WriterActor(partitionId: Int) extends Actor {
 
     context.setReceiveTimeout(60000 milliseconds)
@@ -140,6 +174,31 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
     }
 
+    private def processingValueAndHash(vector: SparseVector, h: Int): Unit = {
+      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+      if (shareActor) {
+        vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
+          partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+      } else {
+        putExecuteByActor(
+          partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+      }
+      dispatchLSHCalculation(vector.vectorId)
+      latestEndTime = math.max(latestEndTime, System.nanoTime())
+    }
+
+    private def processingKeyAndHash(tableId: Int, vectorId: Int, h: Int): Unit = {
+      lshTableMsgCnt += 1
+      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+      if (shareActor) {
+        vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
+          putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+      } else {
+        putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+      }
+      latestEndTime = math.max(latestEndTime, System.nanoTime())
+    }
+
     override def receive: Receive = {
       case b @ BatchValueAndHash(batch: List[(SparseVector, Int)]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
@@ -150,26 +209,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
         processingBatchKeyAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        if (shareActor) {
-          vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
-            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
-        } else {
-          putExecuteByActor(
-            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
-        }
-        dispatchLSHCalculation(vector.vectorId)
-        latestEndTime = math.max(latestEndTime, System.nanoTime())
+        processingValueAndHash(vector, h)
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
-        lshTableMsgCnt += 1
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        if (shareActor) {
-          vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
-            putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        } else {
-          putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
-        }
-        latestEndTime = math.max(latestEndTime, System.nanoTime())
+        processingKeyAndHash(tableId, vectorId, h)
       case ReceiveTimeout =>
         if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
@@ -371,6 +413,19 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     value
   }
+
+  def initReaderActors(): Unit = {
+    if (readerActors == null) {
+      readerActors = new mutable.HashMap[Int, Array[ActorRef]]
+      for (partitionId <- 0 until partitioner.numPartitions) {
+        readerActors(partitionId) = new Array[ActorRef](readerActorsNumPerPartition)
+        for (i <- 0 until readerActorsNumPerPartition) {
+          readerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new ReaderActor(partitionId)), name = s"lshreader-$partitionId-$i")
+        }
+      }
+    }
+  }
 }
 
 final case class PerformanceReport(throughput: Double)
@@ -379,6 +434,7 @@ final case class BatchValueAndHash(batch: List[(SparseVector, Int)])
 final case class BatchKeyAndHash(batch: List[(Int, Int)])
 final case class Dispatch(tableId: Int, vectorId: Int)
 final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
+final case class QueryRequest(tableId: Int, key: Int)
 
 object ActorBasedPartitionedHTreeMap {
   var actorSystem: ActorSystem = null
@@ -390,6 +446,8 @@ object ActorBasedPartitionedHTreeMap {
   //new mutable.HashMap[Int, Array[ActorRef]]
   var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
   var writerActorsNumPerPartition: Int = 0
+  var readerActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var readerActorsNumPerPartition: Int = 0
 
   var shareActor = true
   var parallelLSHComputation = false
@@ -403,5 +461,7 @@ object ActorBasedPartitionedHTreeMap {
 
   // just for testing
   var stoppedFeedingThreads = new AtomicInteger(0)
+  var stoppedReadingThreads = new AtomicInteger(0)
   var totalFeedingThreads = 0
+  var totalReadingThreads = 0
 }
