@@ -107,6 +107,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           }
         } else {
           for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+            lshTableMsgCnt += 1
             vectorDatabase(tableId).put(vectorId, true)
           }
         }
@@ -140,10 +141,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     override def receive: Receive = {
-      case Dispatch(tableId: Int, vectorId: Int) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
-        vectorDatabase(tableId).put(vectorId, true)
-        latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ BatchValueAndHash(batch: List[(SparseVector, Int)]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         processingBatchValueAndHash(b)
@@ -166,7 +163,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         if (shareActor) {
-          lshTableMsgCnt += 1
           vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
             putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         } else {
