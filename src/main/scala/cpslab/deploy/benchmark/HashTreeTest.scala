@@ -297,11 +297,11 @@ object HashTreeTest {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (_, size, indices, values) = Vectors.fromString1(line)
+            val (vectorId, size, indices, values) = Vectors.fromString1(line)
             val squareSum = math.sqrt(values.foldLeft(0.0){
               case (sum, weight) => sum + weight * weight} )
-            val vector = new SparseVector(base * cap + cnt, size, indices,
-              values.map(_ / squareSum))
+            //base * cap + cnt
+            val vector = new SparseVector(vectorId, size, indices, values.map(_ / squareSum))
             val s = System.currentTimeMillis()
             val h = ValueAndHash(vector, 0)
             vectorIdToVector.put(vector.vectorId, vector)
@@ -784,12 +784,14 @@ object HashTreeTest {
     } else {
       val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
       testWriteThreadScalability(conf, threadNumber)
-
+      val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
       while (finishedWriteThreadCount.get() < threadNumber) {
         Thread.sleep(10000)
       }
-      println("======read performance======")
-      testReadThreadScalability(conf, requestPerThread, threadNumber)
+      if (ifRunRead) {
+        println("======read performance======")
+        testReadThreadScalability(conf, requestPerThread, threadNumber)
+      }
     }
 
 
