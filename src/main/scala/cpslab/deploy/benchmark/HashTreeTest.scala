@@ -29,7 +29,7 @@ object HashTreeTest {
   case object TicketForRead
 
   class MonitorActor(conf: Config, requestNumPerThread: Int, threadNum: Int,
-                     totalCount: Int) extends Actor {
+                     totalWriteCount: Int, totalReadCount: Int) extends Actor {
 
     val receivedActors = new mutable.HashMap[String, (Int, Int)]
 
@@ -58,7 +58,7 @@ object HashTreeTest {
         println(s"total number of receivedActors: ${receivedActors.size}")
         // println(s"total throughput: $totalThroughput")
         println(s"total Throughput: ${
-          totalCount * 1.0 /
+          totalReadCount * 1.0 /
             ((latestReadEndTime - earliestReadStartTime) / 1000000000)
         }")
         var totalMsgCnt = 0
@@ -70,7 +70,7 @@ object HashTreeTest {
         println(s"total number of receivedActors: ${receivedActors.size}")
         // println(s"total throughput: $totalThroughput")
         println(s"total Throughput: ${
-          totalCount * 1.0 /
+          totalWriteCount * 1.0 /
             ((latestEndTime - earliestStartTime) / 1000000000)
         }")
         val mainTableMsgCount = {
@@ -96,7 +96,7 @@ object HashTreeTest {
 
     private def processingTicket(): Unit = {
       val (mainMsgNum, _) = report()
-      if (mainMsgNum >= totalCount && !readStarted) {
+      if (mainMsgNum >= totalWriteCount && !readStarted) {
         println("===Read Performance ===")
         val system = context.system
         import system.dispatcher
@@ -232,6 +232,7 @@ object HashTreeTest {
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
     val cap = conf.getInt("cpslab.lsh.benchmark.asyncCap")
+    val readCap = conf.getInt("cpslab.lsh.benchmark.asyncReadCap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
@@ -263,7 +264,8 @@ object HashTreeTest {
       }
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-      props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber)),
+      props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber,
+        readCap * threadNumber)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()

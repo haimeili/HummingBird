@@ -195,29 +195,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     LinkedList<K> lns;
     String engineName = buildStorageName(partition, seg);
     try {
-      final Lock ramLock = partitionRamLock.get(engineName).readLock();
-      try {
-        ramLock.lock();
-        lns = getInnerWithSimilarity(key, seg, h, partition);
-      } finally {
-        ramLock.unlock();
-      }
-
-      if (lns == null || lns.size() == 0 && persistedStorages.containsKey(partition)) {
-        final Lock persistLock = partitionPersistLock.get(engineName).readLock();
-        try {
-          persistLock.lock();
-          lns = fetchFromPersistedStorageWithSimilarity(
-                  key,
-                  partition,
-                  partitionRootRec.get(partition)[seg],
-                  h);
-        } finally {
-          persistLock.unlock();
-        }
-      }
+      lns = getInnerWithSimilarity(key, seg, h, partition);
     } catch (NullPointerException npe) {
-      //npe.printStackTrace();
+      npe.printStackTrace();
       return null;
     }
 
