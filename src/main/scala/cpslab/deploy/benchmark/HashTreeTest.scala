@@ -62,7 +62,6 @@ object HashTreeTest {
             ((latestReadEndTime - earliestReadStartTime) / 1000000000)
         }")
         var totalMsgCnt = 0
-        for ((readPerf, x) <- totalMainTableMsgCnt)
       }
     }
 
