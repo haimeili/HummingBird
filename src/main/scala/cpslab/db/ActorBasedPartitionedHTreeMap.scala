@@ -65,7 +65,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var msgCnt = 0
 
     override def preStart(): Unit = {
-      while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() < 10) {
+      while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() <
+        ActorBasedPartitionedHTreeMap.totalFeedingThreads) {
         Thread.sleep(1000)
       }
       //for main table
@@ -402,4 +403,5 @@ object ActorBasedPartitionedHTreeMap {
 
   // just for testing
   var stoppedFeedingThreads = new AtomicInteger(0)
+  var totalFeedingThreads = 0
 }
