@@ -49,8 +49,9 @@ object HashTreeTest {
         latestEndTime = math.max(latestEndTime, endTime)
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath) ||
-          (receivedActors(senderPath) != (mainTableCnt, lshTableCnt))) {
-          receivedActors += (senderPath -> (mainTableCnt, lshTableCnt))
+          (receivedActors(senderPath)._1 != mainTableCnt ||
+            receivedActors(senderPath)._2 != lshTableCnt)) {
+          receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
           totalMainTableMsgCnt += mainTableCnt
           totalLSHTableMsgCnt += lshTableCnt
         }
