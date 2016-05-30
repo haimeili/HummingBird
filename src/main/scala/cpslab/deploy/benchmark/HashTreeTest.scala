@@ -61,6 +61,8 @@ object HashTreeTest {
           totalCount * 1.0 /
             ((latestReadEndTime - earliestReadStartTime) / 1000000000)
         }")
+        var totalMsgCnt = 0
+        for ((readPerf, x) <- totalMainTableMsgCnt)
       }
     }
 
@@ -123,12 +125,14 @@ object HashTreeTest {
           totalMainTableMsgCnt += (senderPath -> mainTableCnt)
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
-      case Tuple2(startTime: Long, endTime: Long) =>
+      case Tuple3(startTime: Long, endTime: Long, msgCnt: Int) =>
         earliestReadStartTime = math.min(earliestReadStartTime, startTime)
         latestReadEndTime = math.max(latestReadEndTime, endTime)
         val senderPath = sender().path.toString
-        if (!receivedActors.contains(senderPath)) {
-          receivedActors += senderPath -> Tuple2(0, 0)
+        if (!receivedActors.contains(senderPath) ||
+          receivedActors(senderPath)._1 != msgCnt) {
+          println(s"received actor $senderPath with $msgCnt messages")
+          receivedActors += senderPath -> Tuple2(msgCnt, 0)
         }
       case Ticket =>
         processingTicket()

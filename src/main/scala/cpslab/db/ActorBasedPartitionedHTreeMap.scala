@@ -74,8 +74,11 @@ class ActorBasedPartitionedHTreeMap[K, V](
       vectorDatabase(tableId).getSimilar(vectorKey)
     }
 
+    private var msgCnt = 0
+
     private def processingBatchQueryRequest(batch: List[(Int, Int)]): Unit = {
       for ((tableId, vectorId) <- batch) {
+        msgCnt += 1
         vectorDatabase(tableId).getSimilar(vectorId)
       }
     }
@@ -93,7 +96,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case ReceiveTimeout =>
         if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple2(earliestStartTime, latestEndTime)
+            Tuple3(earliestStartTime, latestEndTime, msgCnt)
         }
     }
   }
