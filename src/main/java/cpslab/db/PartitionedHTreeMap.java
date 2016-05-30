@@ -608,7 +608,7 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
-  private LinkedList<K> searchWithSimilarity(
+  protected LinkedList<K> searchWithSimilarity(
           final Object key,
           Engine engine,
           long recId,
@@ -704,7 +704,7 @@ public class PartitionedHTreeMap<K, V>
     return null;
   }
 
-  private LinkedList<K> fetchFromPersistedStorageWithSimilarity(
+  protected LinkedList<K> fetchFromPersistedStorageWithSimilarity(
           final Object key,
           int partitionId,
           long rootRecId,
@@ -749,7 +749,7 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
-  private LinkedList<K> getInnerWithSimilarity(
+  protected LinkedList<K> getInnerWithSimilarity(
           final Object key,
           int seg,
           int h,

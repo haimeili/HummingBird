@@ -4,6 +4,7 @@ import cpslab.lsh.LocalitySensitiveHasher;
 import scala.collection.mutable.StringBuilder;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -181,6 +182,48 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       partitionRamLock.get(buildStorageName(partition, seg)).writeLock().unlock();
     }
     return ret;
+  }
+
+  public LinkedList<K> getSimilar(
+          final Object key) {
+    //TODO: Finish getSimilar
+    final int h = hash((K) key);
+    final int seg = h >>> BUCKET_LENGTH;
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+
+    LinkedList<K> lns;
+    String engineName = buildStorageName(partition, seg);
+    try {
+      final Lock ramLock = partitionRamLock.get(engineName).readLock();
+      try {
+        ramLock.lock();
+        lns = getInnerWithSimilarity(key, seg, h, partition);
+      } finally {
+        ramLock.unlock();
+      }
+
+      if (lns == null || lns.size() == 0 && persistedStorages.containsKey(partition)) {
+        final Lock persistLock = partitionPersistLock.get(engineName).readLock();
+        try {
+          persistLock.lock();
+          lns = fetchFromPersistedStorageWithSimilarity(
+                  key,
+                  partition,
+                  partitionRootRec.get(partition)[seg],
+                  h);
+        } finally {
+          persistLock.unlock();
+        }
+      }
+    } catch (NullPointerException npe) {
+      //npe.printStackTrace();
+      return null;
+    }
+
+    if (lns == null)
+      return null;
+    return lns;
   }
 
   @Override
