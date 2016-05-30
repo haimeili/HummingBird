@@ -62,7 +62,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
-    var msgCnt = 0
+    var mainTableMsgCnt = 0
+    var lshTableMsgCnt = 0
 
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() <
@@ -71,9 +72,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
       //for main table
       vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].dumpMainTableBuffer()
+      /*
       for (i <- 0 until vectorDatabase.length) {
         vectorDatabase(i).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].dumpLSHTableBuffer()
-      }
+      }*/
     }
 
     import ActorBasedPartitionedHTreeMap._
@@ -125,7 +127,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     private def processingBatchValueAndHash(batch: BatchValueAndHash): Unit = {
       for ((vector, h) <- batch.batch) {
-        msgCnt += 1
+        mainTableMsgCnt += 1
         if (shareActor) {
           vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
             partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
@@ -164,6 +166,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         if (shareActor) {
+          lshTableMsgCnt += 1
           vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
             putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
         } else {
@@ -175,7 +178,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple3(earliestStartTime, latestEndTime, msgCnt)
+            Tuple4(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt)
         }
     }
   }

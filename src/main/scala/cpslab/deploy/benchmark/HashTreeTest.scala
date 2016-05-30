@@ -40,15 +40,18 @@ object HashTreeTest {
       context.system.scheduler.schedule(0 milliseconds, 30 * 1000 milliseconds, self, Ticket)
     }
 
-    var totalMsgCnt = 0
+    var totalMainTableMsgCnt = 0
+    var totalLSHTableMsgCnt = 0
+
     override def receive: Receive = {
-      case Tuple3(startTime: Long, endTime: Long, msgCnt: Int) =>
+      case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
         earliestStartTime = math.min(earliestStartTime, startTime)
         latestEndTime = math.max(latestEndTime, endTime)
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath)) {
           receivedActors += senderPath
-          totalMsgCnt += msgCnt
+          totalMainTableMsgCnt += mainTableCnt
+          totalLSHTableMsgCnt += lshTableCnt
         }
       case PerformanceReport(throughput: Double) =>
         val senderPath = sender().path.toString
@@ -62,7 +65,7 @@ object HashTreeTest {
           // println(s"total throughput: $totalThroughput")
           println(s"total Throughput: ${totalCount * 1.0 /
             ((latestEndTime - earliestStartTime) / 1000000000)}")
-          println(s"total message number: $totalMsgCnt")
+          println(s"total message number: $totalMainTableMsgCnt, $totalLSHTableMsgCnt")
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
           println("===SEGMENTS===")
