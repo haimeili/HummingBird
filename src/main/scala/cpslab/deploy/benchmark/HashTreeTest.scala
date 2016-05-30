@@ -297,11 +297,11 @@ object HashTreeTest {
           var cnt = 0
           //val decoder = Charset.forName("US-ASCII").newDecoder()
           for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (vectorId, size, indices, values) = Vectors.fromString1(line)
+            val (_, size, indices, values) = Vectors.fromString1(line)
             val squareSum = math.sqrt(values.foldLeft(0.0){
               case (sum, weight) => sum + weight * weight} )
-            //base * cap + cnt
-            val vector = new SparseVector(vectorId, size, indices, values.map(_ / squareSum))
+            val vector = new SparseVector(base * cap + cnt, size, indices,
+              values.map(_ / squareSum))
             val s = System.currentTimeMillis()
             val h = ValueAndHash(vector, 0)
             vectorIdToVector.put(vector.vectorId, vector)
