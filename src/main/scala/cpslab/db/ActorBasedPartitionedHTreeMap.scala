@@ -97,7 +97,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
           }
         } else {
           for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-            lshTableMsgCnt += 1
             vectorDatabase(tableId).put(vectorId, true)
           }
         }
@@ -162,6 +161,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         dispatchLSHCalculation(vector.vectorId)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
+        lshTableMsgCnt += 1
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         if (shareActor) {
           vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
@@ -191,7 +191,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         for (i <- 0 until writerActorsNumPerPartition) {
           writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-            Props(new WriterActor(partitionId)))
+            Props(new WriterActor(partitionId)), name = s"writer $partitionId-$i")
         }
       }
     }
