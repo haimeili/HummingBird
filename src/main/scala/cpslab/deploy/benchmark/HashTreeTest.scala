@@ -398,8 +398,10 @@ object HashTreeTest {
           bufferWriteLock.lock()
           val Array(partitionId, actorId) = actorIndex.split("-")
           val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId.toInt)(actorId.toInt)
-          actor ! BatchQueryRequest(buffer(actorIndex).toList)
-          buffer(actorIndex) = new ListBuffer[(Int, Int)]
+          if (buffer(actorIndex).nonEmpty) {
+            actor ! BatchQueryRequest(buffer(actorIndex).toList)
+            buffer(actorIndex) = new ListBuffer[(Int, Int)]
+          }
         } finally {
           bufferWriteLock.unlock()
         }

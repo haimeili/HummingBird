@@ -304,8 +304,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
       try {
         lock.lock()
         val Array(partitionId, actorId) = id.split("-")
-        writerActors(partitionId.toInt)(actorId.toInt) ! BatchValueAndHash(buffer.toList)
-        bufferOfMainTable(id) = new ListBuffer[(SparseVector, Int)]
+        if (buffer.nonEmpty) {
+          writerActors(partitionId.toInt)(actorId.toInt) ! BatchValueAndHash(buffer.toList)
+          bufferOfMainTable(id) = new ListBuffer[(SparseVector, Int)]
+        }
       } catch {
         case e: Exception =>
           e.printStackTrace()
