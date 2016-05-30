@@ -370,6 +370,7 @@ object HashTreeTest {
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
     ActorBasedPartitionedHTreeMap.totalReadingThreads = threadNumber
 
+    val readCap = conf.getInt("cpslab.lsh.benchmark.asyncReadCap")
     val cap = conf.getInt("cpslab.lsh.benchmark.asyncCap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val threadPool = Executors.newFixedThreadPool(threadNumber)
@@ -407,7 +408,7 @@ object HashTreeTest {
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         override def run(): Unit = {
-          for (i <- 0 until cap) {
+          for (i <- 0 until readCap) {
             val interestVectorId = Random.nextInt(cap * threadNumber)
             for (tableId <- 0 until tableNum) {
               val table = ShardDatabase.vectorDatabase(tableId).
@@ -416,7 +417,7 @@ object HashTreeTest {
               val partitionId =
                 table.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].partitioner.
                   getPartition(hash)
-              val segId = hash >>> PartitionedHTreeMap.SEG
+              val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
               val actorIndex = s"$partitionId-$actorId"

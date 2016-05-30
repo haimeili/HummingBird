@@ -32,7 +32,7 @@ public class PartitionedHTreeMap<K, V>
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
   public static int BUCKET_OVERFLOW = 4;
-  protected static int BUCKET_LENGTH = 28;
+  public static int BUCKET_LENGTH = 28;
 
   protected static int DIRECTORY_NODE_SIZE = 0;
   protected static int NUM_BITS_PER_COMPARISON = 0;
