@@ -40,8 +40,34 @@ object HashTreeTest {
       context.system.scheduler.schedule(0 milliseconds, 30 * 1000 milliseconds, self, Ticket)
     }
 
-    var totalMainTableMsgCnt = 0
-    var totalLSHTableMsgCnt = 0
+    var totalMainTableMsgCnt = new mutable.HashMap[String, Int]()
+    var totalLSHTableMsgCnt = new mutable.HashMap[String, Int]()
+
+    private def report(): Unit = {
+      if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
+        println(s"total number of receivedActors: ${receivedActors.size}")
+        // println(s"total throughput: $totalThroughput")
+        println(s"total Throughput: ${
+          totalCount * 1.0 /
+            ((latestEndTime - earliestStartTime) / 1000000000)
+        }")
+        val mainTableMsgCount = {
+          var r = 0
+          for (v <- totalMainTableMsgCnt.values) {
+            r += v
+          }
+          r
+        }
+        val lshTableMsgCount = {
+          var r = 0
+          for (v <- totalLSHTableMsgCnt.values) {
+            r += v
+          }
+          r
+        }
+        println(s"total message number: $mainTableMsgCount, $lshTableMsgCount")
+      }
+    }
 
     override def receive: Receive = {
       case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
@@ -52,16 +78,15 @@ object HashTreeTest {
           (receivedActors(senderPath)._1 != mainTableCnt ||
             receivedActors(senderPath)._2 != lshTableCnt)) {
           receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
-          totalMainTableMsgCnt += mainTableCnt
-          totalLSHTableMsgCnt += lshTableCnt
+          if (receivedActors(senderPath)._1 != mainTableCnt) {
+            totalMainTableMsgCnt += (senderPath -> mainTableCnt)
+          }
+          if (receivedActors(senderPath)._2 != lshTableCnt) {
+            totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
+          }
         }
       case Ticket =>
-        if (earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
-          println(s"total number of receivedActors: ${receivedActors.size}")
-          // println(s"total throughput: $totalThroughput")
-          println(s"total Throughput: ${totalCount * 1.0 /
-            ((latestEndTime - earliestStartTime) / 1000000000)}")
-          println(s"total message number: $totalMainTableMsgCnt, $totalLSHTableMsgCnt")
+          report()
           //earliestStartTime != Long.MaxValue && latestEndTime != Long.MinValue) {
           /*
           println("===SEGMENTS===")
@@ -88,7 +113,7 @@ object HashTreeTest {
             }
             println()
           }*/
-        }
+
     }
   }
 
