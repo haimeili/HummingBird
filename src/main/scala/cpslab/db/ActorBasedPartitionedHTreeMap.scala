@@ -62,6 +62,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
+    var msgCnt = 0
 
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() < 10) {
@@ -123,6 +124,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     private def processingBatchValueAndHash(batch: BatchValueAndHash): Unit = {
       for ((vector, h) <- batch.batch) {
+        msgCnt += 1
         if (shareActor) {
           vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
             partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
@@ -172,7 +174,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple2(earliestStartTime, latestEndTime)
+            Tuple3(earliestStartTime, latestEndTime, msgCnt)
         }
     }
   }
