@@ -88,11 +88,10 @@ object HashTreeTest {
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
       case Ticket =>
-        val (mainMsgNum, lshMsgNum) = report()
+        val (mainMsgNum, _) = report()
         if (mainMsgNum >= totalCount) {
           println("===Read Performance ===")
           earliestStartTime = Long.MaxValue
-          receivedActors.clear()
           latestEndTime = Long.MinValue
           totalLSHTableMsgCnt.clear()
           totalMainTableMsgCnt.clear()
@@ -223,7 +222,6 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
-    val base = conf.getInt("cpslab.lsh.benchmark.base")
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
