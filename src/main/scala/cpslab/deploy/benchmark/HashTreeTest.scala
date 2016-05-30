@@ -233,6 +233,9 @@ object HashTreeTest {
         new Thread(new Runnable {
           override def run(): Unit = {
             var cnt = 0
+            val str = Thread.currentThread().getName.split("-")(1)
+            val id = str.toInt
+            val base = id
             val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
               if (cnt > cap) {
@@ -240,12 +243,12 @@ object HashTreeTest {
                 ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.incrementAndGet()
                 return
               }
-              val (vectorId, size, indices, values) = Vectors.fromString1(line)
-              for (i <- 0 until replica) {
-                val vector = new SparseVector(vectorId + i * base, size, indices, values)
-                vectorIdToVector.put(vectorId + i * base, vector)
-                cnt += 1
-              }
+              val (_, size, indices, values) = Vectors.fromString1(line)
+              // for (i <- 0 until replica) {
+              val vector = new SparseVector(cnt + cap * base, size, indices, values)
+              vectorIdToVector.put(cnt + cap * base, vector)
+              cnt += 1
+              // }
             }
           }
         }, s"thread-$i").start()
