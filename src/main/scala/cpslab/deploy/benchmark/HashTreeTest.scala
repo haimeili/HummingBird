@@ -663,23 +663,25 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
 
+    val requestPerThread = conf.getInt("cpslab.lsh.benchmark.cap")
 
-    /*
-    testWriteThreadScalability(conf, requestPerThread, threadNumber)
+    testWriteThreadScalability(conf, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
     println("======read performance======")
-    testReadThreadScalability(conf, requestPerThread, threadNumber)*/
+    testReadThreadScalability(conf, requestPerThread, threadNumber)
 
 
-    ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
+    //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
+    // write performance
+    /*
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
       testWriteThreadScalability(conf, threadNumber)
-    }
+    }*/
   }
 }
