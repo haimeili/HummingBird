@@ -493,12 +493,15 @@ object HashTreeTest {
     for (t <- 0 until threadNumber) {
       threads(t) = new Thread(new Runnable {
         override def run(): Unit = {
+          var cnt = 0
           while (!taskQueue.isEmpty) {
             val vectorId = taskQueue.poll()
             for (tableId <- 0 until tableNum) {
               ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
             }
+            cnt += 1
           }
+          println(s"$cnt")
         }
       }, s"ReadThread-$t")
       threads(t).start()
@@ -508,7 +511,8 @@ object HashTreeTest {
     }
     val endTime = System.nanoTime()
     println("total read throughput: " +
-      (requestNumberPerThread * threadNumber) * 1.0 / (endTime - startTime))
+      (requestNumberPerThread * threadNumber) * 1.0 /
+        ((endTime - startTime) / 1000000000))
 
     /*
     for (t <- 0 until threadNumber) {
