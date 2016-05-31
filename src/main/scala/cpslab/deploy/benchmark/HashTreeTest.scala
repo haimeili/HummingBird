@@ -293,8 +293,61 @@ object HashTreeTest {
 
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
-    val threadPool = Executors.newFixedThreadPool(threadNumber)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+
+    val taskQueue = new LinkedBlockingQueue[SparseVector]()
+
+    val random = new Random(System.currentTimeMillis())
+    val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+
+    def fillTaskQueue(): Unit = {
+      var cnt = 0
+      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+        val (_, size, indices, values) = Vectors.fromString1(line)
+        val squareSum = math.sqrt(values.foldLeft(0.0) {
+          case (sum, weight) => sum + weight * weight
+        })
+        val vector = new SparseVector(cnt, size, indices,
+          values.map(_ / squareSum))
+        taskQueue.add(vector)
+        cnt += 1
+        if (cnt >= cap * threadNumber) {
+          return
+        }
+      }
+    }
+
+    fillTaskQueue()
+    val threads = new Array[Thread](threadNumber)
+
+    val startTime = System.nanoTime()
+    for (i <- 0 until threadNumber) {
+      threads(i) = new Thread(new Runnable {
+        var cnt = 0
+        override def run(): Unit = {
+          while (!taskQueue.isEmpty) {
+            val vector = taskQueue.poll()
+            vectorIdToVector.put(vector.vectorId, vector)
+            for (i <- 0 until tableNum) {
+              val h = KeyAndHash(0, 0, 0)
+              vectorDatabase(i).put(vector.vectorId, true)
+            }
+            cnt += 1
+          }
+          println(s"$cnt")
+        }
+      }, s"threadWrite-$i")
+      threads(i).start()
+    }
+
+    for (i <- 0 until threadNumber) {
+      threads(i).join()
+      finishedWriteThreadCount.getAndIncrement()
+    }
+
+    val endTime = System.nanoTime()
+    println("total throughput: " + threadNumber * cap / ((endTime - startTime) / 1000000000))
+/*
     for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
         val base = i
@@ -333,7 +386,7 @@ object HashTreeTest {
           finishedWriteThreadCount.incrementAndGet()
         }
       })
-    }
+    }*/
   }
 
   def testReadThreadScalabilityBTree(conf: Config,
