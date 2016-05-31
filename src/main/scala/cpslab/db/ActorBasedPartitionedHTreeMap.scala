@@ -468,6 +468,7 @@ object ActorBasedPartitionedHTreeMap {
   var shareActor = true
   var parallelLSHComputation = false
   var bufferSize = 0
+  var readBufferSize = 0
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {
     val partitionId = Random.nextInt(partitionNum)

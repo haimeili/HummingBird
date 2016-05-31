@@ -367,8 +367,8 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition = actorNumPerPartition
     val parallelLSHCalculation = conf.getBoolean("cpslab.lsh.benchmark.parallelLSH")
     ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
-    val bufferSize = conf.getInt("cpslab.lsh.benchmark.bufferSize")
-    ActorBasedPartitionedHTreeMap.bufferSize = bufferSize
+    val bufferSize = conf.getInt("cpslab.lsh.benchmark.readBufferSize")
+    ActorBasedPartitionedHTreeMap.readBufferSize = bufferSize
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
     ActorBasedPartitionedHTreeMap.totalReadingThreads = threadNumber
 
@@ -429,7 +429,7 @@ object HashTreeTest {
                 try {
                   bufferLock.lock()
                   buffer(actorIndex) += Tuple2(tableId, interestVectorId)
-                  if (buffer(actorIndex).length >= bufferSize) {
+                  if (buffer(actorIndex).length >= ActorBasedPartitionedHTreeMap.readBufferSize) {
                     val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
                     actor ! BatchQueryRequest(buffer(actorIndex).toList)
                     buffer(actorIndex) = new ListBuffer[(Int, Int)]
