@@ -480,6 +480,37 @@ object HashTreeTest {
     val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val taskQueue = new LinkedBlockingQueue[Int]()
+
+    for (i <- 0 until requestNumberPerThread * threadNumber) {
+      val interestVectorId = Random.nextInt(cap * threadNumber)
+      taskQueue.add(interestVectorId)
+    }
+
+    val startTime = System.nanoTime()
+    val threads = new Array[Thread](threadNumber)
+
+    for (t <- 0 until threadNumber) {
+      threads(t) = new Thread(new Runnable {
+        override def run(): Unit = {
+          while (!taskQueue.isEmpty) {
+            val vectorId = taskQueue.poll()
+            for (tableId <- 0 until tableNum) {
+              ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
+            }
+          }
+        }
+      }, s"ReadThread-$t")
+      threads(t).start()
+    }
+    for (t <- 0 until threadNumber) {
+      threads(t).join()
+    }
+    val endTime = System.nanoTime()
+    println("total read throughput: " +
+      (requestNumberPerThread * threadNumber) * 1.0 / (endTime - startTime))
+
+    /*
     for (t <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
 
@@ -497,13 +528,9 @@ object HashTreeTest {
           }
           val duration = System.nanoTime() - startTime
           println(requestNumberPerThread / (duration.toDouble / 1000000000))
-          /*println(
-            ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
-              max * 1.0 / 1000000000 + "," +
-              min * 1.0 / 1000000000)*/
         }
       })
-    }
+    }*/
   }
 
   def testWriteThreadScalabilityOnheap(
