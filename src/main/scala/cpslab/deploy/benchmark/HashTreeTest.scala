@@ -442,6 +442,8 @@ object HashTreeTest {
                   buffer(actorIndex) += Tuple2(tableId, interestVectorId)
                   if (buffer(actorIndex).length >= ActorBasedPartitionedHTreeMap.readBufferSize) {
                     val actor = ActorBasedPartitionedHTreeMap.readerActors(partitionId)(actorId)
+                    println(s"send ${buffer(actorIndex).length} messages to actor" +
+                      s" $partitionId-$actorId")
                     actor ! BatchQueryRequest(buffer(actorIndex).toList)
                     buffer(actorIndex) = new ListBuffer[(Int, Int)]
                   }
