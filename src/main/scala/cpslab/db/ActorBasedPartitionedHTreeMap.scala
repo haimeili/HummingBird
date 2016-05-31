@@ -76,8 +76,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private var msgCnt = 0
+    private var batchMsgCnt = 0
 
     private def processingBatchQueryRequest(batch: List[(Int, Int)]): Unit = {
+      batchMsgCnt += 1
       for ((tableId, vectorId) <- batch) {
         msgCnt += 1
         vectorDatabase(tableId).getSimilar(vectorId)
@@ -97,7 +99,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case ReceiveTimeout =>
         if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple3(earliestStartTime, latestEndTime, msgCnt)
+            ReadPerformanceReport(earliestStartTime, latestEndTime, msgCnt, batchMsgCnt)
         }
     }
   }
@@ -443,7 +445,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
   }
 }
 
-final case class PerformanceReport(throughput: Double)
+final case class ReadPerformanceReport(startTime: Long, endTime: Long,
+                                       msgCnt: Int, batchMsgCnt: Int)
 final case class ValueAndHash(vector: SparseVector, hash: Int)
 final case class BatchValueAndHash(batch: List[(SparseVector, Int)])
 final case class BatchKeyAndHash(batch: List[(Int, Int)])

@@ -113,6 +113,21 @@ object HashTreeTest {
       }
     }
 
+    private def processingReadPerformanceReport(startTime: Long,
+                                                endTime: Long,
+                                                msgCnt: Int,
+                                                batchMsgCnt: Int): Unit = {
+      earliestReadStartTime = math.min(earliestReadStartTime, startTime)
+      latestReadEndTime = math.max(latestReadEndTime, endTime)
+      val senderPath = sender().path.toString
+      if (!receivedActors.contains(senderPath) ||
+        (receivedActors(senderPath)._1 != msgCnt || receivedActors(senderPath)._2 != batchMsgCnt)
+      ) {
+        println(s"received actor $senderPath with $msgCnt messages, $batchMsgCnt batching messages")
+        receivedActors += senderPath -> Tuple2(msgCnt, batchMsgCnt)
+      }
+    }
+
     override def receive: Receive = {
       case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
         earliestStartTime = math.min(earliestStartTime, startTime)
@@ -125,15 +140,8 @@ object HashTreeTest {
           totalMainTableMsgCnt += (senderPath -> mainTableCnt)
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
         }
-      case Tuple3(startTime: Long, endTime: Long, msgCnt: Int) =>
-        earliestReadStartTime = math.min(earliestReadStartTime, startTime)
-        latestReadEndTime = math.max(latestReadEndTime, endTime)
-        val senderPath = sender().path.toString
-        if (!receivedActors.contains(senderPath) ||
-          receivedActors(senderPath)._1 != msgCnt) {
-          println(s"received actor $senderPath with $msgCnt messages")
-          receivedActors += senderPath -> Tuple2(msgCnt, 0)
-        }
+      case ReadPerformanceReport(startTime: Long, endTime: Long, msgCnt: Int, batchMsgCnt: Int) =>
+        processingReadPerformanceReport(startTime, endTime, msgCnt, batchMsgCnt)
       case Ticket =>
         processingTicket()
       case TicketForRead =>
