@@ -123,7 +123,6 @@ object HashTreeTest {
       if (!receivedActors.contains(senderPath) ||
         (receivedActors(senderPath)._1 != msgCnt || receivedActors(senderPath)._2 != batchMsgCnt)
       ) {
-        println(s"received actor $senderPath with $msgCnt messages, $batchMsgCnt batching messages")
         receivedActors += senderPath -> Tuple2(msgCnt, batchMsgCnt)
       }
     }
@@ -477,7 +476,6 @@ object HashTreeTest {
       requestNumberPerThread: Int,
       threadNumber: Int): Unit = {
 
-    val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val taskQueue = new LinkedBlockingQueue[Int]()
