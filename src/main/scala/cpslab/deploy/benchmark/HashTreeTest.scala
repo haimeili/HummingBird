@@ -460,7 +460,10 @@ object HashTreeTest {
               }
             }
           }
-          dumpBuffer()
+          if (ActorBasedPartitionedHTreeMap.stoppedReadingThreads.get() ==
+            ActorBasedPartitionedHTreeMap.totalReadingThreads - 1) {
+            dumpBuffer()
+          }
           println(s"thread $t finished sending read requests")
           ActorBasedPartitionedHTreeMap.stoppedReadingThreads.getAndIncrement()
         }
