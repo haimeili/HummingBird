@@ -231,10 +231,10 @@ object HashTreeTest {
     conf: Config, threadNumber: Int): Unit = {
     val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.actorNum")
     ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition = actorNumPerPartition
-    val parallelLSHCalculation = conf.getBoolean("cpslab.lsh.benchmark.parallelLSH")
-    ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
     val bufferSize = conf.getInt("cpslab.lsh.benchmark.bufferSize")
     ActorBasedPartitionedHTreeMap.bufferSize = bufferSize
+    val lshBufferSize = conf.getInt("cpslab.lsh.benchmark.lshBufferSize")
+    ActorBasedPartitionedHTreeMap.lshBufferSize = lshBufferSize
     ActorBasedPartitionedHTreeMap.totalFeedingThreads = threadNumber
 
 
@@ -427,8 +427,6 @@ object HashTreeTest {
                                      requestNumberPerThread: Int): Unit = {
     val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.readerActorNum")
     ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition = actorNumPerPartition
-    val parallelLSHCalculation = conf.getBoolean("cpslab.lsh.benchmark.parallelLSH")
-    ActorBasedPartitionedHTreeMap.parallelLSHComputation = parallelLSHCalculation
     val bufferSize = conf.getInt("cpslab.lsh.benchmark.readBufferSize")
     ActorBasedPartitionedHTreeMap.readBufferSize = bufferSize
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")

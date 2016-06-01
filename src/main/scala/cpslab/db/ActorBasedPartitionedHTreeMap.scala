@@ -113,6 +113,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var mainTableMsgCnt = 0
     var lshTableMsgCnt = 0
 
+    //actorIndex (partitionId-actorId) -> (tableId, vectorId, storageName)
+    private val lshTableMsgBuffer = new mutable.HashMap[String, ListBuffer[KeyAndHash]]
+
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() <
         ActorBasedPartitionedHTreeMap.totalFeedingThreads) {
@@ -120,58 +123,73 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
       //for main table
       vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].dumpMainTableBuffer()
-      /*
-      for (i <- 0 until vectorDatabase.length) {
-        vectorDatabase(i).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].dumpLSHTableBuffer()
-      }*/
     }
 
     import ActorBasedPartitionedHTreeMap._
 
-    private def chooseRandomActor: ActorRef = {
-      val tableId = Random.nextInt(vectorDatabase.length)
-      val partitionId = Random.nextInt(partitioner.numPartitions)
-      val actors = vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
-        actors(partitionId)
-      actors(Random.nextInt(actors.length))
-    }
-
     private def dispatchLSHCalculation(vectorId: Int): Unit = {
       if (shareActor) {
-        if (parallelLSHComputation) {
-          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-            ActorBasedPartitionedHTreeMap.chooseRandomActor(partitioner.numPartitions) !
-              Dispatch(tableId, vectorId)
-          }
-        } else {
-          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+        for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          if (lshBufferSize > 0) {
+            val table = vectorDatabase(tableId).
+              asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
+            val h = table.hash(vectorId)
+            val segId = table.hash(vectorId) >>> PartitionedHTreeMap.BUCKET_LENGTH
+            val partitionId = table.partitioner.getPartition(h)
+            val actorId = math.abs(s"$tableId-$segId".hashCode) %
+              ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
+            val actorIndex = s"$partitionId-$actorId"
+            if (!lshTableMsgBuffer.contains(actorIndex)) {
+              lshTableMsgBuffer += actorIndex -> new ListBuffer[KeyAndHash]
+            }
+            lshTableMsgBuffer(actorIndex) += KeyAndHash(tableId, vectorId, h)
+            if (lshTableMsgBuffer(actorIndex).size >= lshBufferSize) {
+              writerActors(partitionId)(actorId) !
+                BatchKeyAndHash(lshTableMsgBuffer(actorIndex).toList)
+              lshTableMsgBuffer(actorIndex) = new ListBuffer[KeyAndHash]
+            }
+          } else {
             vectorDatabase(tableId).put(vectorId, true)
           }
         }
       } else {
-        if (parallelLSHComputation) {
-          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-            chooseRandomActor ! Dispatch(tableId, vectorId)
-          }
-        } else {
-          for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-            lshTableMsgCnt += 1
-            vectorDatabase(tableId).put(vectorId, true)
-          }
+        for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          lshTableMsgCnt += 1
+          vectorDatabase(tableId).put(vectorId, true)
         }
       }
     }
 
     private def processingBatchKeyAndHash(batch: BatchKeyAndHash): Unit = {
-      for ((vectorId, h) <- batch.batch) {
+      for (KeyAndHash(tableId, vectorId, hash) <- batch.batch) {
+        lshTableMsgCnt += 1
         if (shareActor) {
-          vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
-            partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+          val table = vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[Int,
+            Boolean]]
+          val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
+          val rootRecId = table.getRootRecId(partitionId, segId)
+          val storageName = buildStorageName(partitionId, segId)
+          val engine = table.storageSpaces.get(storageName)
+          table.storeVector(vectorId, true, hash, rootRecId, partitionId, segId, engine)
         } else {
-          putExecuteByActor(
-            partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
+          throw new Exception("does not support batchKeyAndHash for non-shared actors")
         }
       }
+    }
+
+    private def dumpLSHBuffer(): Unit = {
+      for ((actorName, buffer) <- lshTableMsgBuffer) {
+        val Array(partitionId, actorId) = actorName.split("-")
+        if (buffer.nonEmpty) {
+          writerActors(partitionId.toInt)(actorId.toInt) ! BatchKeyAndHash(buffer.toList)
+          lshTableMsgBuffer(actorName) = new ListBuffer[KeyAndHash]
+        }
+      }
+    }
+
+    private def processingDumpedBatchValueAndHash(dumpBatch: DumpedBatchValueAndHash): Unit = {
+      processingBatchValueAndHash(BatchValueAndHash(dumpBatch.batch))
+      dumpLSHBuffer()
     }
 
     private def processingBatchValueAndHash(batch: BatchValueAndHash): Unit = {
@@ -218,9 +236,13 @@ class ActorBasedPartitionedHTreeMap[K, V](
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         processingBatchValueAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
-      case b @ BatchKeyAndHash(batch: List[(Int, Int)]) =>
+      case b @ BatchKeyAndHash(batch: List[KeyAndHash]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         processingBatchKeyAndHash(b)
+        latestEndTime = math.max(latestEndTime, System.nanoTime())
+      case b @ DumpedBatchValueAndHash(batch: List[(SparseVector, Int)]) =>
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        processingDumpedBatchValueAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
         mainTableMsgCnt += 1
@@ -285,33 +307,14 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-  def dumpLSHTableBuffer(): Unit = synchronized {
-    for ((id, buffer) <- bufferOfLSHTable) {
-      val lock = bufferOfLSHTableLocks(id).writeLock()
-      try {
-        lock.lock()
-        val Array(partitionId, actorId) = id.split("-")
-        writerActors(partitionId.toInt)(actorId.toInt) ! BatchKeyAndHash(buffer.toList)
-        bufferOfLSHTable(id) = new ListBuffer[(Int, Int)]
-      } catch {
-        case e: Exception =>
-          e.printStackTrace()
-      } finally {
-        lock.unlock()
-      }
-    }
-  }
-
   def dumpMainTableBuffer(): Unit = synchronized {
     for ((id, buffer) <- bufferOfMainTable) {
       val lock = bufferOfMainTableLocks(id).writeLock()
       try {
         lock.lock()
         val Array(partitionId, actorId) = id.split("-")
-        if (buffer.nonEmpty) {
-          writerActors(partitionId.toInt)(actorId.toInt) ! BatchValueAndHash(buffer.toList)
-          bufferOfMainTable(id) = new ListBuffer[(SparseVector, Int)]
-        }
+        writerActors(partitionId.toInt)(actorId.toInt) ! DumpedBatchValueAndHash(buffer.toList)
+        bufferOfMainTable(id) = new ListBuffer[(SparseVector, Int)]
       } catch {
         case e: Exception =>
           e.printStackTrace()
@@ -340,25 +343,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
         sys.exit(1)
     } finally {
       partitionRamLock.get(storageName).writeLock.unlock()
-    }
-  }
-
-  private def bufferingPutForLSHTable(partitionId: Int, actorId: Int, vectorId: Int,
-                                      h: Int): Unit = {
-    val bufferLock = bufferOfLSHTableLocks(s"$partitionId-$actorId").writeLock()
-    try {
-      bufferLock.lock()
-      val buffer = bufferOfLSHTable(s"$partitionId-$actorId")
-      buffer += (vectorId -> h)
-      if (buffer.size >= bufferSize) {
-        writerActors(partitionId)(actorId) ! BatchKeyAndHash(buffer.toList)
-        bufferOfLSHTable(s"$partitionId-$actorId") = new ListBuffer[(Int, Int)]
-      }
-    } catch {
-      case ex: Exception =>
-        ex.printStackTrace()
-    } finally {
-      bufferLock.unlock()
     }
   }
 
@@ -431,6 +415,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
     value
   }
 
+  def getRootRecId(partitionId: Int, segId: Int): Long = {
+    partitionRootRec.get(partitionId)(segId)
+  }
+
   def initReaderActors(): Unit = {
     if (readerActors == null) {
       readerActors = new mutable.HashMap[Int, Array[ActorRef]]
@@ -449,7 +437,8 @@ final case class ReadPerformanceReport(startTime: Long, endTime: Long,
                                        msgCnt: Int, batchMsgCnt: Int)
 final case class ValueAndHash(vector: SparseVector, hash: Int)
 final case class BatchValueAndHash(batch: List[(SparseVector, Int)])
-final case class BatchKeyAndHash(batch: List[(Int, Int)])
+final case class DumpedBatchValueAndHash(batch: List[(SparseVector, Int)])
+final case class BatchKeyAndHash(batch: List[KeyAndHash])
 final case class Dispatch(tableId: Int, vectorId: Int)
 final case class KeyAndHash(tableId: Int, vectorId: Int, hash: Int)
 final case class QueryRequest(tableId: Int, key: Int)
@@ -469,8 +458,8 @@ object ActorBasedPartitionedHTreeMap {
   var readerActorsNumPerPartition: Int = 0
 
   var shareActor = true
-  var parallelLSHComputation = false
   var bufferSize = 0
+  var lshBufferSize = 0
   var readBufferSize = 0
 
   def chooseRandomActor(partitionNum: Int): ActorRef = {

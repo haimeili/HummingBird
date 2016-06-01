@@ -223,17 +223,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     }
   }
 
-  @Override
-  protected V putInner(K key, V value, int h, int partition) {
-    int seg = h>>> BUCKET_LENGTH;
-    long dirRecid = partitionRootRec.get(partition)[seg];
-    String storageName = buildStorageName(partition, seg);
-    Engine engine = storageSpaces.get(storageName);
-    if (engine == null) {
-      System.out.println("FAULT: cannot find engine for " + storageName);
-      System.exit(1);
-    }
-
+  protected V storeVector(K key, V value, int h, long rootRecid, int partition, int seg,
+                          Engine engine) {
+    long dirRecid = rootRecid;
     int level = MAX_TREE_LEVEL;
     while (true) {
       Object dir = engine.get(dirRecid, DIR_SERIALIZER);
@@ -354,6 +346,19 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         return null;
       }
     }
+  }
+
+  @Override
+  protected V putInner(K key, V value, int h, int partition) {
+    int seg = h>>> BUCKET_LENGTH;
+    long dirRecid = partitionRootRec.get(partition)[seg];
+    String storageName = buildStorageName(partition, seg);
+    Engine engine = storageSpaces.get(storageName);
+    if (engine == null) {
+      System.out.println("FAULT: cannot find engine for " + storageName);
+      System.exit(1);
+    }
+    return storeVector(key, value, h, dirRecid, partition, seg, engine);
   }
 
   @Override
