@@ -132,16 +132,16 @@ object HashTreeTest {
         if (mainTableCnt != 0 || lshTableCnt != 0) {
           earliestStartTime = math.min(earliestStartTime, startTime)
           latestEndTime = math.max(latestEndTime, endTime)
-        }
-        val senderPath = sender().path.toString
-        if (!receivedActors.contains(senderPath) ||
-          (receivedActors(senderPath)._1 != mainTableCnt ||
-            receivedActors(senderPath)._2 != lshTableCnt)) {
-          println(s"received report from $senderPath with $mainTableCnt main table messages, " +
-            s"$lshTableCnt lsh table messages")
-          receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
-          totalMainTableMsgCnt += (senderPath -> mainTableCnt)
-          totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
+          val senderPath = sender().path.toString
+          if (!receivedActors.contains(senderPath) ||
+            (receivedActors(senderPath)._1 != mainTableCnt ||
+              receivedActors(senderPath)._2 != lshTableCnt)) {
+            println(s"received report from $senderPath with $mainTableCnt main table messages, " +
+              s"$lshTableCnt lsh table messages")
+            receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
+            totalMainTableMsgCnt += (senderPath -> mainTableCnt)
+            totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
+          }
         }
       case ReadPerformanceReport(startTime: Long, endTime: Long, msgCnt: Int, batchMsgCnt: Int) =>
         processingReadPerformanceReport(startTime, endTime, msgCnt, batchMsgCnt)
