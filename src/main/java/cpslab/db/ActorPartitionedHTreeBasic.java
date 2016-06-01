@@ -78,7 +78,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     counterRecids.put(partitionId, counterRecIdArray);
   }
 
-  protected void initPartitionIfNecessary(int partitionId, int segId) {
+  protected String initPartitionIfNecessary(int partitionId, int segId) {
     String storageName = buildStorageName(partitionId, segId);
     Lock structureLock = structureLocks.get(storageName).writeLock();
     try {
@@ -96,6 +96,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } finally {
       structureLock.unlock();
     }
+    return storageName;
   }
 
   private PartitionedHTreeMap.LinkedNode<K, V> getInner(Object key, int seg, int h, int partition) {
