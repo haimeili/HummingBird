@@ -136,8 +136,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
             val h = table.hash(vectorId)
             val segId = table.hash(vectorId) >>> PartitionedHTreeMap.BUCKET_LENGTH
-            val partitionId = table.partitioner.asInstanceOf[LocalitySensitivePartitioner[Int]].
-              getPartition(h)
+            val partitionId = table.getPartition(h)
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"
@@ -365,6 +364,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
     } finally {
       bufferLock.unlock()
     }
+  }
+
+  def getPartition[PARKEY](key: PARKEY): Int = {
+    partitioner.getPartition(key.asInstanceOf[K])
   }
 
   override def put(key: K, value: V): V = {
