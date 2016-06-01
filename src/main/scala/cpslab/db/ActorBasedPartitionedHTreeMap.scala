@@ -143,9 +143,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
               if (partitionCache.contains(vectorId)) {
                 partitionCache(vectorId)
               } else {
-                val r = table.getPartition(h)
-                partitionCache += h-> r
-                r
+                val p = table.getPartition(h)
+                partitionCache += vectorId -> p
+                p
               }
             }
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
