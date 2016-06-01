@@ -135,6 +135,8 @@ object HashTreeTest {
         if (!receivedActors.contains(senderPath) ||
           (receivedActors(senderPath)._1 != mainTableCnt ||
             receivedActors(senderPath)._2 != lshTableCnt)) {
+          println(s"received report from $senderPath with $mainTableCnt main table messages, " +
+            s"$lshTableCnt lsh table messages")
           receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
           totalMainTableMsgCnt += (senderPath -> mainTableCnt)
           totalLSHTableMsgCnt += (senderPath -> lshTableCnt)
