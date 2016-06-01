@@ -25,7 +25,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     hasherName: String,
     workingDirectory: String,
     name: String,
-    partitioner: Partitioner[K],
+    val partitioner: Partitioner[K],
     closeEngine: Boolean,
     hashSalt: Int,
     keySerializer: Serializer[K],
@@ -135,7 +135,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
             val h = table.hash(vectorId)
             val segId = table.hash(vectorId) >>> PartitionedHTreeMap.BUCKET_LENGTH
-            val partitionId = table.partitioner.getPartition(h)
+            val partitionId = partitioner.numPartitions
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"
