@@ -168,10 +168,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
           val table = vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[Int,
             Boolean]]
           val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
+          table.initPartitionIfNecessary(partitionId, segId)
           val rootRecId = table.getRootRecId(partitionId, segId)
           val storageName = buildStorageName(partitionId, segId)
           val engine = table.storageSpaces.get(storageName)
-          table.initPartitionIfNecessary(partitionId, segId)
           table.storeVector(vectorId, true, hash, rootRecId, partitionId, segId, engine)
         } else {
           throw new Exception("does not support batchKeyAndHash for non-shared actors")
