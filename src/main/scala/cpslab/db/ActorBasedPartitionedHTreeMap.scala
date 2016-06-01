@@ -327,7 +327,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
   }
 
   def dumpMainTableBuffer(): Unit = synchronized {
-    for ((id, buffer) <- bufferOfMainTable) {
+    for ((id, buffer) <- bufferOfMainTable if buffer.nonEmpty) {
       val lock = bufferOfMainTableLocks(id).writeLock()
       try {
         lock.lock()
