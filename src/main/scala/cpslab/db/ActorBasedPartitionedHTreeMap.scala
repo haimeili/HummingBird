@@ -132,22 +132,15 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     private def dispatchLSHCalculation(vectorId: Int): Unit = {
       val partitionCache = new mutable.HashMap[Int, Int]
+      val hashCache = new mutable.HashMap[Int, Int]
       if (shareActor) {
         for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           if (lshBufferSize > 0) {
             val table = vectorDatabase(tableId).
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
-            val h = table.hash(vectorId)
+            val h = hashCache.getOrElseUpdate(vectorId, table.hash(vectorId))
             val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
-            val partitionId = {
-              if (partitionCache.contains(vectorId)) {
-                partitionCache(vectorId)
-              } else {
-                val p = table.getPartition(h)
-                partitionCache += vectorId -> p
-                p
-              }
-            }
+            val partitionId = partitionCache.getOrElseUpdate(vectorId, table.getPartition(h))
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"
@@ -383,7 +376,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-  def getPartition[PARKEY](key: PARKEY): Int = {
+  def getPartition(key: Int): Int = {
     partitioner.getPartition(key.asInstanceOf[K])
   }
 
