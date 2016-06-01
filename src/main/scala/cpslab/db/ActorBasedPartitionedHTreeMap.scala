@@ -5,6 +5,7 @@ import java.util.concurrent.{ConcurrentHashMap, ExecutorService}
 import java.util.concurrent.atomic.AtomicInteger
 
 import cpslab.deploy.ShardDatabase
+import cpslab.utils.LocalitySensitivePartitioner
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -135,7 +136,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
             val h = table.hash(vectorId)
             val segId = table.hash(vectorId) >>> PartitionedHTreeMap.BUCKET_LENGTH
-            val partitionId = partitioner.numPartitions
+            val partitionId = table.partitioner.asInstanceOf[LocalitySensitivePartitioner[Int]].
+              getPartition(h)
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"

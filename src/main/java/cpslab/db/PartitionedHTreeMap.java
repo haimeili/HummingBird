@@ -94,7 +94,7 @@ public class PartitionedHTreeMap<K, V>
           new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
   //partitioner
-  public final Partitioner<K> partitioner;
+  public Partitioner<K> partitioner;
   private final String hasherName;
   protected final Hasher hasher;
 
