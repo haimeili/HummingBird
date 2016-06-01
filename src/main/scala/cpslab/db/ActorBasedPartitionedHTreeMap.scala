@@ -25,7 +25,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     hasherName: String,
     workingDirectory: String,
     name: String,
-    val partitioner: Partitioner[K],
+    partitioner: Partitioner[K],
     closeEngine: Boolean,
     hashSalt: Int,
     keySerializer: Serializer[K],
