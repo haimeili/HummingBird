@@ -116,7 +116,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     override def preStart(): Unit = {
       while (ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.get() <
         ActorBasedPartitionedHTreeMap.totalFeedingThreads) {
-        Thread.sleep(1000)
+        Thread.sleep(100)
       }
       //for main table
       vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].dumpMainTableBuffer()
