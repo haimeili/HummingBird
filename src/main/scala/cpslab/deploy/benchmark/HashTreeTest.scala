@@ -129,8 +129,10 @@ object HashTreeTest {
 
     override def receive: Receive = {
       case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
-        earliestStartTime = math.min(earliestStartTime, startTime)
-        latestEndTime = math.max(latestEndTime, endTime)
+        if (mainTableCnt != 0 || lshTableCnt != 0) {
+          earliestStartTime = math.min(earliestStartTime, startTime)
+          latestEndTime = math.max(latestEndTime, endTime)
+        }
         val senderPath = sender().path.toString
         if (!receivedActors.contains(senderPath) ||
           (receivedActors(senderPath)._1 != mainTableCnt ||

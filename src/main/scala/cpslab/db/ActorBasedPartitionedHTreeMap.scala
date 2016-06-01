@@ -243,7 +243,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
         processingBatchKeyAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ DumpedBatchValueAndHash(batch: List[(SparseVector, Int)]) =>
+        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         processingDumpedBatchValueAndHash(b)
+        latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
         mainTableMsgCnt += 1
         processingValueAndHash(vector, h)
