@@ -131,6 +131,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     import ActorBasedPartitionedHTreeMap._
 
     private def dispatchLSHCalculation(vectorId: Int): Unit = {
+      val partitionCache = new mutable.HashMap[Int, Int]
       if (shareActor) {
         for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
           if (lshBufferSize > 0) {
@@ -138,7 +139,15 @@ class ActorBasedPartitionedHTreeMap[K, V](
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
             val h = table.hash(vectorId)
             val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
-            val partitionId = table.getPartition(h)
+            val partitionId = {
+              if (partitionCache.contains(vectorId)) {
+                partitionCache(vectorId)
+              } else {
+                val r = table.getPartition(h)
+                partitionCache += h-> r
+                r
+              }
+            }
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"
@@ -197,14 +206,14 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private def processingBatchValueAndHash(batch: BatchValueAndHash): Unit = {
-      for ((vector, h) <- batch.batch) {
+      for ((vector, hashForMainTable) <- batch.batch) {
         mainTableMsgCnt += 1
         if (shareActor) {
           vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
-            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+            partitionId, hashForMainTable, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         } else {
           putExecuteByActor(
-            partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
+            partitionId, hashForMainTable, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
         }
         dispatchLSHCalculation(vector.vectorId)
       }
