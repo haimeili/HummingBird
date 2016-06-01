@@ -128,7 +128,8 @@ object HashTreeTest {
     }
 
     override def receive: Receive = {
-      case Tuple4(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int) =>
+      case Tuple6(startTime: Long, endTime: Long, mainTableCnt: Int, lshTableCnt: Int,
+         batchMainMsg: Int, batchLSHMsg: Int) =>
         if (mainTableCnt != 0 || lshTableCnt != 0) {
           earliestStartTime = math.min(earliestStartTime, startTime)
           latestEndTime = math.max(latestEndTime, endTime)
@@ -137,7 +138,8 @@ object HashTreeTest {
             (receivedActors(senderPath)._1 != mainTableCnt ||
               receivedActors(senderPath)._2 != lshTableCnt)) {
             println(s"received report from $senderPath with $mainTableCnt main table messages, " +
-              s"$lshTableCnt lsh table messages")
+              s"$lshTableCnt lsh table messages, $batchMainMsg batch main table messages," +
+              s" $batchLSHMsg batch lsh table messages")
             receivedActors += (senderPath -> Tuple2(mainTableCnt, lshTableCnt))
             totalMainTableMsgCnt += (senderPath -> mainTableCnt)
             totalLSHTableMsgCnt += (senderPath -> lshTableCnt)

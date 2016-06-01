@@ -113,6 +113,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
     var latestEndTime = Long.MinValue
     var mainTableMsgCnt = 0
     var lshTableMsgCnt = 0
+    var batchMainTableMsgCnt = 0
+    var batchLSHTableMsgCnt = 0
 
     //actorIndex (partitionId-actorId) -> (tableId, vectorId, storageName)
     private val lshTableMsgBuffer = new mutable.HashMap[String, ListBuffer[KeyAndHash]]
@@ -236,14 +238,19 @@ class ActorBasedPartitionedHTreeMap[K, V](
     override def receive: Receive = {
       case b @ BatchValueAndHash(batch: List[(SparseVector, Int)]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        batchMainTableMsgCnt += 1
         processingBatchValueAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ BatchKeyAndHash(batch: List[KeyAndHash]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        batchLSHTableMsgCnt += 1
         processingBatchKeyAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ DumpedBatchValueAndHash(batch: List[(SparseVector, Int)]) =>
         earliestStartTime = math.min(earliestStartTime, System.nanoTime())
+        if (batch.nonEmpty) {
+          batchMainTableMsgCnt += 1
+        }
         processingDumpedBatchValueAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case ValueAndHash(vector: SparseVector, h: Int) =>
@@ -256,7 +263,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple4(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt)
+            Tuple6(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
+              batchMainTableMsgCnt, batchLSHTableMsgCnt)
         }
     }
   }
