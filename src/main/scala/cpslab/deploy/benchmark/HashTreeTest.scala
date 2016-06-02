@@ -882,6 +882,7 @@ object HashTreeTest {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
       val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
+      val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
       testWriteThreadScalability(conf, threadNumber)
       val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
       while (finishedWriteThreadCount.get() < threadNumber) {
@@ -889,7 +890,7 @@ object HashTreeTest {
       }
       if (ifRunRead) {
         println("======read performance======")
-        testReadThreadScalability(conf, requestPerThread, threadNumber)
+        testReadThreadScalability(conf, requestPerThread, readThreadNum)
       }
     }
 
