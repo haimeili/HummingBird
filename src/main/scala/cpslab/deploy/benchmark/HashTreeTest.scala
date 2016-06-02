@@ -482,7 +482,7 @@ object HashTreeTest {
               val table = ShardDatabase.vectorDatabase(tableId).
                 asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
               val hash = table.hash(interestVectorId)
-              val partitionId = table.partitioner.getPartition(hash)
+              val partitionId = table.getPartition(hash)
               val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
