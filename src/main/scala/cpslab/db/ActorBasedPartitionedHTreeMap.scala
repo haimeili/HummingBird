@@ -79,17 +79,11 @@ class ActorBasedPartitionedHTreeMap[K, V](
     private var msgCnt = 0
     private var batchMsgCnt = 0
 
-    private val actors = new Array[ActorRef](5)
-
-    for (i <- 0 until 5) {
-      actors(i) = context.system.actorOf(Props(new ReaderActor(partitionId)))
-    }
-
     private def processingBatchQueryRequest(batch: List[(Int, Int)]): Unit = {
       batchMsgCnt += 1
       for ((tableId, vectorId) <- batch) {
         msgCnt += 1
-        actors(Random.nextInt(5)) ! QueryRequest(tableId, vectorId)
+        vectorDatabase(tableId).getSimilar(vectorId)
       }
     }
 
