@@ -241,6 +241,7 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.lshBufferSize = lshBufferSize
     ActorBasedPartitionedHTreeMap.totalFeedingThreads = threadNumber
 
+    val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
 
     initializeActorBasedHashTree(conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
@@ -278,7 +279,7 @@ object HashTreeTest {
     }
     ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
       props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber,
-        readCap * threadNumber, ifRunRead)),
+        readCap * readThreadNum, ifRunRead)),
       name = "monitor")
     traverseAllFiles()
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
