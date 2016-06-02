@@ -2,7 +2,7 @@ package cpslab.deploy.benchmark
 
 import java.io.File
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import java.util.concurrent.{LinkedBlockingQueue, Executors}
+import java.util.concurrent.{ExecutorService, LinkedBlockingQueue, Executors}
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.StringBuilder
@@ -530,37 +530,38 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val taskQueue = new LinkedBlockingQueue[Int]()
 
+
     for (i <- 0 until requestNumberPerThread * threadNumber) {
       val interestVectorId = Random.nextInt(cap * threadNumber)
       taskQueue.add(interestVectorId)
     }
 
-    val startTime = System.nanoTime()
-    val threads = new Array[Thread](threadNumber)
-
-    for (t <- 0 until threadNumber) {
-      threads(t) = new Thread(new Runnable {
-        override def run(): Unit = {
-          var cnt = 0
-          while (!taskQueue.isEmpty) {
-            val vectorId = taskQueue.poll()
-            for (tableId <- 0 until tableNum) {
-              ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
-            }
-            cnt += 1
-          }
-          println(s"$cnt")
+    val threadPool = Executors.newFixedThreadPool(threadNumber)
+    var startTime = 0L
+    val t = new Thread(new Runnable {
+      override def run(): Unit = {
+        while (!taskQueue.isEmpty) {
+          Thread.sleep(1000)
         }
-      }, s"ReadThread-$t")
-      threads(t).start()
+        val endTime = System.nanoTime()
+        println("total read throughput: " +
+          (requestNumberPerThread * threadNumber) * 1.0 /
+            ((endTime - startTime) / 1000000000))
+      }
+    })
+    t.start()
+    startTime = System.nanoTime()
+    for (i <- 0 until requestNumberPerThread * threadNumber) {
+      threadPool.execute(new Runnable {
+        override def run(): Unit = {
+          val interestVectorId = taskQueue.poll()
+          for (tableId <- 0 until tableNum) {
+            ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
+          }
+        }
+      })
     }
-    for (t <- 0 until threadNumber) {
-      threads(t).join()
-    }
-    val endTime = System.nanoTime()
-    println("total read throughput: " +
-      (requestNumberPerThread * threadNumber) * 1.0 /
-        ((endTime - startTime) / 1000000000))
+    t.join()
 
     /*
     for (t <- 0 until threadNumber) {
