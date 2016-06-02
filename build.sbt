@@ -21,10 +21,10 @@ fork := true
 resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" % "akka-contrib_2.10" % "2.3.8",
+  "com.typesafe.akka" % "akka-contrib_2.10" % "2.3.15",
   "com.typesafe" % "config" % "1.2.1",
   "org.scalanlp" %% "breeze" % "0.11.1",
-  "com.typesafe.akka" % "akka-testkit_2.10" % "2.3.8",
+  "com.typesafe.akka" % "akka-testkit_2.10" % "2.3.15",
   "junit" % "junit" % "4.11",
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "org.scalatest" % "scalatest_2.10" % "2.2.5",
