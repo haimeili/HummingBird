@@ -139,7 +139,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
             val h = table.hash(vectorId)
             val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
             val partitionId = table.getPartition(h)
-            val actorId = math.abs(s"$tableId-$partitionId-$segId".hashCode) %
+            val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
             val actorIndex = s"$partitionId-$actorId"
             if (!lshTableMsgBuffer.contains(actorIndex)) {
@@ -402,7 +402,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
-        val actorId = math.abs(s"$tableId-$partition-$segmentId".hashCode) %
+        val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
           writerActorsNumPerPartition
         if (bufferSize <= 0) {
           writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
@@ -414,7 +414,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
     } else {
       if (shareActor) {
-        val actorId = math.abs(s"$tableId-$partition-$segmentId".hashCode) %
+        val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
           writerActorsNumPerPartition
         writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
         /*
