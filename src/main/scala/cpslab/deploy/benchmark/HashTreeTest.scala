@@ -479,17 +479,13 @@ object HashTreeTest {
           for (i <- 0 until readCap) {
             val interestVectorId = Random.nextInt(cap * threadNumber)
             for (tableId <- 0 until tableNum) {
-              /*
               val table = ShardDatabase.vectorDatabase(tableId).
                 asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
               val hash = table.hash(interestVectorId)
               val partitionId = table.partitioner.getPartition(hash)
               val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
-                ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition*/
-              val partitionId = Random.nextInt(vectorDatabase(tableId).partitioner.numPartitions)
-              val actorId = Random.nextInt(
-                ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition)
+                ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
               if (bufferSize > 0) {
                 val actorIndex = s"$partitionId-$actorId"
                 val bufferLock = bufferLocks(actorIndex).writeLock()
