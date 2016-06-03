@@ -562,16 +562,16 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
     for (i <- 0 until requestNumberPerThread * threadNumber) {
-      Future {
-        val interestVectorId = taskQueue.poll()
-        for (tableId <- 0 until tableNum) {
+      for (tableId <- 0 until tableNum) {
+        Future {
+          val interestVectorId = taskQueue.poll()
           ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
-        }
-      }.onComplete {
-        case Success(result)  =>
+        }.onComplete {
+          case Success(result)  =>
           // do nothing
-        case Failure(failure) =>
-          throw failure
+          case Failure(failure) =>
+            throw failure
+        }
       }
     }
     t.join()
