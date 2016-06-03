@@ -560,14 +560,14 @@ object HashTreeTest {
     Future.sequence(fs).onComplete {
       case Success(result)  =>
       // do nothing
+        val duration = System.nanoTime() - st
+        println("total read throughput: " +
+          requestNumberPerThread * threadNumber / (duration.toDouble / 1000000000))
       case Failure(failure) =>
         throw failure
     }
 
-    val duration = System.nanoTime() - st
-
-    println("total read throughput: " +
-      requestNumberPerThread * threadNumber / (duration.toDouble / 1000000000))
+    ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
 
     /*
     for (t <- 0 until threadNumber) {
