@@ -566,7 +566,8 @@ object HashTreeTest {
           ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
         }
       }.onComplete {
-        case Success(result)  => _
+        case Success(result)  =>
+          // do nothing
         case Failure(failure) =>
           throw failure
       }
