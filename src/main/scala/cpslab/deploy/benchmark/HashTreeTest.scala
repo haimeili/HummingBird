@@ -124,7 +124,8 @@ object HashTreeTest {
       if (!receivedActors.contains(senderPath) ||
         (receivedActors(senderPath)._1 != msgCnt || receivedActors(senderPath)._2 != batchMsgCnt)
       ) {
-        println(s"received $senderPath with $msgCnt messages, $batchMsgCnt batch messages")
+        println(s"received $senderPath with $msgCnt messages, $batchMsgCnt batch messages, " +
+          s"start time $startTime, end time $endTime")
         receivedActors += senderPath -> Tuple2(msgCnt, batchMsgCnt)
       }
     }
