@@ -541,6 +541,9 @@ object HashTreeTest {
     // pure thread/future is too clean as a baseline
     // against the complicate akka (bring too much overhead)
 
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
+
     val interestVectorIds = {
       for (i <- 0 until requestNumberPerThread * threadNumber; tableId <- 0 until tableNum)
         yield (Random.nextInt(cap * threadNumber), tableId)
