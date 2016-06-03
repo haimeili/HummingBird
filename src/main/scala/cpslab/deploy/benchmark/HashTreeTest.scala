@@ -488,9 +488,11 @@ object HashTreeTest {
               val partitionId = table.getPartition(hash)
               val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH*/
               val partitionId = Random.nextInt(table.getMaxPartitionNumber)
-              val segId = Random.nextInt(ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition)
-              val actorId = math.abs(s"$tableId-$segId".hashCode) %
-                ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
+              val actorId = Random.nextInt(ActorBasedPartitionedHTreeMap.
+                readerActorsNumPerPartition)
+
+              //val actorId = math.abs(s"$tableId-$segId".hashCode) %
+                //ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
               if (bufferSize > 0) {
                 val actorIndex = s"$partitionId-$actorId"
                 val bufferLock = bufferLocks(actorIndex).writeLock()
