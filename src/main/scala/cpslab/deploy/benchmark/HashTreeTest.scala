@@ -13,7 +13,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
-import scala.util.Random
+import scala.util.{Success, Failure, Random}
 
 import akka.actor.{Cancellable, Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -560,21 +560,15 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
     for (i <- 0 until requestNumberPerThread * threadNumber) {
-      /*
-      threadPool.execute(new Runnable {
-        override def run(): Unit = {
-          val interestVectorId = taskQueue.poll()
-          for (tableId <- 0 until tableNum) {
-            ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
-          }
-        }
-      })*/
-
       Future {
         val interestVectorId = taskQueue.poll()
         for (tableId <- 0 until tableNum) {
           ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
         }
+      }.onComplete {
+        case Success(result)  => _
+        case Failure(failure) =>
+          throw failure
       }
     }
     t.join()
