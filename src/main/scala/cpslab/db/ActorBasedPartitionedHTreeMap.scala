@@ -296,6 +296,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           context.actorSelection("akka://AK/user/monitor") !
             Tuple6(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
               batchMainTableMsgCnt, batchLSHTableMsgCnt)
+          context.stop(self)
         }
     }
   }
