@@ -9,6 +9,7 @@ import scala.StringBuilder
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
@@ -490,7 +491,6 @@ object HashTreeTest {
               val partitionId = Random.nextInt(table.getMaxPartitionNumber)
               val actorId = Random.nextInt(ActorBasedPartitionedHTreeMap.
                 readerActorsNumPerPartition)
-
               //val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 //ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
               if (bufferSize > 0) {
@@ -527,7 +527,6 @@ object HashTreeTest {
     }
   }
 
-
   def testReadThreadScalability(
       conf: Config,
       requestNumberPerThread: Int,
@@ -558,7 +557,10 @@ object HashTreeTest {
     })
     t.start()
     startTime = System.nanoTime()
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
     for (i <- 0 until requestNumberPerThread * threadNumber) {
+      /*
       threadPool.execute(new Runnable {
         override def run(): Unit = {
           val interestVectorId = taskQueue.poll()
@@ -566,7 +568,14 @@ object HashTreeTest {
             ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
           }
         }
-      })
+      })*/
+
+      Future {
+        val interestVectorId = taskQueue.poll()
+        for (tableId <- 0 until tableNum) {
+          ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
+        }
+      }
     }
     t.join()
 
