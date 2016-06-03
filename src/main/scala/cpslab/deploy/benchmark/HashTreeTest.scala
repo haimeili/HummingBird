@@ -538,43 +538,33 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val taskQueue = new LinkedBlockingQueue[Int]()
 
+    // pure thread/future is too clean as a baseline
+    // against the complicate akka (bring too much overhead)
 
-    for (i <- 0 until requestNumberPerThread * threadNumber) {
-      val interestVectorId = Random.nextInt(cap * threadNumber)
-      taskQueue.add(interestVectorId)
+    val interestVectorIds = {
+      for (i <- 0 until requestNumberPerThread * threadNumber; tableId <- 0 until tableNum)
+        yield (Random.nextInt(cap * threadNumber), tableId)
     }
 
-    val threadPool = Executors.newFixedThreadPool(threadNumber)
-    var startTime = 0L
-    val t = new Thread(new Runnable {
-      override def run(): Unit = {
-        while (!taskQueue.isEmpty) {
-          Thread.sleep(1000)
-        }
-        val endTime = System.nanoTime()
-        println("total read throughput: " +
-          (requestNumberPerThread * threadNumber) * 1.0 /
-            ((endTime - startTime) / 1000000000))
-      }
-    })
-    t.start()
-    startTime = System.nanoTime()
-    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
-    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
-    for (i <- 0 until requestNumberPerThread * threadNumber) {
-      val interestVectorId = taskQueue.poll()
-      for (tableId <- 0 until tableNum) {
+    val st = System.nanoTime()
+
+    val fs = interestVectorIds.map {case (vectorId, tableId) =>
         Future {
-          ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
-        }.onComplete {
-          case Success(result)  =>
-          // do nothing
-          case Failure(failure) =>
-            throw failure
+          ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
         }
-      }
     }
-    t.join()
+
+    Future.sequence(fs).onComplete {
+      case Success(result)  =>
+      // do nothing
+      case Failure(failure) =>
+        throw failure
+    }
+
+    val duration = System.nanoTime() - st
+
+    println("total read throughput: " +
+      requestNumberPerThread * threadNumber / (duration.toDouble / 1000000000))
 
     /*
     for (t <- 0 until threadNumber) {
