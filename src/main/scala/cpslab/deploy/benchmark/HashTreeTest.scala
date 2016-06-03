@@ -125,7 +125,8 @@ object HashTreeTest {
         (receivedActors(senderPath)._1 != msgCnt || receivedActors(senderPath)._2 != batchMsgCnt)
       ) {
         println(s"received $senderPath with $msgCnt messages, $batchMsgCnt batch messages, " +
-          s"start time $startTime, end time $endTime")
+          s"start time $startTime, end time $endTime, " +
+          s"duration ${(endTime - startTime) * 1.0 / 1000000000} s")
         receivedActors += senderPath -> Tuple2(msgCnt, batchMsgCnt)
       }
     }
