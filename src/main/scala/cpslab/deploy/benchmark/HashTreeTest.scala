@@ -545,14 +545,12 @@ object HashTreeTest {
         yield (Random.nextInt(cap * threadNumber), tableId)
     }
 
-    val st = System.nanoTime()
-
     val fs = interestVectorIds.map {case (vectorId, tableId) =>
         Future {
           ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
         }
     }
-
+    val st = System.nanoTime()
     Future.sequence(fs).onComplete {
       case Success(result)  =>
       // do nothing
