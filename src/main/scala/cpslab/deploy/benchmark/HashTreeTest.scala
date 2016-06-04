@@ -532,8 +532,6 @@ object HashTreeTest {
 
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val taskQueue = new LinkedBlockingQueue[Int]()
-
     // pure thread/future is too clean as a baseline
     // against the complicate akka (bring too much overhead)
 
@@ -541,8 +539,13 @@ object HashTreeTest {
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
     val interestVectorIds = {
-      for (i <- 0 until requestNumberPerThread * threadNumber; tableId <- 0 until tableNum)
-        yield (Random.nextInt(cap * threadNumber), tableId)
+      val l = new ListBuffer[(Int, Int)]
+      for (i <- 0 until requestNumberPerThread * threadNumber) {
+        val vectorId = Random.nextInt(cap * threadNumber)
+        for(tableId <- 0 until tableNum)
+          l += Tuple2(vectorId, tableId)
+      }
+      l.toList
     }
 
     val fs = interestVectorIds.map {case (vectorId, tableId) =>
