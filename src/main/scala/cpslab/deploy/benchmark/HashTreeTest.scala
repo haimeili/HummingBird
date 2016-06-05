@@ -339,16 +339,15 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVector.put(vector.vectorId, vector)
-          val fs = (0 until tableNum).map {
-            tableId =>
-              Future {
-                vectorDatabase(tableId).put(vector.vectorId, true)
+        }.map {
+          returnedVector =>
+            Future {
+              for (i <- 0 until tableNum) {
+                vectorDatabase(i).put(returnedVector.vectorId, true)
               }
-          }
-          Future.sequence(fs)
+            }
         }
     }
-
     Future.sequence(mainFs).onComplete {
       case Success(result)  =>
         // do nothing
