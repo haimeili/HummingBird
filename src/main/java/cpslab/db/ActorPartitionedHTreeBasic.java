@@ -182,7 +182,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } finally {
       partitionRamLock.get(buildStorageName(partition, seg)).writeLock().unlock();
     }
-    return ret;
+    return value;
   }
 
   public LinkedList<K> getSimilar(
