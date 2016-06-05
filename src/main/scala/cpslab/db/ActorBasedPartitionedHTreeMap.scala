@@ -311,7 +311,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         for (i <- 0 until writerActorsNumPerPartition) {
           writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-            Props(new WriterActor(partitionId)), name = s"lshwriter-$partitionId-$i")
+            Props(new WriterActor(partitionId)).withDispatcher("akka.actor.writer-dispatcher"),
+            name = s"lshwriter-$partitionId-$i")
         }
       }
     }
