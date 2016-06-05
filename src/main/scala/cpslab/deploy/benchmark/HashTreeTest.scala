@@ -293,6 +293,25 @@ object HashTreeTest {
   val trainingIDs = new ListBuffer[Int]
   val testIDs = new ListBuffer[Int]
 
+  def fillTaskQueue(allFiles: Seq[String], totalAmount: Int): List[SparseVector] = {
+    var cnt = 0
+    val taskQueue = new ListBuffer[SparseVector]
+    for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
+      val (_, size, indices, values) = Vectors.fromString1(line)
+      val squareSum = math.sqrt(values.foldLeft(0.0) {
+        case (sum, weight) => sum + weight * weight
+      })
+      val vector = new SparseVector(cnt, size, indices,
+        values.map(_ / squareSum))
+      taskQueue += vector
+      cnt += 1
+      if (cnt >= totalAmount) {
+        return taskQueue.toList
+      }
+    }
+    List[SparseVector]()
+  }
+
   def testWriteThreadScalability(
     conf: Config,
     threadNumber: Int): Unit = {
@@ -306,6 +325,41 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
 
+    val random = new Random(System.currentTimeMillis())
+    val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+
+    var cnt = 0
+
+    val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
+      "akka.actor.writer-dispatcher")
+    val mainFs = taskQueue.map {
+      vector =>
+        Future {
+          vectorIdToVector.put(vector.vectorId, vector)
+          val fs = (0 until tableNum).map {
+            tableId =>
+              Future {
+                vectorDatabase(tableId).put(vector.vectorId, true)
+              }
+          }
+          Future.sequence(fs)
+        }
+    }
+    val st = System.nanoTime()
+
+    Future.sequence(mainFs).onComplete {
+      case Success(result)  =>
+        // do nothing
+        val duration = System.nanoTime() - st
+        println("total write throughput: " +
+          cap * threadNumber / (duration.toDouble / 1000000000))
+      case Failure(failure) =>
+        throw failure
+    }
+
+    /*
     val taskQueue = new LinkedBlockingQueue[SparseVector]()
 
     val random = new Random(System.currentTimeMillis())
@@ -328,7 +382,8 @@ object HashTreeTest {
       }
     }
 
-    fillTaskQueue()
+    fillTaskQueue()*/
+    /*
     val threads = new Array[Thread](threadNumber)
 
     val startTime = System.nanoTime()
@@ -354,10 +409,9 @@ object HashTreeTest {
     for (i <- 0 until threadNumber) {
       threads(i).join()
       finishedWriteThreadCount.getAndIncrement()
-    }
+    }*/
 
-    val endTime = System.nanoTime()
-    println("total throughput: " + threadNumber * cap / ((endTime - startTime) / 1000000000))
+
 /*
     for (i <- 0 until threadNumber) {
       threadPool.execute(new Runnable {
