@@ -339,7 +339,7 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVector.put(vector.vectorId, vector)
-        }.map {
+        }.flatMap {
           returnedVector =>
             Future {
               for (i <- 0 until tableNum) {
