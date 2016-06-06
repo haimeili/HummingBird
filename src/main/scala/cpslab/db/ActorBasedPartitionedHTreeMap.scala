@@ -298,7 +298,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
               batchMainTableMsgCnt, batchLSHTableMsgCnt)
           for ((actorName, lshBuffer) <- lshTableMsgBuffer) {
             if (lshBuffer.nonEmpty) {
-              println(s"lshBuffer is not empty at ${context.self.path.name}")
+              println(s"WARN::::lshBuffer is not empty at ${context.self.path.name}")
             }
           }
         }
