@@ -444,7 +444,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
-        val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
+        val actorId = Random.nextInt(writerActorsNumPerPartition)
+        //math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
         if (bufferSize <= 0) {
           writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
         } else {
