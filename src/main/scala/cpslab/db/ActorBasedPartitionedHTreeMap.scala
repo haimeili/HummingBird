@@ -296,6 +296,11 @@ class ActorBasedPartitionedHTreeMap[K, V](
           context.actorSelection("akka://AK/user/monitor") !
             Tuple6(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
               batchMainTableMsgCnt, batchLSHTableMsgCnt)
+          for ((actorName, lshBuffer) <- lshTableMsgBuffer) {
+            if (lshBuffer.nonEmpty) {
+              println(s"lshBuffer is not empty at ${context.self.path.name}")
+            }
+          }
         }
     }
   }
