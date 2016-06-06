@@ -334,6 +334,7 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
       "akka.actor.writer-dispatcher")
+    val st = System.nanoTime()
     val mainFs = taskQueue.map {
       vector =>
         Future {
@@ -348,7 +349,6 @@ object HashTreeTest {
             Future.sequence(fs)
         }
     }
-    val st = System.nanoTime()
     Future.sequence(mainFs).onComplete {
       case Success(result)  =>
         // do nothing
