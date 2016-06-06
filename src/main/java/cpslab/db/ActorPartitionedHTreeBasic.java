@@ -358,7 +358,12 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   @Override
   protected V putInner(K key, V value, int h, int partition) {
-    int seg = h>>> BUCKET_LENGTH;
+    int seg;
+    if (!(hasher instanceof LocalitySensitiveHasher)) {
+      seg = h % (h >>> BUCKET_LENGTH);
+    } else {
+      seg = h >>> BUCKET_LENGTH;
+    }
     long dirRecid = partitionRootRec.get(partition)[seg];
     String storageName = buildStorageName(partition, seg);
     Engine engine = storageSpaces.get(storageName);
