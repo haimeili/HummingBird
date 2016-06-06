@@ -314,10 +314,14 @@ class ActorBasedPartitionedHTreeMap[K, V](
       writerActors = new mutable.HashMap[Int, Array[ActorRef]]
       for (partitionId <- 0 until partitioner.numPartitions) {
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
+        mainTableWriterActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         for (i <- 0 until writerActorsNumPerPartition) {
           writerActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
             Props(new WriterActor(partitionId)).withDispatcher("akka.actor.writer-dispatcher"),
             name = s"lshwriter-$partitionId-$i")
+          mainTableWriterActors(partitionId)(i) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+            Props(new WriterActor(partitionId)).withDispatcher("akka.actor.writer-dispatcher"),
+            name = s"lshMainTableWriter-$partitionId-$i")
         }
       }
     }
@@ -444,10 +448,10 @@ class ActorBasedPartitionedHTreeMap[K, V](
     val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
-        val actorId = Random.nextInt(writerActorsNumPerPartition)
-        //math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
+        val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
         if (bufferSize <= 0) {
-          writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
+          mainTableWriterActors(partition)(actorId) !
+            ValueAndHash(value.asInstanceOf[SparseVector], h)
         } else {
           bufferingPutForMainTable(partition, actorId, value.asInstanceOf[SparseVector], h)
         }
@@ -508,6 +512,7 @@ object ActorBasedPartitionedHTreeMap {
 
   //new mutable.HashMap[Int, Array[ActorRef]]
   var writerActors: mutable.HashMap[Int, Array[ActorRef]] = null
+  var mainTableWriterActors: mutable.HashMap[Int, Array[ActorRef]] = null
   var writerActorsNumPerPartition: Int = 0
   var readerActors: mutable.HashMap[Int, Array[ActorRef]] = null
   var readerActorsNumPerPartition: Int = 0
