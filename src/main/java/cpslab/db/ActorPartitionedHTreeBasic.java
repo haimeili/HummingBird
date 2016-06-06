@@ -124,7 +124,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       //if MainTable
       partition = Math.abs(partition1);
-      seg = h % (h >>> BUCKET_LENGTH);
+      seg = h % SEG;
     } else {
       partition = partition1;
       seg = h >>> BUCKET_LENGTH;
@@ -175,7 +175,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
     if (!(hasher instanceof LocalitySensitiveHasher)) {
-      seg = h % (h >>> BUCKET_LENGTH);
+      seg = h % SEG;
     } else {
       seg = h >>> BUCKET_LENGTH;
     }
@@ -360,7 +360,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   protected V putInner(K key, V value, int h, int partition) {
     int seg;
     if (!(hasher instanceof LocalitySensitiveHasher)) {
-      seg = h % (h >>> BUCKET_LENGTH);
+      seg = h % SEG;
     } else {
       seg = h >>> BUCKET_LENGTH;
     }
