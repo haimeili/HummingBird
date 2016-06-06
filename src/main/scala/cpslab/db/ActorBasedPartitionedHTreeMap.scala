@@ -312,6 +312,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
   if (shareActor) {
     if (writerActors == null) {
       writerActors = new mutable.HashMap[Int, Array[ActorRef]]
+      mainTableWriterActors = new mutable.HashMap[Int, Array[ActorRef]]
       for (partitionId <- 0 until partitioner.numPartitions) {
         writerActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
         mainTableWriterActors(partitionId) = new Array[ActorRef](writerActorsNumPerPartition)
