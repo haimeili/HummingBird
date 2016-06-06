@@ -380,7 +380,13 @@ class ActorBasedPartitionedHTreeMap[K, V](
       h: Int,
       key: K,
       value: V): Unit = {
-    val seg: Int = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+    val seg: Int = {
+      if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
+        h >>> PartitionedHTreeMap.BUCKET_LENGTH
+      } else {
+        h % PartitionedHTreeMap.SEG
+      }
+    }
     val storageName = buildStorageName(partition, seg)
     initPartitionIfNecessary(partition, seg)
     var ret: V = value
@@ -441,7 +447,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     if (partition < 0) {
       println(s"partition is less than 0 in table $tableId")
     }
-    val segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+    var segmentId = 0 // h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
@@ -457,6 +463,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           bufferingPutForMainTable(partition, segmentId, value.asInstanceOf[SparseVector], h)
         }
       }
+      segmentId = h % PartitionedHTreeMap.SEG
     } else {
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
@@ -465,6 +472,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       } else {
         actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       }
+      segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     }
     value
   }
