@@ -449,6 +449,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     var segmentId = 0 // h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
+      segmentId = h % PartitionedHTreeMap.SEG
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
         if (bufferSize <= 0) {
@@ -463,8 +464,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
           bufferingPutForMainTable(partition, segmentId, value.asInstanceOf[SparseVector], h)
         }
       }
-      segmentId = h % PartitionedHTreeMap.SEG
     } else {
+      segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
           writerActorsNumPerPartition
@@ -472,7 +473,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
       } else {
         actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
       }
-      segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
     }
     value
   }
