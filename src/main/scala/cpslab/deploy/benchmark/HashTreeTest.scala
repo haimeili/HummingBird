@@ -340,11 +340,12 @@ object HashTreeTest {
           vectorIdToVector.put(vector.vectorId, vector)
         }.flatMap {
           returnedVector =>
-            Future {
-              for (i <- 0 until tableNum) {
-                vectorDatabase(i).put(returnedVector.vectorId, true)
+            val fs = (0 until tableNum).map(tableId => {
+              Future {
+                vectorDatabase(tableId).put(returnedVector.vectorId, true)
               }
-            }
+            })
+            Future.sequence(fs)
         }
     }
     val st = System.nanoTime()
