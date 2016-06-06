@@ -118,14 +118,16 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   public V get(final Object o) {
     if (o == null) return null;
     final int h = hash((K) o);
-    final int seg = h >>> BUCKET_LENGTH;
+    final int seg;// = h >>> BUCKET_LENGTH;
     final int partition1 = partitioner.getPartition((K) o);
     int partition = 0;
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       //if MainTable
       partition = Math.abs(partition1);
+      seg = h % (h >>> BUCKET_LENGTH);
     } else {
       partition = partition1;
+      seg = h >>> BUCKET_LENGTH;
     }
     String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
@@ -169,9 +171,14 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
     V ret;
     final int h = hash(key);
-    final int seg = h >>> BUCKET_LENGTH;
+    final int seg;// = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    if (!(hasher instanceof LocalitySensitiveHasher)) {
+      seg = h % (h >>> BUCKET_LENGTH);
+    } else {
+      seg = h >>> BUCKET_LENGTH;
+    }
     initPartitionIfNecessary(partition, seg);
     try {
       partitionRamLock.get(buildStorageName(partition, seg)).writeLock().lock();
