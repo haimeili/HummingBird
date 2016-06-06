@@ -446,6 +446,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
           writerActorsNumPerPartition
+        println(s"in main table, actorId: $actorId")
         if (bufferSize <= 0) {
           writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
         } else {
