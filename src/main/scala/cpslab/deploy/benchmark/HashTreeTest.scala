@@ -366,10 +366,14 @@ object HashTreeTest {
     conf: Config,
     threadNumber: Int): Unit = {
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    val dbType = conf.getString("cpslab.lsh.benchmark.dbtype")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
-
-    ShardDatabase.initializePartitionedHashMap(conf)
+    if (dbType == "partitionedHashMap") {
+      ShardDatabase.initializePartitionedHashMap(conf)
+    } else if (dbType == "mapdbHashMap") {
+      ShardDatabase.initializeMapDBHashMap(conf)
+    }
 
     startWriteWorkload(conf, threadNumber)
   }
