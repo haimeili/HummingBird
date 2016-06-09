@@ -27,7 +27,7 @@ object GCTest {
     val lshStructure = Array.fill[ConcurrentHashMap[Int, ListBuffer[SparseVector]]](
       lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))*/
     import ShardDatabase._
-    initializeMapDBHashMap(conf)
+    initializePartitionedHashMap(conf)
 
     for (i <- 0 until threadCount) {
       new Thread(new Runnable {

@@ -127,8 +127,73 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     }
   }
 
-
   def initializeMapDBHashMap(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
+    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
+    val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
+    val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
+    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
+    val confForPartitioner = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.vectorDim=32
+         |cpslab.lsh.chainLength=$partitionBits
+      """.stripMargin).withFallback(conf)
+    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          val newTree = new PartitionedHTreeMap[Int, Boolean](
+            tableId,
+            "lsh",
+            workingDirRoot + "-" + tableId,
+            "partitionedTree-" + tableId,
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            null,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+          newTree
+      }
+    def initializeIdToVectorMap(): PartitionedHTreeMap[Int, SparseVector] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          new PartitionedHTreeMap[Int, SparseVector](
+            tableNum,
+            "default",
+            workingDirRoot + "-vector",
+            "vectorIdToVector",
+            new HashPartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            Serializers.vectorSerializer,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+      }
+    vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+    }
+    vectorIdToVector = initializeIdToVectorMap()
+    PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.updateBucketLength(bucketBits)
+    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId).initStructureLocks()
+    }
+    vectorIdToVector.initStructureLocks()
+  }
+
+
+  def initializePartitionedHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
     val numPartitions = conf.getInt("cpslab.lsh.numPartitions")

@@ -312,15 +312,17 @@ object HashTreeTest {
     List[SparseVector]()
   }
 
-  def testWriteThreadScalability(
-    conf: Config,
-    threadNumber: Int): Unit = {
+  def testWriteThreadScalabilityWithMapDB(conf: Config,
+                                          threadNumber: Int): Unit = {
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
 
     ShardDatabase.initializeMapDBHashMap(conf)
+    startWriteWorkload(conf, threadNumber)
+  }
 
+  private def startWriteWorkload(conf: Config, threadNumber: Int): Unit = {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
@@ -358,100 +360,18 @@ object HashTreeTest {
       case Failure(failure) =>
         throw failure
     }
+  }
 
-    /*
-    val taskQueue = new LinkedBlockingQueue[SparseVector]()
-
-    val random = new Random(System.currentTimeMillis())
-    val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-
-    def fillTaskQueue(): Unit = {
-      var cnt = 0
-      for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-        val (_, size, indices, values) = Vectors.fromString1(line)
-        val squareSum = math.sqrt(values.foldLeft(0.0) {
-          case (sum, weight) => sum + weight * weight
-        })
-        val vector = new SparseVector(cnt, size, indices,
-          values.map(_ / squareSum))
-        taskQueue.add(vector)
-        cnt += 1
-        if (cnt >= cap * threadNumber) {
-          return
-        }
-      }
-    }
-
-    fillTaskQueue()*/
-    /*
-    val threads = new Array[Thread](threadNumber)
-
-    val startTime = System.nanoTime()
-    for (i <- 0 until threadNumber) {
-      threads(i) = new Thread(new Runnable {
-        var cnt = 0
-        override def run(): Unit = {
-          while (!taskQueue.isEmpty) {
-            val vector = taskQueue.poll()
-            vectorIdToVector.put(vector.vectorId, vector)
-            for (i <- 0 until tableNum) {
-              val h = KeyAndHash(0, 0, 0)
-              vectorDatabase(i).put(vector.vectorId, true)
-            }
-            cnt += 1
-          }
-          println(s"$cnt")
-        }
-      }, s"threadWrite-$i")
-      threads(i).start()
-    }
-
-    for (i <- 0 until threadNumber) {
-      threads(i).join()
-      finishedWriteThreadCount.getAndIncrement()
-    }*/
+  def testWriteThreadScalability(
+    conf: Config,
+    threadNumber: Int): Unit = {
+    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
 
-/*
-    for (i <- 0 until threadNumber) {
-      threadPool.execute(new Runnable {
-        val base = i
-        var totalTime = 0L
+    ShardDatabase.initializePartitionedHashMap(conf)
 
-        private def traverseFile(allFiles: Seq[String]): Unit = {
-          var cnt = 0
-          //val decoder = Charset.forName("US-ASCII").newDecoder()
-          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (_, size, indices, values) = Vectors.fromString1(line)
-            val squareSum = math.sqrt(values.foldLeft(0.0){
-              case (sum, weight) => sum + weight * weight} )
-            val vector = new SparseVector(base * cap + cnt, size, indices,
-              values.map(_ / squareSum))
-            val s = System.currentTimeMillis()
-            val h = ValueAndHash(vector, 0)
-            vectorIdToVector.put(vector.vectorId, vector)
-            for (i <- 0 until tableNum) {
-              val h = KeyAndHash(0, 0, 0)
-              vectorDatabase(i).put(vector.vectorId, true)
-            }
-            val e = System.currentTimeMillis()
-            totalTime += e - s
-            cnt += 1
-            if (cnt >= cap) {
-              return
-            }
-          }
-        }
-
-        override def run(): Unit = {
-          val random = new Random(Thread.currentThread().getName.hashCode)
-          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-          traverseFile(allFiles)
-          println(cap / (totalTime / 1000))
-          finishedWriteThreadCount.incrementAndGet()
-        }
-      })
-    }*/
+    startWriteWorkload(conf, threadNumber)
   }
 
   def testReadThreadScalabilityBTree(conf: Config,
@@ -906,7 +826,7 @@ object HashTreeTest {
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
-    ShardDatabase.initializeMapDBHashMap(conf)
+    ShardDatabase.initializePartitionedHashMap(conf)
 
     val trainingPath = conf.getString("cpslab.lsh.trainingPath")
     val testPath = conf.getString("cpslab.lsh.testPath")
