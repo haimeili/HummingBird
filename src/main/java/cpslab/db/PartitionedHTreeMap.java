@@ -68,6 +68,7 @@ public class PartitionedHTreeMap<K, V>
   protected final Fun.Function1<V, K> valueCreator;
 
   protected final long ramThreshold;
+  protected boolean simulateDefaultMapDB = false;
 
   /**
    * Indicates if this collection collection was not made by DB by user.
@@ -290,6 +291,24 @@ public class PartitionedHTreeMap<K, V>
     }
   };
 
+  public PartitionedHTreeMap(
+          int tableId,
+          String hasherName,
+          String workingDirectory,
+          String name,
+          Partitioner<K> partitioner,
+          boolean closeEngine,
+          int hashSalt,
+          Serializer<K> keySerializer,
+          Serializer<V> valueSerializer,
+          Fun.Function1<V, K> valueCreator,
+          ExecutorService executor,
+          boolean closeExecutor,
+          long ramThreshold) {
+    this(tableId, hasherName, workingDirectory, name, partitioner, closeEngine, hashSalt,
+      keySerializer, valueSerializer, valueCreator, executor, closeExecutor, ramThreshold, false);
+  }
+
   /**
    * Opens PartitionedHTreeMap
    */
@@ -306,7 +325,8 @@ public class PartitionedHTreeMap<K, V>
           Fun.Function1<V, K> valueCreator,
           ExecutorService executor,
           boolean closeExecutor,
-          long ramThreshold) {
+          long ramThreshold,
+          boolean simulateDefaultMapDB) {
 
     if (keySerializer == null) {
       throw new NullPointerException();
@@ -325,6 +345,7 @@ public class PartitionedHTreeMap<K, V>
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
     this.valueCreator = valueCreator;
+    this.simulateDefaultMapDB = simulateDefaultMapDB;
 
     this.executor = executor;
 
@@ -1012,32 +1033,60 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  private void initPartition(int partitionId) {
-    //add root record for each partition
-    // obey with the default setup of mapdb where each store has the lockscale of 1
+  private StoreSegment initPartitionInner(int partitionId, int lockScale) {
     StoreSegment storeSegment = new StoreSegment(
-            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 1, 0, false, false,
+            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, lockScale, 0, false, false,
             null, false, true, null);
     storeSegment.serializer = LN_SERIALIZER;
     storeSegment.init();
-    if (engines.containsKey(partitionId)) {
-      engines.get(partitionId).close();
+    return storeSegment;
+  }
+
+  private void initPartition(int partitionId) {
+    //add root record for each partition
+    // obey with the default setup of mapdb where each store has the lockscale of 1
+    if (!simulateDefaultMapDB) {
+      StoreSegment store = initPartitionInner(partitionId, 1);
+      if (engines.containsKey(partitionId)) {
+        engines.get(partitionId).close();
+      }
+      engines.put(partitionId, store);
+      Long[] segIds = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
+        //partitionRootRec.put(partitionId, partitionRoot);
+        segIds[i] = partitionRoot;
+      }
+      partitionRootRec.put(partitionId, segIds);
+      //initialize counterRecId
+      Long[] counterRecIdArray = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long counterRecId = store.put(0L, Serializer.LONG);
+        counterRecIdArray[i] = counterRecId;
+      }
+      counterRecids.put(partitionId, counterRecIdArray);
+    } else {
+      // to simulate the default mapdb setup
+      // all partition shares the same store with the lockscale of 16
+      StoreSegment store = initPartitionInner(partitionId, 16);
+      Long[] segIds = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
+        //partitionRootRec.put(partitionId, partitionRoot);
+        segIds[i] = partitionRoot;
+      }
+      //initialize counterRecId
+      Long[] counterRecIdArray = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long counterRecId = store.put(0L, Serializer.LONG);
+        counterRecIdArray[i] = counterRecId;
+      }
+      for (int pId = 0; pId < partitioner.numPartitions; pId++) {
+        engines.put(pId, store);
+        partitionRootRec.put(pId, segIds);
+        counterRecids.put(pId, counterRecIdArray);
+      }
     }
-    engines.put(partitionId, storeSegment);
-    Long[] segIds = new Long[SEG];
-    for (int i = 0; i < SEG; i++) {
-      long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
-      //partitionRootRec.put(partitionId, partitionRoot);
-      segIds[i] = partitionRoot;
-    }
-    partitionRootRec.put(partitionId, segIds);
-    //initialize counterRecId
-    Long [] counterRecIdArray = new Long[SEG];
-    for (int i = 0; i < SEG; i++) {
-      long counterRecId = storeSegment.put(0L, Serializer.LONG);
-      counterRecIdArray[i] = counterRecId;
-    }
-    counterRecids.put(partitionId, counterRecIdArray);
   }
 
   protected void initPartitionIfNecessary(int partitionId) {
