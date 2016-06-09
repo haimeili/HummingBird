@@ -1102,7 +1102,7 @@ public class PartitionedHTreeMap<K, V>
       partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
 
-    return ret;
+    return value;
   }
 
   /**
