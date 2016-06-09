@@ -370,8 +370,10 @@ object HashTreeTest {
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
     if (dbType == "partitionedHashMap") {
+      println("partitionedHashMap initialized")
       ShardDatabase.initializePartitionedHashMap(conf)
     } else if (dbType == "mapdbHashMap") {
+      println("mapdbHashMap initialized")
       ShardDatabase.initializeMapDBHashMap(conf)
     }
 
