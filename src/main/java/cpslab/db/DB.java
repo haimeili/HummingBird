@@ -1338,7 +1338,8 @@ public class DB implements Closeable {
         return treeMap(name, keySerializer.getBTreeKeySerializer(null), valueSerializer);
     }
 
-    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer, Serializer<V> valueSerializer){
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer,
+                                                    Serializer<V> valueSerializer){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1391,7 +1392,10 @@ public class DB implements Closeable {
                 (Serializer<V>)valSer2,
                 catGet(name+".numberOfNodeMetas",0)
                 );
+        System.out.println(ret.maxNodeSize + "," + ret.rootRecidRef + "," +
+                ret.keySerializer.getClass().getName() + "," + ret.valueSerializer.getClass().getName());
         //$DELAY$
+        catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
         return ret;
     }

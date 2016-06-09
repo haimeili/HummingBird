@@ -119,19 +119,18 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val lockScale = conf.getInt("cpslab.lsh.btree.lockScale")
     val nodeSize = conf.getInt("cpslab.lsh.btree.nodeSize")
     val db = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale).make()
-
+/*
     vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").keySerializer(
       Serializers.IntSerializer).valueSerializer(Serializers.VectorSerializer).nodeSize(nodeSize).
       make[Int, SparseVector]()
     vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
     for (tableId <- 0 until tableNum) {
-      val db1 = DBMaker.memoryUnsafeDB().lockScale(lockScale).make()
+      val db1 = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale).make()
       vectorDatabaseBTree(tableId) =
         db1.treeMapCreate(s"vectorDatabaseBTree - $tableId").keySerializer(
           Serializers.IntSerializer).valueSerializer(Serializers.IntSerializer).nodeSize(nodeSize).
           make[Int, Int]()
-    }
-    /*
+    }*/
     vectorIdToVectorBTree = db.treeMap("vectorIdToVector",
       Serializers.IntSerializer, Serializers.VectorSerializer)
     vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
@@ -139,7 +138,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       val db1 = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale).make()
       vectorDatabaseBTree(tableId) = db1.treeMap(s"vectorDatabaseBTree - $tableId",
         Serializers.IntSerializer, Serializers.IntSerializer)
-    }*/
+    }
   }
 
   def initializeMapDBHashMap(conf: Config): Unit = {
