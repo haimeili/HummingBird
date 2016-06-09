@@ -1071,7 +1071,7 @@ public class PartitionedHTreeMap<K, V>
       StoreSegment store = initPartitionInner(partitionId, 16);
       Long[] segIds = new Long[SEG];
       for (int i = 0; i < SEG; i++) {
-        long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
+        long partitionRoot = store.put(new int[BITMAP_SIZE], DIR_SERIALIZER);
         //partitionRootRec.put(partitionId, partitionRoot);
         segIds[i] = partitionRoot;
       }
