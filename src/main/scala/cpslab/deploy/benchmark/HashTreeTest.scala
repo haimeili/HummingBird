@@ -26,6 +26,9 @@ import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
 
 object HashTreeTest {
 
+  //initialize lsh engine
+  var lshEngines: Array[LocalitySensitiveHasher] = null
+
   case object Ticket
   case object TicketForRead
 
@@ -322,6 +325,49 @@ object HashTreeTest {
     startWriteWorkload(conf, threadNumber)
   }
 
+  private def startWriteWorkloadToBTree(conf: Config, threadNumber: Int): Unit = {
+    val filePath = conf.getString("cpslab.lsh.inputFilePath")
+    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+
+    val random = new Random(System.currentTimeMillis())
+    val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+
+    var cnt = 0
+
+    val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
+      "akka.actor.writer-dispatcher")
+    val st = System.nanoTime()
+    val mainFs = taskQueue.map {
+      vector =>
+        Future {
+          vectorIdToVectorBTree.put(vector.vectorId, vector)
+        }.flatMap {
+          returnedVector =>
+            val fs = (0 until tableNum).map(tableId => {
+              Future {
+                val h = HashTreeTest.lshEngines(tableId).hash(returnedVector,
+                  Serializers.VectorSerializer)
+                vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
+              }
+            })
+            Future.sequence(fs)
+        }
+    }
+    Future.sequence(mainFs).onComplete {
+      case Success(result)  =>
+        // do nothing
+        val duration = System.nanoTime() - st
+        println("total write throughput: " +
+          cap * threadNumber / (duration.toDouble / 1000000000))
+        finishedWriteThreadCount.set(threadNumber)
+      case Failure(failure) =>
+        throw failure
+    }
+  }
+
   private def startWriteWorkload(conf: Config, threadNumber: Int): Unit = {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -376,41 +422,54 @@ object HashTreeTest {
     } else if (dbType == "mapdbHashMap") {
       println("mapdbHashMap initialized")
       ShardDatabase.initializeMapDBHashMap(conf)
+    } else if (dbType == "btree") {
+      ShardDatabase.initializeBTree(conf)
     }
-
-    startWriteWorkload(conf, threadNumber)
+    
+    if (dbType != "btree") {
+      startWriteWorkload(conf, threadNumber)
+    } else {
+      startWriteWorkloadToBTree(conf, threadNumber)
+    }
   }
 
   def testReadThreadScalabilityBTree(conf: Config,
                                      requestNumberPerThread: Int,
                                      threadNumber: Int): Unit = {
-    val threadPool = Executors.newFixedThreadPool(threadNumber)
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    for (t <- 0 until threadNumber) {
-      threadPool.execute(new Runnable {
 
-        var max: Long = Int.MinValue
-        var min: Long = Int.MaxValue
-        var average: Long = 0
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
-        override def run(): Unit = {
-          val startTime = System.nanoTime()
-          for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(cap)
-            for (tableId <- 0 until tableNum) {
-              ShardDatabase.vectorDatabaseBTree(tableId).get(interestVectorId)
-            }
-          }
-          val duration = System.nanoTime() - startTime
-          println(requestNumberPerThread / (duration.toDouble / 1000000000))
-          /*println(
-            ((System.nanoTime() - startTime) / 1000000000) * 1.0 / requestNumberPerThread + "," +
-              max * 1.0 / 1000000000 + "," +
-              min * 1.0 / 1000000000)*/
-        }
-      })
+    val interestVectorIds = {
+      val l = new ListBuffer[(Int, Int)]
+      for (i <- 0 until requestNumberPerThread * threadNumber) {
+        val vectorId = Random.nextInt(cap * threadNumber)
+        for(tableId <- 0 until tableNum)
+          l += Tuple2(vectorId, tableId)
+      }
+      l.toList
     }
+
+    val fs = interestVectorIds.map {case (vectorId, tableId) =>
+      Future {
+
+        ShardDatabase.vectorDatabaseBTree(tableId).get(vectorId)
+      }
+    }
+    val st = System.nanoTime()
+    Future.sequence(fs).onComplete {
+      case Success(result)  =>
+        // do nothing
+        val duration = System.nanoTime() - st
+        println("total read throughput: " +
+          requestNumberPerThread * threadNumber / (duration.toDouble / 1000000000))
+      case Failure(failure) =>
+        throw failure
+    }
+
+    ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
   }
 
   def asyncTestReadThreadScalability(conf: Config,
@@ -635,54 +694,12 @@ object HashTreeTest {
                                           threadNumber: Int): Unit = {
     ShardDatabase.initializeBTree(conf)
 
-    val filePath = conf.getString("cpslab.lsh.inputFilePath")
-    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
-    val threadPool = Executors.newFixedThreadPool(threadNumber)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     //initialize lsh engine
-    val lshEngines = for (i <- 0 until tableNum)
-      yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)
-    for (i <- 0 until threadNumber) {
-      threadPool.execute(new Runnable {
-        val base = i
-        var totalTime = 0L
+    HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
+      yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)).toArray
 
-        private def traverseFile(allFiles: Seq[String]): Unit = {
-          var cnt = 0
-          for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-            val (_, size, indices, values) = Vectors.fromString1(line)
-            val vector = new SparseVector(cnt + base * cap, size, indices, values)
-            if (cnt >= cap) {
-              return
-            }
-            val s = System.nanoTime()
-            vectorIdToVectorBTree.put(cnt + base * cap, vector)
-            for (i <- 0 until tableNum) {
-              val hashValue = lshEngines(i).hash(vector, Serializers.VectorSerializer)
-              vectorDatabaseBTree(i).put(hashValue, vector.vectorId)
-            }
-            val e = System.nanoTime()
-            totalTime += e - s
-            cnt += 1
-          }
-        }
-
-        override def run(): Unit = {
-          val random = new Random(Thread.currentThread().getName.hashCode)
-          val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-          traverseFile(allFiles)
-          /*
-          for (i <- 0 until 20) {
-            vectorIdToVector.persist(i)
-          }
-          for (i <- 0 until tableNum; p <- 0 until 20) {
-            vectorDatabase(i).persist(p)
-          }*/
-          println(cap / (totalTime / 1000000000))
-          finishedWriteThreadCount.incrementAndGet()
-        }
-      })
-    }
+    startWriteWorkloadToBTree(conf, threadNumber)
   }
 
   private def readSimilarVectorId(queryVector: SparseVector, tableNum: Int): HashSet[Int] = {
