@@ -357,6 +357,7 @@ object HashTreeTest {
         val duration = System.nanoTime() - st
         println("total write throughput: " +
           cap * threadNumber / (duration.toDouble / 1000000000))
+        finishedWriteThreadCount.set(threadNumber)
       case Failure(failure) =>
         throw failure
     }
@@ -546,27 +547,6 @@ object HashTreeTest {
 
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
 
-    /*
-    for (t <- 0 until threadNumber) {
-      threadPool.execute(new Runnable {
-
-        var max: Long = Int.MinValue
-        var min: Long = Int.MaxValue
-        var average: Long = 0
-
-        override def run(): Unit = {
-          val startTime = System.nanoTime()
-          for (i <- 0 until requestNumberPerThread) {
-            val interestVectorId = Random.nextInt(cap * threadNumber)
-            for (tableId <- 0 until tableNum) {
-              ShardDatabase.vectorDatabase(tableId).getSimilar(interestVectorId)
-            }
-          }
-          val duration = System.nanoTime() - startTime
-          println(requestNumberPerThread / (duration.toDouble / 1000000000))
-        }
-      })
-    }*/
   }
 
   def testWriteThreadScalabilityOnheap(
