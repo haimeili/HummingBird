@@ -349,8 +349,11 @@ object HashTreeTest {
           returnedVector =>
             val fs = (0 until tableNum).map(tableId => {
               Future {
-                val h = HashTreeTest.lshEngines(tableId).hash(returnedVector,
-                  Serializers.VectorSerializer)
+                val lshCalculator = HashTreeTest.lshEngines(tableId)
+                if (lshCalculator == null) {
+                  println(s"FAULT: lshcalculator for table $tableId is null")
+                }
+                val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
               }
             })
