@@ -157,7 +157,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             null,
             Executors.newCachedThreadPool(),
             true,
-            ramThreshold)
+            ramThreshold, true)
           newTree
       }
     def initializeIdToVectorMap(): PartitionedHTreeMap[Int, SparseVector] =
@@ -176,7 +176,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             null,
             Executors.newCachedThreadPool(),
             true,
-            ramThreshold)
+            ramThreshold, true)
       }
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
