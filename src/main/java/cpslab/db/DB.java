@@ -1354,6 +1354,7 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new Engine.ReadOnlyWrapper(e)).treeMap("a"));
             }
+            System.out.println("create non-type btreemap");
             return treeMapCreate(name).make();
 
         }
