@@ -344,6 +344,7 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVectorBTree.put(vector.vectorId, vector)
+          vector
         }.flatMap {
           returnedVector =>
             val fs = (0 until tableNum).map(tableId => {
@@ -425,7 +426,7 @@ object HashTreeTest {
     } else if (dbType == "btree") {
       ShardDatabase.initializeBTree(conf)
     }
-    
+
     if (dbType != "btree") {
       startWriteWorkload(conf, threadNumber)
     } else {
