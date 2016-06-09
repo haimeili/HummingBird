@@ -1335,7 +1335,7 @@ public class DB implements Closeable {
                                                     Serializer<V> valueSerializer) {
         if(keySerializer==null)
             keySerializer = getDefaultSerializer();
-        return treeMap(name,keySerializer.getBTreeKeySerializer(null),valueSerializer);
+        return treeMap(name, keySerializer.getBTreeKeySerializer(null), valueSerializer);
     }
 
     synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer, Serializer<V> valueSerializer){
