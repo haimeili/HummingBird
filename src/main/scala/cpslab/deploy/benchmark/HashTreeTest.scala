@@ -427,7 +427,7 @@ object HashTreeTest {
       println("mapdbHashMap initialized")
       ShardDatabase.initializeMapDBHashMap(conf)
     } else if (dbType == "btree") {
-      ShardDatabase.initializeBTree(conf)
+      initBTreeMap(conf, threadNumber)
     }
 
     if (dbType != "btree") {
@@ -693,17 +693,13 @@ object HashTreeTest {
     }
   }
 
-  def testWriteThreadScalabilityWithBTree(conf: Config,
-                                          requestNumberPerThread: Int,
-                                          threadNumber: Int): Unit = {
+  def initBTreeMap(conf: Config, threadNumber: Int): Unit = {
     ShardDatabase.initializeBTree(conf)
 
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     //initialize lsh engine
     HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
       yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)).toArray
-
-    startWriteWorkloadToBTree(conf, threadNumber)
   }
 
   private def readSimilarVectorId(queryVector: SparseVector, tableNum: Int): HashSet[Int] = {
