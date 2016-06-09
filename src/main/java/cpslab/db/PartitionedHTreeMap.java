@@ -1014,8 +1014,9 @@ public class PartitionedHTreeMap<K, V>
 
   private void initPartition(int partitionId) {
     //add root record for each partition
+    // obey with the default setup of mapdb where each store has the lockscale of 1
     StoreSegment storeSegment = new StoreSegment(
-            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
+            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 1, 0, false, false,
             null, false, true, null);
     storeSegment.serializer = LN_SERIALIZER;
     storeSegment.init();
