@@ -116,16 +116,17 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
 
   def initializeBTree(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val db = DBMaker.memoryUnsafeDB().transactionDisable().make()
-    vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").nodeSize(1000).keySerializer(
-      Serializers.IntSerializer).valueSerializer(Serializers.VectorSerializer).
-      make[Int, SparseVector]
+    val db = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(512).make()
+    vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").keySerializer(
+      Serializers.IntSerializer).valueSerializer(Serializers.VectorSerializer).nodeSize(128).
+      make[Int, SparseVector]()
     vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
     for (tableId <- 0 until tableNum) {
-      val db1 = DBMaker.memoryUnsafeDB().transactionDisable().make()
+      val db1 = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(512).make()
       vectorDatabaseBTree(tableId) =
-        db1.treeMapCreate(s"vectorDatabaseBTree - $tableId").nodeSize(1000).keySerializer(
-          Serializers.IntSerializer).valueSerializer(Serializers.IntSerializer).make[Int, Int]()
+        db1.treeMapCreate(s"vectorDatabaseBTree - $tableId").keySerializer(
+          Serializers.IntSerializer).valueSerializer(Serializers.IntSerializer).nodeSize(128).
+          make[Int, Int]()
     }
   }
 
