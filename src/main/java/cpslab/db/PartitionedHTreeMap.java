@@ -68,7 +68,11 @@ public class PartitionedHTreeMap<K, V>
   protected final Fun.Function1<V, K> valueCreator;
 
   protected final long ramThreshold;
+
+  // controlling the simulation of default MapDB
   protected boolean simulateDefaultMapDB = false;
+  protected ReentrantReadWriteLock initStorageLock = new ReentrantReadWriteLock();
+  protected boolean defaultMapDBInitialized = false;
 
   /**
    * Indicates if this collection collection was not made by DB by user.
@@ -1090,25 +1094,50 @@ public class PartitionedHTreeMap<K, V>
   }
 
   protected void initPartitionIfNecessary(int partitionId) {
-    Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
-    try {
-      structureLock.lock();
-      if (!partitionRamLock.containsKey(partitionId) ||
-              !partitionPersistLock.containsKey(partitionId)) {
-        initPartition(partitionId);
-        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
-        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
-        for (int i = 0; i < SEG; i++) {
-          ramLockArray[i] = new ReentrantReadWriteLock();
-          persistLockArray[i] = new ReentrantReadWriteLock();
+    if (!this.simulateDefaultMapDB) {
+      Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
+      try {
+        structureLock.lock();
+        if (!partitionRamLock.containsKey(partitionId) ||
+                !partitionPersistLock.containsKey(partitionId)) {
+          initPartition(partitionId);
+          ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
+          ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
+          for (int i = 0; i < SEG; i++) {
+            ramLockArray[i] = new ReentrantReadWriteLock();
+            persistLockArray[i] = new ReentrantReadWriteLock();
+          }
+          partitionRamLock.put(partitionId, ramLockArray);
+          partitionPersistLock.put(partitionId, persistLockArray);
         }
-        partitionRamLock.put(partitionId, ramLockArray);
-        partitionPersistLock.put(partitionId, persistLockArray);
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        structureLock.unlock();
       }
-    } catch (Exception e){
-      e.printStackTrace();
-    } finally {
-      structureLock.unlock();
+    } else {
+      // simulate default mapdb
+      try {
+        initStorageLock.writeLock().lock();
+        if (!defaultMapDBInitialized) {
+          initPartition(partitionId);
+          ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
+          ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
+          for (int i = 0; i < SEG; i++) {
+            ramLockArray[i] = new ReentrantReadWriteLock();
+            persistLockArray[i] = new ReentrantReadWriteLock();
+          }
+          for (int i = 0; i < partitioner.numPartitions; i++) {
+            partitionRamLock.put(i, ramLockArray);
+            partitionPersistLock.put(i, persistLockArray);
+          }
+          defaultMapDBInitialized = true;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        initStorageLock.writeLock().unlock();
+      }
     }
   }
 
