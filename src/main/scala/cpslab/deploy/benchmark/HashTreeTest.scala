@@ -28,6 +28,7 @@ object HashTreeTest {
 
   //initialize lsh engine
   var lshEngines: Array[LocalitySensitiveHasher] = null
+  var lshPartitioners: Array[LocalitySensitivePartitioner[Int]] = null
 
   case object Ticket
   case object TicketForRead
@@ -352,6 +353,7 @@ object HashTreeTest {
                   println(s"FAULT: lshcalculator for table $tableId is null")
                 }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
+                HashTreeTest.lshPartitioners(tableId).getPartition(h)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
               }
             })
@@ -693,11 +695,19 @@ object HashTreeTest {
 
   def initBTreeMap(conf: Config, threadNumber: Int): Unit = {
     ShardDatabase.initializeBTree(conf)
-
+    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
+    val confForPartitioner = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.vectorDim=32
+         |cpslab.lsh.chainLength=$partitionBits
+      """.stripMargin).withFallback(conf)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     //initialize lsh engine
     HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
       yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)).toArray
+    HashTreeTest.lshPartitioners = (for (i <- 0 until tableNum)
+      yield new LocalitySensitivePartitioner[Int](confForPartitioner, i, partitionBits)).toArray
   }
 
   private def readSimilarVectorId(queryVector: SparseVector, tableNum: Int): HashSet[Int] = {
