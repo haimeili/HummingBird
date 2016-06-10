@@ -1209,7 +1209,6 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                //TODO: nan zhu
                 ((ValRef) oldVal).appendNewRecId(recid);
                 value = (V) oldVal;
               }
