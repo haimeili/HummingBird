@@ -581,6 +581,7 @@ object HashTreeTest {
 
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val dbType = conf.getString("cpslab.lsh.benchmark.dbtype")
     // pure thread/future is too clean as a baseline
     // against the complicate akka (bring too much overhead)
 
@@ -599,7 +600,21 @@ object HashTreeTest {
 
     val fs = interestVectorIds.map {case (vectorId, tableId) =>
         Future {
-          ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
+          if (dbType != "btree") {
+            ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
+          } else {
+            // b-tree
+            //1. fetch the corresponding vector
+            val v = ShardDatabase.vectorIdToVectorBTree.get(vectorId)
+            //2. calculate the lsh value
+            if (v == null) {
+              println(s"get ${v.vectorId} as null")
+            } else {
+              //3. get from vectorDatabase
+              val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer)
+              ShardDatabase.vectorDatabase(tableId).get(h)
+            }
+          }
         }
     }
     val st = System.nanoTime()
