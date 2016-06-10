@@ -358,7 +358,6 @@ object HashTreeTest {
                   println(s"found ${returnedVector.vectorId} as null")
                 }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                HashTreeTest.lshPartitioners(tableId).getPartition(h)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
               }
             })
@@ -440,45 +439,6 @@ object HashTreeTest {
     } else {
       startWriteWorkloadToBTree(conf, threadNumber)
     }
-  }
-
-  def testReadThreadScalabilityBTree(conf: Config,
-                                     requestNumberPerThread: Int,
-                                     threadNumber: Int): Unit = {
-    val cap = conf.getInt("cpslab.lsh.benchmark.cap")
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
-
-    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
-    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
-
-    val interestVectorIds = {
-      val l = new ListBuffer[(Int, Int)]
-      for (i <- 0 until requestNumberPerThread * threadNumber) {
-        val vectorId = Random.nextInt(cap * threadNumber)
-        for(tableId <- 0 until tableNum)
-          l += Tuple2(vectorId, tableId)
-      }
-      l.toList
-    }
-
-    val fs = interestVectorIds.map {case (vectorId, tableId) =>
-      Future {
-
-        ShardDatabase.vectorDatabaseBTree(tableId).get(vectorId)
-      }
-    }
-    val st = System.nanoTime()
-    Future.sequence(fs).onComplete {
-      case Success(result)  =>
-        // do nothing
-        val duration = System.nanoTime() - st
-        println("total read throughput: " +
-          requestNumberPerThread * threadNumber / (duration.toDouble / 1000000000))
-      case Failure(failure) =>
-        throw failure
-    }
-
-    ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
   }
 
   def asyncTestReadThreadScalability(conf: Config,
