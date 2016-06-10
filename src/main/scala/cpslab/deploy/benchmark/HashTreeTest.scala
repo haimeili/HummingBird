@@ -353,7 +353,10 @@ object HashTreeTest {
                   println(s"FAULT: lshcalculator for table $tableId is null")
                 }
                 // to be equivalent to the MapDB.hash()
-                vectorIdToVectorBTree.get(returnedVector.vectorId)
+                val v = vectorIdToVectorBTree.get(returnedVector.vectorId)
+                if (v == null) {
+                  println(s"found ${returnedVector.vectorId} as null")
+                }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
                 HashTreeTest.lshPartitioners(tableId).getPartition(h)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
