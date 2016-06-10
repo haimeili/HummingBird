@@ -572,7 +572,7 @@ object HashTreeTest {
             } else {
               //3. get from vectorDatabase
               val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer)
-              ShardDatabase.vectorDatabase(tableId).get(h)
+              ShardDatabase.vectorDatabaseBTree(tableId).get(h)
             }
           }
         }
