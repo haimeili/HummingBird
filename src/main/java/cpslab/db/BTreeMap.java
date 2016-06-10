@@ -224,10 +224,14 @@ public class BTreeMap<K, V>
     /**
      * reference to actual value
      */
-    final long recid;
+    final List<Long> recids;
 
-    public ValRef(long recid) {
-      this.recid = recid;
+    public ValRef(List<Long> recid) {
+      this.recids = recid;
+    }
+
+    public void appendNewRecId(long recId) {
+      recids.add(recId);
     }
 
     @Override
@@ -242,7 +246,7 @@ public class BTreeMap<K, V>
 
     @Override
     public String toString() {
-      return "BTreeMap-ValRef[" + recid + "]";
+      return "BTreeMap-ValRef[" + recids.toString() + "]";
     }
   }
 
@@ -250,12 +254,12 @@ public class BTreeMap<K, V>
 
     @Override
     public void serialize(DataOutput out, ValRef value) throws IOException {
-      DataIO.packLong(out, value.recid);
+      Serializer.BASIC.serialize(out, value.recids);
     }
 
     @Override
     public ValRef deserialize(DataInput in, int available) throws IOException {
-      return new ValRef(DataIO.unpackLong(in));
+      return new ValRef((List<Long>) Serializer.BASIC.deserialize(in, -1));
     }
 
     @Override
@@ -1055,7 +1059,7 @@ public class BTreeMap<K, V>
 
   protected V valExpand(Object ret) {
     if (valsOutsideNodes && ret != null) {
-      long recid = ((ValRef) ret).recid;
+      long recid = ((ValRef) ret).recids.get(0);
       //$DELAY$
       ret = engine.get(recid, valueSerializer);
     }
@@ -1071,13 +1075,15 @@ public class BTreeMap<K, V>
   }
 
 
+
   @Override
   public V put(K key, V value) {
     if (key == null || value == null) throw new NullPointerException();
-    return put2(key, value, false);
+    return put2(key, value, false, false);
   }
 
-  protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent) {
+  protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent,
+                   final boolean ifAppend) {
     K v = key;
 
     int stackPos = -1;
@@ -1139,9 +1145,15 @@ public class BTreeMap<K, V>
             //insert new
             V value = value2;
             if (valsOutsideNodes) {
-              long recid = engine.put(value2, valueSerializer);
-              //$DELAY$
-              value = (V) new ValRef(recid);
+              if (!ifAppend) {
+                long recid = engine.put(value2, valueSerializer);
+                //$DELAY$
+                List<Long> l = new LinkedList<Long>();
+                l.add(recid);
+                value = (V) new ValRef(l);
+              } else {
+                //TODO: nan zhu
+              }
             }
 
             //$DELAY$
@@ -1186,8 +1198,10 @@ public class BTreeMap<K, V>
         V value = value2;
         if (valsOutsideNodes) {
           long recid = engine.put(value2, valueSerializer);
+          List<Long> l = new LinkedList<Long>();
+          l.add(recid);
           //$DELAY$
-          value = (V) new ValRef(recid);
+          value = (V) new ValRef(l);
         }
 
         int pos = keySerializer.findChildren(A, v);
@@ -1599,8 +1613,10 @@ public class BTreeMap<K, V>
           if (putNewValue != null && valsOutsideNodes) {
             //$DELAY$
             long recid = engine.put((V) putNewValue, valueSerializer);
+            List<Long> l = new LinkedList<Long>();
+            l.add(recid);
             //$DELAY$
-            putNewValueOutside = new ValRef(recid);
+            putNewValueOutside = new ValRef(l);
           }
 
           A = putNewValue != null ?
@@ -1864,10 +1880,15 @@ public class BTreeMap<K, V>
   }
 
 
+  public void append(K key, V value) {
+    if (key == null || value == null) throw new NullPointerException();
+    put2(key, value, false, true);
+  }
+
   @Override
   public V putIfAbsent(K key, V value) {
     if (key == null || value == null) throw new NullPointerException();
-    return put2(key, value, true);
+    return put2(key, value, true, false);
   }
 
   @Override
