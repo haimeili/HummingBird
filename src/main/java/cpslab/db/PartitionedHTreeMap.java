@@ -860,7 +860,8 @@ public class PartitionedHTreeMap<K, V>
    * converts hash slot into actual offset in dir array, using bitmap
    *
    * @param dir  dir is the index in dir node, the first 4 * 32 bits is the bitmap
-   * @param slot slot is 7-bits of the hash value of the key, indicating the slot in this level
+   * @param slot slot is NUM_BITS_PER_COMPARISON-bits of the hash value of the key,
+   *             indicating the slot in this level
    * @return negative -offset if the slot hasn't been occupied, positive offset if the slot is set
    */
   protected static final int dirOffsetFromSlot(int[] dir, int slot) {
