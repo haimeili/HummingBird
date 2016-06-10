@@ -343,6 +343,7 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVectorBTree.put(vector.vectorId, vector)
+          println(s"write vector ${vector.vectorId}")
           vector
         }.flatMap {
           returnedVector =>
