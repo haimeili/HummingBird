@@ -354,7 +354,7 @@ object HashTreeTest {
                 }
                 // to be equivalent to the MapDB.hash()
                 vectorIdToVectorBTree.get(returnedVector.vectorId)
-                val h = lshCalculator.hash(returnedVector.vectorId, Serializers.VectorSerializer)
+                val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
                 HashTreeTest.lshPartitioners(tableId).getPartition(h)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
               }
