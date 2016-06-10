@@ -343,7 +343,6 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVectorBTree.put(vector.vectorId, vector)
-          println(s"write vector ${vector.vectorId}")
           vector
         }.flatMap {
           returnedVector =>
@@ -354,11 +353,8 @@ object HashTreeTest {
                   println(s"FAULT: lshcalculator for table $tableId is null")
                 }
                 // to be equivalent to the MapDB.hash()
-                val v = vectorIdToVectorBTree.get(returnedVector.vectorId)
-                if (v == null) {
-                  println(s"found ${returnedVector.vectorId} as null")
-                }
-                val h = lshCalculator.hash(v, Serializers.VectorSerializer)
+                vectorIdToVectorBTree.get(returnedVector.vectorId)
+                val h = lshCalculator.hash(returnedVector.vectorId, Serializers.VectorSerializer)
                 HashTreeTest.lshPartitioners(tableId).getPartition(h)
                 vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
               }
