@@ -1145,14 +1145,16 @@ public class BTreeMap<K, V>
             //insert new
             V value = value2;
             if (valsOutsideNodes) {
+              long recid = engine.put(value2, valueSerializer);
               if (!ifAppend) {
-                long recid = engine.put(value2, valueSerializer);
                 //$DELAY$
                 List<Long> l = new LinkedList<Long>();
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
                 //TODO: nan zhu
+                ((ValRef) oldVal).appendNewRecId(recid);
+                value = (V) oldVal;
               }
             }
 

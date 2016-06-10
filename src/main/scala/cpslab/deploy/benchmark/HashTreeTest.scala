@@ -342,7 +342,7 @@ object HashTreeTest {
     val mainFs = taskQueue.map {
       vector =>
         Future {
-          vectorIdToVectorBTree.put(vector.vectorId, vector)
+          vectorIdToVectorBTree.append(vector.vectorId, vector)
           vector
         }.flatMap {
           returnedVector =>
@@ -358,7 +358,7 @@ object HashTreeTest {
                   println(s"found ${returnedVector.vectorId} as null")
                 }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                vectorDatabaseBTree(tableId).put(h, returnedVector.vectorId)
+                vectorDatabaseBTree(tableId).append(h, returnedVector.vectorId)
               }
             })
             Future.sequence(fs)
