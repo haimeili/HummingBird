@@ -572,7 +572,7 @@ object HashTreeTest {
             } else {
               //3. get from vectorDatabase
               val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer)
-              ShardDatabase.vectorDatabaseBTree(tableId).get(h)
+              ShardDatabase.vectorDatabaseBTree(tableId).getAll(h)
             }
           }
         }
@@ -587,9 +587,7 @@ object HashTreeTest {
       case Failure(failure) =>
         throw failure
     }
-
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
-
   }
 
   def testWriteThreadScalabilityOnheap(

@@ -26,6 +26,8 @@
 package cpslab.db;
 
 
+import com.sun.corba.se.spi.ior.ObjectKey;
+
 import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -1009,10 +1011,53 @@ public class BTreeMap<K, V>
     return engine.put(rootRecidVal, Serializer.RECID);
   }
 
+  public List<V> getAll(Object key) {
+    return getAllInner(key);
+  }
 
   @Override
   public V get(Object key) {
     return (V) get(key, true);
+  }
+
+  private List<V> getAllInner(Object key) {
+    if (key == null) throw new NullPointerException();
+    K v = (K) key;
+    long current = engine.get(rootRecidRef, Serializer.RECID); //get root
+    //$DELAY$
+    BNode A = engine.get(current, nodeSerializer);
+
+    //dive until  leaf
+    while (!A.isLeaf()) {
+      //$DELAY$
+      current = nextDir((DirNode) A, v);
+      //$DELAY$
+      A = engine.get(current, nodeSerializer);
+    }
+
+    for (; ; ) {
+      int pos = keySerializer.findChildren2(A, key);
+      //$DELAY$
+      if (pos > 0 && pos != A.keysLen(keySerializer) - 1) {
+        //found
+        Object val = A.val(pos - 1, valueSerializer);
+        //$DELAY$
+        List<V> retList = valExpandList(val);
+        return retList;
+      } else if (pos <= 0 && -pos - 1 != A.keysLen(keySerializer) - 1) {
+        //$DELAY$
+        //not found
+        return null;
+      } else {
+        //move to next link
+        current = A.next();
+        //$DELAY$
+        if (current == 0) {
+          return null;
+        }
+        A = engine.get(current, nodeSerializer);
+      }
+    }
   }
 
   protected Object get(Object key, boolean expandValue) {
@@ -1055,6 +1100,18 @@ public class BTreeMap<K, V>
       }
     }
 
+  }
+
+  protected List<V> valExpandList(Object ret) {
+    List<V> retList = new LinkedList<>();
+    if (valsOutsideNodes && ret != null) {
+      for (int i = 0; i < ((ValRef) ret).recids.size(); i++) {
+        long recid = ((ValRef) ret).recids.get(i);
+        //$DELAY$
+        retList.add((V) engine.get(recid, valueSerializer));
+      }
+    }
+    return retList;
   }
 
   protected V valExpand(Object ret) {
