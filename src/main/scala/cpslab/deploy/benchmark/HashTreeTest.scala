@@ -568,7 +568,7 @@ object HashTreeTest {
             val v = ShardDatabase.vectorIdToVectorBTree.get(vectorId)
             //2. calculate the lsh value
             if (v == null) {
-              println(s"get ${v.vectorId} as null")
+              println(s"get $vectorId as null")
             } else {
               //3. get from vectorDatabase
               val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer)
