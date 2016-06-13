@@ -1157,7 +1157,7 @@ public class BTreeMap<K, V>
    * to the ValRef with the new hash keys, otherwise, we directly update the ValRef by appending
    * the new record id
    */
-  private V updateOldValueRef(ValRef oldValueRef, long valueRecId, long valRefRecId) {
+  private V updateOldValueRef(ValRef oldValueRef, long valueRecId, long nodeRecId) {
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
@@ -1166,7 +1166,7 @@ public class BTreeMap<K, V>
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + "\t");
       }
-      System.out.println(" at table " + tableId + " at ValRef " + valRefRecId);
+      System.out.println(" at table " + tableId + " at node " + nodeRecId);
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long existingValRecId = oldValueRef.recids.get(i);
@@ -1177,7 +1177,7 @@ public class BTreeMap<K, V>
         Integer nextLevelHash = fullHash >>> shiftBits;
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
-                tableId + ", shift bits: " + shiftBits + " at ValRef " + valRefRecId);
+                tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
@@ -1185,7 +1185,7 @@ public class BTreeMap<K, V>
       // directly append new recid
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
               " at level " + currentLevel +
-              " at table " + tableId  + " at ValRef " + valRefRecId);
+              " at table " + tableId  + " at node " + nodeRecId);
     }
     return (V) oldValueRef;
   }
@@ -2351,8 +2351,8 @@ public class BTreeMap<K, V>
           if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
-          System.out.println(Thread.currentThread().getName() + " add key " + existingRecId +
-                  " without splitting node at ValRef " + current);
+          System.out.println(Thread.currentThread().getName() + " add value " + existingRecId +
+                  " without splitting node at node " + current + " with hash key " + newKey);
           //$DELAY$
           unlock(nodeLocks, current);
           if (CC.ASSERT) assertNoLocks(nodeLocks);
