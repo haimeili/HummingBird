@@ -1336,7 +1336,7 @@ public class BTreeMap<K, V>
           notify(key, null, value2);
           //$DELAY$
           unlock(nodeLocks, current);
-          if (CC.ASSERT) assertNoLocks(nodeLocks);
+          // if (CC.ASSERT) assertNoLocks(nodeLocks);
           return null;
         } else {
           //node is not safe, it requires splitting
@@ -1399,7 +1399,7 @@ public class BTreeMap<K, V>
             //$DELAY$
             unlock(nodeLocks, rootRecidRef);
             //$DELAY$
-            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            // if (CC.ASSERT) assertNoLocks(nodeLocks);
             //$DELAY$
             return null;
           }
@@ -2355,7 +2355,7 @@ public class BTreeMap<K, V>
                   " without splitting node at node " + current + " with hash key " + newKey);
           //$DELAY$
           unlock(nodeLocks, current);
-          if (CC.ASSERT) assertNoLocks(nodeLocks);
+          // if (CC.ASSERT) assertNoLocks(nodeLocks);
           return;
         } else {
           //node is not safe, it requires splitting
@@ -2420,7 +2420,7 @@ public class BTreeMap<K, V>
             //$DELAY$
             unlock(nodeLocks, rootRecidRef);
             //$DELAY$
-            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            // if (CC.ASSERT) assertNoLocks(nodeLocks);
             //$DELAY$
             return;
           }
