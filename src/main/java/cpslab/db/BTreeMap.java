@@ -1155,6 +1155,7 @@ public class BTreeMap<K, V>
         int fullHash = btreeVal.hash;
         Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
+        System.out.println("redistributing " + valueRecordId + " at level " + currentLevel);
         this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
       }
       oldValueRef.recids.clear();
