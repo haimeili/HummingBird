@@ -2265,12 +2265,13 @@ public class BTreeMap<K, V>
             Object oldVal = A.val(pos - 1, valueSerializer);
 
             //insert new
-            V value = engine.get(existingRecId, valueSerializer);
+            V value = null;
             if (valsOutsideNodes) {
               ValRef oldRef = (ValRef) oldVal;
               if (oldRef.recids.isEmpty()) {
                 // move to nextLevel
                 unlock(nodeLocks, current);
+                value = engine.get(existingRecId, valueSerializer);
                 // recalculate the next level hash
                 LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
                 int h = lshbTreeVal.hash;
@@ -2283,6 +2284,8 @@ public class BTreeMap<K, V>
               } else {
                 value = updateOldValueRef(oldRef, existingRecId);
               }
+            } else {
+              throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }
 
             //$DELAY$
