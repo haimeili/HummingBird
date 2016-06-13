@@ -3986,7 +3986,11 @@ public class BTreeMap<K, V>
       Thread.sleep(10000);
       currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
-    System.out.println("!!! " + currentLockOwener.getName() + " acquires the lock");
+    if (currentLockOwener != null) {
+      System.out.println("!!! " + currentLockOwener.getName() + " acquires the lock");
+    } else {
+      System.out.println("!!! " + Thread.currentThread().getName() + " acquires the lock");
+    }
   }
 
 
