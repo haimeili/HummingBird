@@ -1163,17 +1163,17 @@ public class BTreeMap<K, V>
       System.out.println(" at table " + tableId);
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
-        long valueRecordId = oldValueRef.recids.get(i);
-        LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(valueRecordId, valueSerializer);
+        long existingValRecId = oldValueRef.recids.get(i);
+        LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         int fullHash = btreeVal.hash;
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         Integer nextLevelHash = fullHash >>> shiftBits;
-        System.out.println(Thread.currentThread().getName() + " redistributing " + valueRecordId +
+        System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits);
         // this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
-        appendExistingRecId((K) nextLevelHash, valueRecId, currentLevel + 1);
+        appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
     } else {
