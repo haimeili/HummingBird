@@ -3982,7 +3982,7 @@ public class BTreeMap<K, V>
     Thread currentLockOwener = locks.putIfAbsent(recid, currentThread);
 
     while (currentLockOwener != currentThread && currentLockOwener != null) {
-      LockSupport.parkNanos(10000);
+      LockSupport.parkNanos(10);
       currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
   }
