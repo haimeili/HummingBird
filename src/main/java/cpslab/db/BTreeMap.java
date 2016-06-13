@@ -3969,7 +3969,7 @@ public class BTreeMap<K, V>
   }
 
 
-  protected static void lock(LongConcurrentHashMap<Thread> locks, long recid) {
+  protected static void lock(LongConcurrentHashMap<Thread> locks, long recid) throws InterruptedException {
     //feel free to rewrite, if you know better (more efficient) way
 
     final Thread currentThread = Thread.currentThread();
@@ -3977,9 +3977,14 @@ public class BTreeMap<K, V>
     if (CC.ASSERT && !(locks.get(recid) != currentThread))
       throw new AssertionError("node already locked by current thread: " + recid);
 
-    while (locks.putIfAbsent(recid, currentThread) != currentThread &&
-            locks.putIfAbsent(recid, currentThread) != null) {
-      LockSupport.parkNanos(10);
+    Thread currentLockOwener = locks.putIfAbsent(recid, currentThread);
+
+    while (currentLockOwener != currentThread && currentLockOwener != null) {
+      System.out.println(Thread.currentThread().getName() + " pauses for waiting " +
+              currentLockOwener.getName());
+      // LockSupport.parkNanos(10000);
+      Thread.sleep(10000);
+      currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
   }
 
