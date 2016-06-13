@@ -1160,6 +1160,7 @@ public class BTreeMap<K, V>
       oldValueRef.recids.clear();
     } else {
       // directly append new recid
+      System.out.println("directly add " + valueRecId + " at level " + currentLevel);
       oldValueRef.appendNewRecId(valueRecId);
     }
     return (V) oldValueRef;
@@ -3985,7 +3986,6 @@ public class BTreeMap<K, V>
       LockSupport.parkNanos(10);
       currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
-    System.out.println(currentLockOwener.getName() + " acquired lock " + recid);
   }
 
 
