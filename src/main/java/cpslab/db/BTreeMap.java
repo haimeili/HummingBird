@@ -2382,6 +2382,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
+            System.out.println("split root when inserting " + existingRecId);
             Object rootChild =
                     (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
                             new int[]{(int) current, (int) q, 0} :
@@ -4185,10 +4186,7 @@ public class BTreeMap<K, V>
 
   protected static void assertNoLocks(LongConcurrentHashMap<ReentrantLock> locks) {
     LongConcurrentHashMap.LongMapIterator<ReentrantLock> i = locks.longMapIterator();
-    Thread t = null;
     while (i.moveToNext()) {
-      if (t == null)
-        t = Thread.currentThread();
       if (i.value().isHeldByCurrentThread()) {
         throw new AssertionError("Node " + i.key() + " is still locked");
       }
@@ -4198,6 +4196,7 @@ public class BTreeMap<K, V>
 
   protected static void unlock(LongConcurrentHashMap<ReentrantLock> locks, final long recid) {
     locks.get(recid).unlock();
+    // System.out.println(Thread.currentThread() + " releases lock for rec " + recid);
     /*
     if (CC.ASSERT && !(t == Thread.currentThread()))
       throw new AssertionError("unlocked wrong thread");
@@ -4228,6 +4227,7 @@ public class BTreeMap<K, V>
     } else {
       currentNodeLock.lock();
     }
+    // System.out.println(Thread.currentThread() + " acquires lock for rec " + recid);
   }
 
 
