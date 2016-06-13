@@ -1157,7 +1157,7 @@ public class BTreeMap<K, V>
    * to the ValRef with the new hash keys, otherwise, we directly update the ValRef by appending
    * the new record id
    */
-  private V updateOldValueRef(ValRef oldValueRef, long valueRecId) {
+  private V updateOldValueRef(ValRef oldValueRef, long valueRecId, long valRefRecId) {
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
@@ -1166,7 +1166,7 @@ public class BTreeMap<K, V>
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + "\t");
       }
-      System.out.println(" at table " + tableId);
+      System.out.println(" at table " + tableId + " at ValRef " + valRefRecId);
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long existingValRecId = oldValueRef.recids.get(i);
@@ -1177,7 +1177,7 @@ public class BTreeMap<K, V>
         Integer nextLevelHash = fullHash >>> shiftBits;
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
-                tableId + ", shift bits: " + shiftBits);
+                tableId + ", shift bits: " + shiftBits + " at ValRef " + valRefRecId);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
@@ -1185,7 +1185,7 @@ public class BTreeMap<K, V>
       // directly append new recid
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
               " at level " + currentLevel +
-              " at table " + tableId);
+              " at table " + tableId  + " at ValRef " + valRefRecId);
     }
     return (V) oldValueRef;
   }
@@ -1267,7 +1267,7 @@ public class BTreeMap<K, V>
                   Integer newPartialHash = h >>> nextShiftingLength;
                   appendExistingRecId((K) newPartialHash, recid, currentLevel + 1);
                 } else {
-                  value = updateOldValueRef(oldRef, recid);
+                  value = updateOldValueRef(oldRef, recid, current);
                 }
               }
             }
@@ -2286,7 +2286,7 @@ public class BTreeMap<K, V>
                 Integer newPartialHash = h >>> nextShiftingLength;
                 appendExistingRecId((K) newPartialHash, existingRecId, currentLevel + 1);
               } else {
-                value = updateOldValueRef(oldRef, existingRecId);
+                value = updateOldValueRef(oldRef, existingRecId, current);
               }
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
@@ -2352,7 +2352,7 @@ public class BTreeMap<K, V>
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
           System.out.println(Thread.currentThread().getName() + " add key " + existingRecId +
-                  " without splitting node");
+                  " without splitting node at ValRef " + current);
           //$DELAY$
           unlock(nodeLocks, current);
           if (CC.ASSERT) assertNoLocks(nodeLocks);
@@ -4201,8 +4201,8 @@ public class BTreeMap<K, V>
 
   protected static void unlock(LongConcurrentHashMap<ReentrantLock> locks, final long recid) {
     locks.get(recid).unlock();
-    System.out.println(Thread.currentThread() + " releases lock for rec " + recid + ", count: " +
-      locks.get(recid).getHoldCount());
+    // System.out.println(Thread.currentThread() + " releases lock for rec " + recid + ", count: " +
+      // locks.get(recid).getHoldCount());
     /*
     if (CC.ASSERT && !(t == Thread.currentThread()))
       throw new AssertionError("unlocked wrong thread");
@@ -4236,8 +4236,8 @@ public class BTreeMap<K, V>
       currentNodeLock.lock();
       count = currentNodeLock.getHoldCount();
     }
-    System.out.println(Thread.currentThread() + " acquires lock for rec " + recid + " count:" +
-            count);
+    // System.out.println(Thread.currentThread() + " acquires lock for rec " + recid + " count:" +
+       //      count);
   }
 
 
