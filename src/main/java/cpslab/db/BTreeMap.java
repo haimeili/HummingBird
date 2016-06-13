@@ -1283,7 +1283,7 @@ public class BTreeMap<K, V>
             notify(key, ret, value2);
             unlock(nodeLocks, current);
             //$DELAY$
-            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            // if (CC.ASSERT) assertNoLocks(nodeLocks);
             return ret;
           }
 
@@ -2301,7 +2301,7 @@ public class BTreeMap<K, V>
             //already in here
             unlock(nodeLocks, current);
             //$DELAY$
-            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            // if (CC.ASSERT) assertNoLocks(nodeLocks);
             return;
           }
 
