@@ -1151,7 +1151,7 @@ public class BTreeMap<K, V>
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long valueRecordId = oldValueRef.recids.get(i);
-        LSHBTreeVal btreeVal = (LSHBTreeVal) valExpand(engine.get(valueRecordId, valueSerializer));
+        LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(valueRecordId, valueSerializer);
         int fullHash = btreeVal.hash;
         Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 currentLevel) * BTreeDatabase.btreeCompareGroupLength();
