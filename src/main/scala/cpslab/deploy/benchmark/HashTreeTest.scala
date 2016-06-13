@@ -358,7 +358,7 @@ object HashTreeTest {
                   println(s"found ${returnedVector.vectorId} as null")
                 }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                vectorDatabaseBTree(tableId).append(h, returnedVector.vectorId)
+                vectorDatabaseBTree(tableId).append(h, (returnedVector.vectorId, h))
               }
             })
             Future.sequence(fs)

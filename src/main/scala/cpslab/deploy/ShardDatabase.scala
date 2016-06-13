@@ -120,14 +120,14 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val nodeSize = conf.getInt("cpslab.lsh.btree.nodeSize")
     val db = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale)make()
     vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").valuesOutsideNodesEnable().
+      keySerializer(Serializers.IntSerializer).valueSerializer(Serializers.VectorSerializer).
       nodeSize(nodeSize).make[Int, SparseVector]()
-    vectorDatabaseBTree = new Array[BTreeMap[Int, Int]](tableNum)
+    vectorDatabaseBTree = new Array[BTreeMap[Int, (Int, Int)]](tableNum)
     for (tableId <- 0 until tableNum) {
       val db1 = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale).make()
       vectorDatabaseBTree(tableId) =
         db1.treeMapCreate(s"vectorDatabaseBTree - $tableId").valuesOutsideNodesEnable().
-          keySerializer(Serializers.IntSerializer).valueSerializer(Serializers.IntSerializer).
-          nodeSize(nodeSize).make[Int, Int]()
+          keySerializer(Serializers.IntSerializer).nodeSize(nodeSize).make[Int, (Int, Int)]()
     }
   }
 
@@ -316,7 +316,8 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
   var vectorDatabase: Array[PartitionedHTreeMap[Int, Boolean]] = null
   var vectorIdToVector: PartitionedHTreeMap[Int, SparseVector] = null
 
-  var vectorDatabaseBTree: Array[BTreeMap[Int, Int]] = null
+  // (partial/complete) hash value -> (vectorId, complete hash value)
+  var vectorDatabaseBTree: Array[BTreeMap[Int, (Int, Int)]] = null
   var vectorIdToVectorBTree: BTreeMap[Int, SparseVector] = null
 
   var vectorDatabaseOnheap: Array[PartitionedHTreeMapOnHeap[Int, Boolean]] = null
