@@ -333,8 +333,10 @@ object HashTreeTest {
 
     val compareGroupLength = conf.getInt("cpslab.lsh.btree.compareGroupLength")
     val compareGroupNum = conf.getInt("cpslab.lsh.btree.compareGroupNum")
+    val maxNodeNum = conf.getInt("cpslab.lsh.btree.maximumNodeNum")
     BTreeDatabase.btreeCompareGroupLength = compareGroupLength
     BTreeDatabase.btreeCompareGroupNum = compareGroupNum
+    BTreeDatabase.btreeMaximumNode = maxNodeNum
 
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
@@ -347,7 +349,7 @@ object HashTreeTest {
     val mainFs = taskQueue.map {
       vector =>
         Future {
-          vectorIdToVectorBTree.append(vector.vectorId, vector)
+          vectorIdToVectorBTree.put(vector.vectorId, vector)
           vector
         }.flatMap {
           returnedVector =>
@@ -366,7 +368,8 @@ object HashTreeTest {
                 //get the first group
                 val key = h >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
                   BTreeDatabase.btreeCompareGroupLength
-                vectorDatabaseBTree(tableId).append(key, (returnedVector.vectorId, h))
+                vectorDatabaseBTree(tableId).append(key,
+                  new LSHBTreeVal(returnedVector.vectorId, h), 0)
               }
             })
             Future.sequence(fs)

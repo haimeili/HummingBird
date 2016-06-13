@@ -27,6 +27,7 @@ package cpslab.db;
 
 
 import com.sun.corba.se.spi.ior.ObjectKey;
+import cpslab.deploy.BTreeDatabase;
 
 import java.io.Closeable;
 import java.io.DataInput;
@@ -130,7 +131,7 @@ public class BTreeMap<K, V>
   protected final BTreeKeySerializer keySerializer;
 
   /**
-   * Serializer used to convert keys from/into binary form
+   * Serializer used to convert values from/into binary form
    */
   protected final Serializer<V> valueSerializer;
 
@@ -220,9 +221,12 @@ public class BTreeMap<K, V>
 
   /**
    * if <code>valsOutsideNodes</code> is true, this class is used instead of values.
-   * It contains reference to actual value. It also supports assertions from preventing it to leak outside of Map
+   * It contains reference to actual value. It also supports assertions from preventing it
+   * to leak outside of Map
    */
   protected static final class ValRef {
+
+    int currentLevel = 0;
     /**
      * reference to actual value
      */
@@ -805,7 +809,8 @@ public class BTreeMap<K, V>
       out.writeShort(header);
       //$DELAY$
 
-      //write node metas, right now this is ignored, but in future it could be used for counted btrees or aggregations
+      //write node metas, right now this is ignored, but in future it could be used for counted
+      // btrees or aggregations
       for (int i = 0; i < numberOfNodeMetas; i++) {
         DataIO.packLong(out, 0);
       }
@@ -1139,6 +1144,233 @@ public class BTreeMap<K, V>
     return put2(key, value, false, false);
   }
 
+  private V updateOldValueRef(ValRef oldValueRef, long valueRecId) {
+    int currentLevel = oldValueRef.currentLevel;
+    if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
+            currentLevel < BTreeDatabase.btreeCompareGroupNum()) {
+      // redistribution
+      for (int i = 0; i < oldValueRef.recids.size(); i++) {
+        long valueRecordId = oldValueRef.recids.get(i);
+        LSHBTreeVal btreeVal = (LSHBTreeVal) valExpand(engine.get(valueRecordId, valueSerializer));
+        int fullHash = btreeVal.hash;
+        Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
+                currentLevel) * BTreeDatabase.btreeCompareGroupLength();
+        this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
+      }
+      oldValueRef.recids.clear();
+    } else {
+      oldValueRef.appendNewRecId(valueRecId);
+    }
+    return (V) oldValueRef;
+  }
+
+  private V putWithRedistribution(final K key, final V value2,
+                                  final boolean ifAppend, int currentLevel) {
+    K v = key;
+
+    int stackPos = -1;
+    long[] stackVals = new long[4];
+
+    final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
+    long current = rootRecid;
+    //$DELAY$
+    BNode A = engine.get(current, nodeSerializer);
+    while (!A.isLeaf()) {
+      //$DELAY$
+      long t = current;
+      current = nextDir((DirNode) A, v);
+      //$DELAY$
+      if (CC.ASSERT && !(current > 0))
+        throw new DBException.DataCorruption("wrong recid");
+      //if is not link
+      if (current != A.next()) {
+        //stack push t
+        stackPos++;
+        if (stackVals.length == stackPos) //grow if needed
+          stackVals = Arrays.copyOf(stackVals, stackVals.length * 2);
+        //$DELAY$
+        stackVals[stackPos] = t;
+      }
+      //$DELAY$
+      A = engine.get(current, nodeSerializer);
+    }
+    int level = 0;
+
+    long p = 0;
+    try {
+      while (true) {
+        //$DELAY$
+        boolean found;
+        do {
+          //$DELAY$
+          lock(nodeLocks, current);
+          //$DELAY$
+          found = true;
+          A = engine.get(current, nodeSerializer);
+          int pos = keySerializer.findChildren(A, v);
+          //check if keys is already in tree
+          //$DELAY$
+          if (pos < A.keysLen(keySerializer) - 1 && v != null &&
+                  A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
+                  0 == A.compare(keySerializer, pos, v)) {
+            //$DELAY$
+            //yes key is already in tree
+            Object oldVal = A.val(pos - 1, valueSerializer);
+
+            //insert new
+            V value = value2;
+            if (valsOutsideNodes) {
+              long recid = engine.put(value2, valueSerializer);
+              if (!ifAppend) {
+                //$DELAY$
+                List<Long> l = new LinkedList<Long>();
+                l.add(recid);
+                value = (V) new ValRef(l);
+              } else {
+                // TODO: nan zhu: re-distribution
+                value = updateOldValueRef((ValRef) oldVal, recid);
+              }
+            }
+
+            //$DELAY$
+            A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+            if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+              throw new AssertionError();
+            engine.update(current, A, nodeSerializer);
+            //$DELAY$
+            //already in here
+            V ret = valExpand(oldVal);
+            notify(key, ret, value2);
+            unlock(nodeLocks, current);
+            //$DELAY$
+            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            return ret;
+          }
+
+          //if v > highvalue(a)
+          if (!A.isRightEdge() && A.compare(keySerializer, A.keysLen(keySerializer) - 1, v) < 0) {
+            //$DELAY$
+            //follow link until necessary
+            unlock(nodeLocks, current);
+            found = false;
+            //$DELAY$
+            int pos2 = keySerializer.findChildren(A, v);
+            while (A != null && pos2 == A.keysLen(keySerializer)) {
+              //TODO lock?
+              long next = A.next();
+              //$DELAY$
+              if (next == 0) break;
+              current = next;
+              A = engine.get(current, nodeSerializer);
+              //$DELAY$
+              pos2 = keySerializer.findChildren(A, v);
+            }
+          }
+        } while (!found);
+
+        V value = value2;
+        if (valsOutsideNodes) {
+          long recid = engine.put(value2, valueSerializer);
+          List<Long> l = new LinkedList<Long>();
+          l.add(recid);
+          //$DELAY$
+          ValRef newValRef = new ValRef(l);
+          newValRef.currentLevel = currentLevel;
+          value = (V) newValRef;
+        }
+
+        int pos = keySerializer.findChildren(A, v);
+        //$DELAY$
+        A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
+        //$DELAY$
+        // can be new item inserted into A without splitting it?
+        if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
+          //$DELAY$
+          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            throw new AssertionError();
+          engine.update(current, A, nodeSerializer);
+
+          notify(key, null, value2);
+          //$DELAY$
+          unlock(nodeLocks, current);
+          if (CC.ASSERT) assertNoLocks(nodeLocks);
+          return null;
+        } else {
+          //node is not safe, it requires splitting
+
+          final int splitPos = A.keysLen(keySerializer) / 2;
+          //$DELAY$
+          BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
+          //$DELAY$
+          long q = engine.put(B, nodeSerializer);
+          A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
+          //$DELAY$
+          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            throw new AssertionError();
+          engine.update(current, A, nodeSerializer);
+
+          if ((current != rootRecid)) { //is not root
+            unlock(nodeLocks, current);
+            p = q;
+            v = (K) A.highKey(keySerializer);
+            //$DELAY$
+            level = level + 1;
+            if (stackPos != -1) { //if stack is not empty
+              current = stackVals[stackPos--];
+            } else {
+              //current := the left most node at level
+              current = leftEdges.get(level - 1);
+            }
+            //$DELAY$
+            if (CC.ASSERT && !(current > 0))
+              throw new DBException.DataCorruption("wrong recid");
+          } else {
+            Object rootChild =
+                    (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
+                            new int[]{(int) current, (int) q, 0} :
+                            new long[]{current, q, 0};
+
+
+            BNode R = new DirNode(
+                    keySerializer.arrayToKeys(new Object[]{A.highKey(keySerializer)}),
+                    true, true, false,
+                    rootChild);
+            //$DELAY$
+            unlock(nodeLocks, current);
+            //$DELAY$
+            lock(nodeLocks, rootRecidRef);
+
+            //$DELAY$
+            long newRootRecid = engine.put(R, nodeSerializer);
+            //$DELAY$
+            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef) == Thread.currentThread()))
+              throw new AssertionError();
+
+            leftEdges.add(newRootRecid);
+            //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
+            //$DELAY$
+
+            engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
+
+            notify(key, null, value2);
+            //$DELAY$
+            unlock(nodeLocks, rootRecidRef);
+            //$DELAY$
+            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            //$DELAY$
+            return null;
+          }
+        }
+      }
+    } catch (RuntimeException e) {
+      unlockAll(nodeLocks);
+      throw e;
+    } catch (Exception e) {
+      unlockAll(nodeLocks);
+      throw new RuntimeException(e);
+    }
+  }
+
   protected V put2(final K key, final V value2, final boolean putOnlyIfAbsent,
                    final boolean ifAppend) {
     K v = key;
@@ -1190,6 +1422,10 @@ public class BTreeMap<K, V>
                   0 == A.compare(keySerializer, pos, v)) {
             //$DELAY$
             //yes key is already in tree
+            // nan zhu: the implementation of val is calling valueArrayGet
+            // which does not need to call valueSerializer in fact, as a result, we can do type
+            // convertion to either value (in case of valueOutsideNodes as false) or valref (in
+            // case of valueOutsideNodes as true)
             Object oldVal = A.val(pos - 1, valueSerializer);
             //$DELAY$
             if (putOnlyIfAbsent) {
@@ -1938,9 +2174,9 @@ public class BTreeMap<K, V>
   }
 
 
-  public void append(K key, V value) {
+  public void append(K key, V value, int currentLevel) {
     if (key == null || value == null) throw new NullPointerException();
-    put2(key, value, false, true);
+    putWithRedistribution(key, value, true, currentLevel);
   }
 
   @Override
