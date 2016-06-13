@@ -1154,17 +1154,18 @@ public class BTreeMap<K, V>
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + "\t");
       }
-      System.out.println();
+      System.out.println(" at table " + tableId);
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long valueRecordId = oldValueRef.recids.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(valueRecordId, valueSerializer);
         int fullHash = btreeVal.hash;
-        Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
+        int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
+        Integer nextLevelHash = fullHash >>> shiftBits;
         System.out.println(Thread.currentThread().getName() + " redistributing " + valueRecordId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
-                tableId);
+                tableId + ", shift bits: " + shiftBits);
         this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
       }
       oldValueRef.recids.clear();
@@ -1241,7 +1242,6 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                // TODO: nan zhu: re-distribution
                 ValRef oldRef = (ValRef) oldVal;
                 if (oldRef.recids.isEmpty()) {
                   // move to nextLevel
