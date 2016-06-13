@@ -1249,10 +1249,11 @@ public class BTreeMap<K, V>
                   // recalculate the next level hash
                   LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
                   int h = lshbTreeVal.hash;
-                  int nextShiftingLength = BTreeDatabase.btreeCompareGroupNum() - 1 -
-                          (currentLevel + 1);
-                  Integer newPartialHash = h >>> nextShiftingLength *
-                          BTreeDatabase.btreeCompareGroupLength();
+                  int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
+                          (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
+                  System.out.println("meet a intermediate-ValRef at level " + currentLevel +
+                          " with nextShiftingBits " + nextShiftingLength);
+                  Integer newPartialHash = h >>> nextShiftingLength;
                   append((K) newPartialHash, value, currentLevel + 1);
                 } else {
                   value = updateOldValueRef(oldRef, recid);
