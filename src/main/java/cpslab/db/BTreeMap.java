@@ -3973,9 +3973,11 @@ public class BTreeMap<K, V>
     //feel free to rewrite, if you know better (more efficient) way
 
     final Thread currentThread = Thread.currentThread();
+    /*
     //check node is not already locked by this thread
     if (CC.ASSERT && !(locks.get(recid) != currentThread))
       throw new AssertionError("node already locked by current thread: " + recid);
+    */
 
     Thread currentLockOwener = locks.putIfAbsent(recid, currentThread);
 
