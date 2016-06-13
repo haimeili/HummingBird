@@ -1146,6 +1146,12 @@ public class BTreeMap<K, V>
     return put2(key, value, false, false);
   }
 
+  /**
+   * update the existing ValRef with the recordID of new value
+   * if ValRef has been reached the bufferoverflow point, we need to redistribute the record IDs
+   * to the ValRef with the new hash keys, otherwise, we directly update the ValRef by appending
+   * the new record id
+   */
   private V updateOldValueRef(ValRef oldValueRef, long valueRecId) {
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
@@ -1166,7 +1172,8 @@ public class BTreeMap<K, V>
         System.out.println(Thread.currentThread().getName() + " redistributing " + valueRecordId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits);
-        this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
+        // this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
+        appendExistingRecId((K) nextLevelHash, valueRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
     } else {
@@ -1254,7 +1261,7 @@ public class BTreeMap<K, V>
                   System.out.println("meet a intermediate-ValRef at level " + currentLevel +
                           " with nextShiftingBits " + nextShiftingLength);
                   Integer newPartialHash = h >>> nextShiftingLength;
-                  append((K) newPartialHash, value, currentLevel + 1);
+                  appendExistingRecId((K) newPartialHash, recid, currentLevel + 1);
                 } else {
                   value = updateOldValueRef(oldRef, recid);
                 }
@@ -2205,6 +2212,219 @@ public class BTreeMap<K, V>
     return sizeLong();
   }
 
+  private void appendExistingRecId(K newKey, long existingRecId, int currentLevel) {
+    K v = newKey;
+
+    int stackPos = -1;
+    long[] stackVals = new long[4];
+
+    final long rootRecid = engine.get(rootRecidRef, Serializer.RECID);
+    long current = rootRecid;
+    //$DELAY$
+    BNode A = engine.get(current, nodeSerializer);
+    while (!A.isLeaf()) {
+      //$DELAY$
+      long t = current;
+      current = nextDir((DirNode) A, v);
+      //$DELAY$
+      if (CC.ASSERT && !(current > 0))
+        throw new DBException.DataCorruption("wrong recid");
+      //if is not link
+      if (current != A.next()) {
+        //stack push t
+        stackPos++;
+        if (stackVals.length == stackPos) //grow if needed
+          stackVals = Arrays.copyOf(stackVals, stackVals.length * 2);
+        //$DELAY$
+        stackVals[stackPos] = t;
+      }
+      //$DELAY$
+      A = engine.get(current, nodeSerializer);
+    }
+    int level = 0;
+
+    long p = 0;
+    try {
+      while (true) {
+        //$DELAY$
+        boolean found;
+        do {
+          //$DELAY$
+          lock(nodeLocks, current);
+          //$DELAY$
+          found = true;
+          A = engine.get(current, nodeSerializer);
+          int pos = keySerializer.findChildren(A, v);
+          //check if keys is already in tree
+          //$DELAY$
+          if (pos < A.keysLen(keySerializer) - 1 && v != null &&
+                  A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
+                  0 == A.compare(keySerializer, pos, v)) {
+            //$DELAY$
+            //yes key is already in tree
+            Object oldVal = A.val(pos - 1, valueSerializer);
+
+            //insert new
+            V value = engine.get(existingRecId, valueSerializer);
+            if (valsOutsideNodes) {
+              ValRef oldRef = (ValRef) oldVal;
+              if (oldRef.recids.isEmpty()) {
+                // move to nextLevel
+                unlock(nodeLocks, current);
+                // recalculate the next level hash
+                LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
+                int h = lshbTreeVal.hash;
+                int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
+                        (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
+                System.out.println("meet a intermediate-ValRef at level " + currentLevel +
+                        " with nextShiftingBits " + nextShiftingLength);
+                Integer newPartialHash = h >>> nextShiftingLength;
+                appendExistingRecId((K) newPartialHash, existingRecId, currentLevel + 1);
+              } else {
+                value = updateOldValueRef(oldRef, existingRecId);
+              }
+            }
+
+            //$DELAY$
+            A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+            if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+              throw new AssertionError();
+            engine.update(current, A, nodeSerializer);
+            //$DELAY$
+            //already in here
+            unlock(nodeLocks, current);
+            //$DELAY$
+            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            return;
+          }
+
+          //if v > highvalue(a)
+          if (!A.isRightEdge() && A.compare(keySerializer, A.keysLen(keySerializer) - 1, v) < 0) {
+            //$DELAY$
+            //follow link until necessary
+            unlock(nodeLocks, current);
+            found = false;
+            //$DELAY$
+            int pos2 = keySerializer.findChildren(A, v);
+            while (A != null && pos2 == A.keysLen(keySerializer)) {
+              //TODO lock?
+              long next = A.next();
+              //$DELAY$
+              if (next == 0) break;
+              current = next;
+              A = engine.get(current, nodeSerializer);
+              //$DELAY$
+              pos2 = keySerializer.findChildren(A, v);
+            }
+          }
+        } while (!found);
+
+        V value = null;
+        if (valsOutsideNodes) {
+          List<Long> l = new LinkedList<Long>();
+          l.add(existingRecId);
+          //$DELAY$
+          ValRef newValRef = new ValRef(l);
+          newValRef.currentLevel = currentLevel;
+          System.out.println(Thread.currentThread().getName() +
+                  " add new rec " + existingRecId + " at level " + currentLevel + " at table " +
+                  tableId + " with key " + newKey);
+          value = (V) newValRef;
+        } else {
+          throw new Exception("append does not fully support in valuesInsideNodes");
+        }
+
+        int pos = keySerializer.findChildren(A, v);
+        //$DELAY$
+        A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
+        //$DELAY$
+        // can be new item inserted into A without splitting it?
+        if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
+          //$DELAY$
+          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            throw new AssertionError();
+          engine.update(current, A, nodeSerializer);
+
+          //$DELAY$
+          unlock(nodeLocks, current);
+          if (CC.ASSERT) assertNoLocks(nodeLocks);
+          return;
+        } else {
+          //node is not safe, it requires splitting
+
+          final int splitPos = A.keysLen(keySerializer) / 2;
+          //$DELAY$
+          BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
+          //$DELAY$
+          long q = engine.put(B, nodeSerializer);
+          A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
+          //$DELAY$
+          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            throw new AssertionError();
+          engine.update(current, A, nodeSerializer);
+
+          if ((current != rootRecid)) { //is not root
+            unlock(nodeLocks, current);
+            p = q;
+            v = (K) A.highKey(keySerializer);
+            //$DELAY$
+            level = level + 1;
+            if (stackPos != -1) { //if stack is not empty
+              current = stackVals[stackPos--];
+            } else {
+              //current := the left most node at level
+              current = leftEdges.get(level - 1);
+            }
+            //$DELAY$
+            if (CC.ASSERT && !(current > 0))
+              throw new DBException.DataCorruption("wrong recid");
+          } else {
+            Object rootChild =
+                    (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
+                            new int[]{(int) current, (int) q, 0} :
+                            new long[]{current, q, 0};
+
+
+            BNode R = new DirNode(
+                    keySerializer.arrayToKeys(new Object[]{A.highKey(keySerializer)}),
+                    true, true, false,
+                    rootChild);
+            //$DELAY$
+            unlock(nodeLocks, current);
+            //$DELAY$
+            lock(nodeLocks, rootRecidRef);
+
+            //$DELAY$
+            long newRootRecid = engine.put(R, nodeSerializer);
+            //$DELAY$
+            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef) == Thread.currentThread()))
+              throw new AssertionError();
+
+            leftEdges.add(newRootRecid);
+            //TODO there could be a race condition between leftEdges  update and rootRecidRef update.
+            // Investigate!
+            //$DELAY$
+
+            engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
+
+            // notify(key, null, value2);
+            //$DELAY$
+            unlock(nodeLocks, rootRecidRef);
+            //$DELAY$
+            if (CC.ASSERT) assertNoLocks(nodeLocks);
+            //$DELAY$
+            return;
+          }
+        }
+      }
+    } catch (RuntimeException e) {
+      unlockAll(nodeLocks);
+      throw e;
+    } catch (Exception e) {
+      unlockAll(nodeLocks);
+      throw new RuntimeException(e);
+    }
+  }
 
   public void append(K key, V value, int currentLevel) {
     if (key == null || value == null) throw new NullPointerException();
