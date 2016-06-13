@@ -4201,7 +4201,8 @@ public class BTreeMap<K, V>
 
   protected static void unlock(LongConcurrentHashMap<ReentrantLock> locks, final long recid) {
     locks.get(recid).unlock();
-    // System.out.println(Thread.currentThread() + " releases lock for rec " + recid);
+    System.out.println(Thread.currentThread() + " releases lock for rec " + recid + ", count: " +
+      locks.get(recid).getHoldCount());
     /*
     if (CC.ASSERT && !(t == Thread.currentThread()))
       throw new AssertionError("unlocked wrong thread");
@@ -4227,12 +4228,16 @@ public class BTreeMap<K, V>
     */
     ReentrantLock newLock = new ReentrantLock();
     ReentrantLock currentNodeLock = locks.putIfAbsent(recid, newLock);
+    int count;
     if (currentNodeLock == null) {
       newLock.lock();
+      count  = newLock.getHoldCount();
     } else {
       currentNodeLock.lock();
+      count = currentNodeLock.getHoldCount();
     }
-    // System.out.println(Thread.currentThread() + " acquires lock for rec " + recid);
+    System.out.println(Thread.currentThread() + " acquires lock for rec " + recid + " count:" +
+            count);
   }
 
 
