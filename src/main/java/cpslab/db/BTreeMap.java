@@ -2331,7 +2331,7 @@ public class BTreeMap<K, V>
           newValRef.currentLevel = currentLevel;
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + existingRecId + " at level " + currentLevel + " at table " +
-                  tableId + " with key " + newKey);
+                  tableId + " with key " + newKey + " with in appendExistingRecId()");
           value = (V) newValRef;
         } else {
           throw new Exception("append does not fully support in valuesInsideNodes");
@@ -2421,9 +2421,11 @@ public class BTreeMap<K, V>
         }
       }
     } catch (RuntimeException e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw e;
     } catch (Exception e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw new RuntimeException(e);
     }
