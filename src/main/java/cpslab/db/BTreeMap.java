@@ -3980,8 +3980,6 @@ public class BTreeMap<K, V>
     Thread currentLockOwener = locks.putIfAbsent(recid, currentThread);
 
     while (currentLockOwener != currentThread && currentLockOwener != null) {
-      System.out.println(Thread.currentThread().getName() + " pauses for waiting " +
-              currentLockOwener.getName());
       LockSupport.parkNanos(10000);
       currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
