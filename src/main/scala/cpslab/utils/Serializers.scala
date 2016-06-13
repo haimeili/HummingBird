@@ -17,6 +17,21 @@ object Serializers {
     }
   }
 
+  val vectorIDHashPairSerializer = new Serializer[(Int, Int)] {
+    override def serialize(out: DataOutput, obj: (Int, Int)): Unit = {
+      val vectorId = obj._1
+      val hash = obj._2
+      out.writeInt(vectorId)
+      out.writeInt(hash)
+    }
+
+    override def deserialize(in: DataInput, available: Int): (Int, Int) = {
+      val vectorId = in.readInt()
+      val hash = in.readInt()
+      (vectorId, hash)
+    }
+  }
+
   val vectorSerializer = new Serializer[SparseVector] {
 
     override def serialize(out: DataOutput, obj: SparseVector): Unit = {
@@ -43,4 +58,5 @@ object Serializers {
 
   def IntSerializer = scalaIntSerializer
   def VectorSerializer = vectorSerializer
+  def VectorIDHashSerializer = vectorIDHashPairSerializer
 }
