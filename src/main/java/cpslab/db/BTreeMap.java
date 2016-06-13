@@ -1150,6 +1150,11 @@ public class BTreeMap<K, V>
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum()) {
+      System.out.print("redistributing oldValue: ");
+      for (int i = 0; i < oldValueRef.recids.size(); i++) {
+        System.out.print(oldValueRef.recids.get(i) + "\t");
+      }
+      System.out.println();
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long valueRecordId = oldValueRef.recids.get(i);
