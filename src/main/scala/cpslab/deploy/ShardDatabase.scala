@@ -130,6 +130,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
           keySerializer(Serializers.IntSerializer).
           valueSerializer(Serializers.vectorIDHashPairSerializer).
           nodeSize(nodeSize).make[Int, LSHBTreeVal]()
+      vectorDatabaseBTree(tableId).tableId = tableId
     }
   }
 

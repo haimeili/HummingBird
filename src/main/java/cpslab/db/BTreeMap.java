@@ -180,6 +180,8 @@ public class BTreeMap<K, V>
    */
   protected final boolean closeEngine;
 
+  public int tableId;
+
 
   /**
    * hack used for DB Catalog
@@ -1156,13 +1158,14 @@ public class BTreeMap<K, V>
         Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         System.out.println("redistributing " + valueRecordId + " at level " + currentLevel +
-          " with hash value " + nextLevelHash);
+          " with hash value " + nextLevelHash + " at table " + tableId);
         this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
       }
       oldValueRef.recids.clear();
     } else {
       // directly append new recid
-      System.out.println("directly add " + valueRecId + " at level " + currentLevel);
+      System.out.println("directly add " + valueRecId + " at level " + currentLevel +
+              " at table " + tableId);
       oldValueRef.appendNewRecId(valueRecId);
     }
     return (V) oldValueRef;
@@ -1294,7 +1297,8 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
-          System.out.println("add new rec " + recid + " at level " + currentLevel);
+          System.out.println("add new rec " + recid + " at level " + currentLevel + " at table " +
+                  tableId);
           value = (V) newValRef;
         }
 
