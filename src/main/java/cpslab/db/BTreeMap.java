@@ -26,7 +26,6 @@
 package cpslab.db;
 
 
-import com.sun.corba.se.spi.ior.ObjectKey;
 import cpslab.deploy.BTreeDatabase;
 
 import java.io.Closeable;
@@ -36,6 +35,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -138,7 +138,7 @@ public class BTreeMap<K, V>
   /**
    * holds node level locks
    */
-  protected final LongConcurrentHashMap<Thread> nodeLocks = new LongConcurrentHashMap<Thread>();
+  protected final LongConcurrentHashMap<ReentrantLock> nodeLocks = new LongConcurrentHashMap<>();
 
   /**
    * maximal node size allowed in this BTree
@@ -905,7 +905,8 @@ public class BTreeMap<K, V>
       return new DirNode(keys, left != 0, right != 0, false, child);
     }
 
-    private BNode deserializeLeaf(final DataIO.DataInputInternal in, final int size, final int left, final int right) throws IOException {
+    private BNode deserializeLeaf(final DataIO.DataInputInternal in, final int size, final int left,
+                                  final int right) throws IOException {
       final long next = in.unpackLong();
       int keysize = size - left - right;
       //$DELAY$
@@ -1157,7 +1158,7 @@ public class BTreeMap<K, V>
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum()) {
-      System.out.print("redistributing oldValue: ");
+      System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + "\t");
       }
@@ -1269,7 +1270,7 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               throw new AssertionError();
             engine.update(current, A, nodeSerializer);
             //$DELAY$
@@ -1324,7 +1325,7 @@ public class BTreeMap<K, V>
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -1343,7 +1344,7 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -1381,7 +1382,7 @@ public class BTreeMap<K, V>
             //$DELAY$
             long newRootRecid = engine.put(R, nodeSerializer);
             //$DELAY$
-            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
               throw new AssertionError();
 
             leftEdges.add(newRootRecid);
@@ -1490,7 +1491,7 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               throw new AssertionError();
             engine.update(current, A, nodeSerializer);
             //$DELAY$
@@ -1543,7 +1544,7 @@ public class BTreeMap<K, V>
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -1562,7 +1563,7 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -1600,7 +1601,7 @@ public class BTreeMap<K, V>
             //$DELAY$
             long newRootRecid = engine.put(R, nodeSerializer);
             //$DELAY$
-            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
               throw new AssertionError();
 
             leftEdges.add(newRootRecid);
@@ -1954,7 +1955,7 @@ public class BTreeMap<K, V>
           A = putNewValue != null ?
                   ((LeafNode) A).copyChangeValue(valueSerializer, pos, putNewValueOutside) :
                   ((LeafNode) A).copyRemoveKey(keySerializer, valueSerializer, pos);
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           //$DELAY$
           engine.update(current, A, nodeSerializer);
@@ -2289,7 +2290,7 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               throw new AssertionError();
             engine.update(current, A, nodeSerializer);
             //$DELAY$
@@ -2343,7 +2344,7 @@ public class BTreeMap<K, V>
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -2361,7 +2362,7 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current) == Thread.currentThread()))
+          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
@@ -2399,7 +2400,7 @@ public class BTreeMap<K, V>
             //$DELAY$
             long newRootRecid = engine.put(R, nodeSerializer);
             //$DELAY$
-            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef) == Thread.currentThread()))
+            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
               throw new AssertionError();
 
             leftEdges.add(newRootRecid);
@@ -4180,49 +4181,50 @@ public class BTreeMap<K, V>
     return ret;
   }
 
-  protected static void assertNoLocks(LongConcurrentHashMap<Thread> locks) {
-    LongConcurrentHashMap.LongMapIterator<Thread> i = locks.longMapIterator();
+  protected static void assertNoLocks(LongConcurrentHashMap<ReentrantLock> locks) {
+    LongConcurrentHashMap.LongMapIterator<ReentrantLock> i = locks.longMapIterator();
     Thread t = null;
     while (i.moveToNext()) {
       if (t == null)
         t = Thread.currentThread();
-      if (i.value() == t) {
+      if (i.value().isHeldByCurrentThread()) {
         throw new AssertionError("Node " + i.key() + " is still locked");
       }
     }
   }
 
 
-  protected static void unlock(LongConcurrentHashMap<Thread> locks, final long recid) {
-    final Thread t = locks.remove(recid);
+  protected static void unlock(LongConcurrentHashMap<ReentrantLock> locks, final long recid) {
+    locks.get(recid).unlock();
+    /*
     if (CC.ASSERT && !(t == Thread.currentThread()))
       throw new AssertionError("unlocked wrong thread");
+      */
   }
 
-  protected static void unlockAll(LongConcurrentHashMap<Thread> locks) {
+  protected static void unlockAll(LongConcurrentHashMap<ReentrantLock> locks) {
     final Thread t = Thread.currentThread();
-    LongConcurrentHashMap.LongMapIterator<Thread> iter = locks.longMapIterator();
+    LongConcurrentHashMap.LongMapIterator<ReentrantLock> iter = locks.longMapIterator();
     while (iter.moveToNext())
-      if (iter.value() == t)
-        iter.remove();
+      iter.value().unlock();
   }
 
 
-  protected static void lock(LongConcurrentHashMap<Thread> locks, long recid) throws InterruptedException {
+  protected static void lock(LongConcurrentHashMap<ReentrantLock> locks,
+                             long recid) throws InterruptedException {
     //feel free to rewrite, if you know better (more efficient) way
 
-    final Thread currentThread = Thread.currentThread();
     /*
     //check node is not already locked by this thread
     if (CC.ASSERT && !(locks.get(recid) != currentThread))
       throw new AssertionError("node already locked by current thread: " + recid);
     */
-
-    Thread currentLockOwener = locks.putIfAbsent(recid, currentThread);
-
-    while (currentLockOwener != currentThread && currentLockOwener != null) {
-      LockSupport.parkNanos(10);
-      currentLockOwener = locks.putIfAbsent(recid, currentThread);
+    ReentrantLock newLock = new ReentrantLock();
+    ReentrantLock currentNodeLock = locks.putIfAbsent(recid, newLock);
+    if (currentNodeLock == null) {
+      newLock.lock();
+    } else {
+      currentNodeLock.lock();
     }
   }
 
