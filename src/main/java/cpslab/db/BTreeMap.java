@@ -3985,6 +3985,7 @@ public class BTreeMap<K, V>
       LockSupport.parkNanos(10);
       currentLockOwener = locks.putIfAbsent(recid, currentThread);
     }
+    System.out.println(currentLockOwener.getName() + " acquired lock " + recid);
   }
 
 
