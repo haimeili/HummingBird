@@ -239,6 +239,10 @@ public class BTreeMap<K, V>
     }
 
     public void appendNewRecId(long recId) {
+      if (recids.contains(recId)) {
+        System.out.println("FAULT: record " + recId + " already exists");
+        System.exit(1);
+      }
       recids.add(recId);
     }
 
