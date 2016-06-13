@@ -19,7 +19,7 @@ import akka.actor.{Cancellable, Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db._
 import cpslab.deploy.ShardDatabase._
-import cpslab.deploy.{LSHServer, ShardDatabase, Utils}
+import cpslab.deploy.{BTreeDatabase, LSHServer, ShardDatabase, Utils}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
 import cpslab.lsh.{LSH, LocalitySensitiveHasher}
 import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
@@ -331,6 +331,11 @@ object HashTreeTest {
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
 
+    val compareGroupLength = conf.getInt("cpslab.lsh.btree.compareGroupLength")
+    val compareGroupNum = conf.getInt("cpslab.lsh.btree.compareGroupNum")
+    BTreeDatabase.btreeCompareGroupLength = compareGroupLength
+    BTreeDatabase.btreeCompareGroupNum = compareGroupNum
+
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
 
@@ -358,7 +363,10 @@ object HashTreeTest {
                   println(s"found ${returnedVector.vectorId} as null")
                 }
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                vectorDatabaseBTree(tableId).append(h, (returnedVector.vectorId, h))
+                //get the first group
+                val key = h >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
+                  BTreeDatabase.btreeCompareGroupLength
+                vectorDatabaseBTree(tableId).append(key, (returnedVector.vectorId, h))
               }
             })
             Future.sequence(fs)
