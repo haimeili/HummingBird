@@ -1153,6 +1153,7 @@ public class BTreeMap<K, V>
    * the new record id
    */
   private V updateOldValueRef(ValRef oldValueRef, long valueRecId) {
+    oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum()) {
@@ -1172,7 +1173,6 @@ public class BTreeMap<K, V>
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits);
-        // this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
@@ -1181,7 +1181,6 @@ public class BTreeMap<K, V>
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
               " at level " + currentLevel +
               " at table " + tableId);
-      oldValueRef.appendNewRecId(valueRecId);
     }
     return (V) oldValueRef;
   }
