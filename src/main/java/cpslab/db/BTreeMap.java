@@ -1154,7 +1154,7 @@ public class BTreeMap<K, V>
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(valueRecordId, valueSerializer);
         int fullHash = btreeVal.hash;
         Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
-                currentLevel) * BTreeDatabase.btreeCompareGroupLength();
+                (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
       }
       oldValueRef.recids.clear();
