@@ -1162,14 +1162,16 @@ public class BTreeMap<K, V>
         int fullHash = btreeVal.hash;
         Integer nextLevelHash = fullHash >>> (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-        System.out.println("redistributing " + valueRecordId + " at level " + currentLevel +
-          " with hash value " + nextLevelHash + " at table " + tableId);
+        System.out.println(Thread.currentThread().getName() + " redistributing " + valueRecordId +
+                " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
+                tableId);
         this.append((K) nextLevelHash, (V) btreeVal, currentLevel + 1);
       }
       oldValueRef.recids.clear();
     } else {
       // directly append new recid
-      System.out.println("directly add " + valueRecId + " at level " + currentLevel +
+      System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
+              " at level " + currentLevel +
               " at table " + tableId);
       oldValueRef.appendNewRecId(valueRecId);
     }
@@ -1302,7 +1304,8 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
-          System.out.println("add new rec " + recid + " at level " + currentLevel + " at table " +
+          System.out.println(Thread.currentThread().getName() +
+                  " add new rec " + recid + " at level " + currentLevel + " at table " +
                   tableId);
           value = (V) newValRef;
         }
