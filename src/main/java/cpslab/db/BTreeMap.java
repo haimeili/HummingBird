@@ -1159,6 +1159,7 @@ public class BTreeMap<K, V>
       }
       oldValueRef.recids.clear();
     } else {
+      // directly append new recid
       oldValueRef.appendNewRecId(valueRecId);
     }
     return (V) oldValueRef;
@@ -3976,7 +3977,7 @@ public class BTreeMap<K, V>
     if (CC.ASSERT && !(locks.get(recid) != currentThread))
       throw new AssertionError("node already locked by current thread: " + recid);
 
-    while (locks.putIfAbsent(recid, currentThread) != null) {
+    while (locks.putIfAbsent(recid, currentThread) != currentThread) {
       LockSupport.parkNanos(10);
     }
   }
