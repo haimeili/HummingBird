@@ -1228,7 +1228,21 @@ public class BTreeMap<K, V>
                 value = (V) new ValRef(l);
               } else {
                 // TODO: nan zhu: re-distribution
-                value = updateOldValueRef((ValRef) oldVal, recid);
+                ValRef oldRef = (ValRef) oldVal;
+                if (oldRef.recids.isEmpty()) {
+                  // move to nextLevel
+                  unlock(nodeLocks, current);
+                  // recalculate the next level hash
+                  LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
+                  int h = lshbTreeVal.hash;
+                  int nextShiftingLength = BTreeDatabase.btreeCompareGroupNum() - 1 -
+                          (currentLevel + 1);
+                  Integer newPartialHash = h >>> nextShiftingLength *
+                          BTreeDatabase.btreeCompareGroupLength();
+                  append((K) newPartialHash, value, currentLevel + 1);
+                } else {
+                  value = updateOldValueRef(oldRef, recid);
+                }
               }
             }
 
