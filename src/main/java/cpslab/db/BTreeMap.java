@@ -1294,6 +1294,7 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
+          System.out.println("add new rec " + recid + " at level " + currentLevel);
           value = (V) newValRef;
         }
 
