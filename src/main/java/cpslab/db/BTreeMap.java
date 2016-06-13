@@ -2351,7 +2351,8 @@ public class BTreeMap<K, V>
           if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             throw new AssertionError();
           engine.update(current, A, nodeSerializer);
-
+          System.out.println(Thread.currentThread().getName() + " add key " + existingRecId +
+                  " without splitting node");
           //$DELAY$
           unlock(nodeLocks, current);
           if (CC.ASSERT) assertNoLocks(nodeLocks);
