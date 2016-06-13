@@ -1307,7 +1307,7 @@ public class BTreeMap<K, V>
           newValRef.currentLevel = currentLevel;
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + recid + " at level " + currentLevel + " at table " +
-                  tableId);
+                  tableId + " with key " + key);
           value = (V) newValRef;
         }
 
