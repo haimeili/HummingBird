@@ -2408,6 +2408,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
+            System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
