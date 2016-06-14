@@ -1158,7 +1158,8 @@ public class BTreeMap<K, V>
    * to the ValRef with the new hash keys, otherwise, we directly update the ValRef by appending
    * the new record id
    */
-  private V updateOldValueRef(ValRef oldValueRef, long valueRecId, long nodeRecId) {
+  private ValRef updateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
+    ValRef oldValueRef = (ValRef) oldValue;
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
@@ -1190,7 +1191,7 @@ public class BTreeMap<K, V>
               " at level " + currentLevel +
               " at table " + tableId  + " at node " + nodeRecId);
     }
-    return (V) oldValueRef;
+    return oldValueRef;
   }
 
   private V putWithRedistribution(final K key, final V value2,
@@ -1269,9 +1270,9 @@ public class BTreeMap<K, V>
                           " with nextShiftingBits " + nextShiftingLength);
                   Integer newPartialHash = h >>> nextShiftingLength;
                   appendExistingRecId((K) newPartialHash, recid, currentLevel + 1);
-                  // value = (V) oldVal;
+                  value = (V) oldVal;
                 } else {
-                  value = updateOldValueRef(oldRef, recid, current);
+                  value = (V) updateOldValueRef(oldVal, recid, current);
                 }
               }
             }
@@ -2299,8 +2300,9 @@ public class BTreeMap<K, V>
                         " with nextShiftingBits " + nextShiftingLength);
                 Integer newPartialHash = h >>> nextShiftingLength;
                 appendExistingRecId((K) newPartialHash, existingRecId, currentLevel + 1);
+                value = (V) oldRef;
               } else {
-                value = updateOldValueRef(oldRef, existingRecId, current);
+                value = (V) updateOldValueRef(oldRef, existingRecId, current);
               }
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");

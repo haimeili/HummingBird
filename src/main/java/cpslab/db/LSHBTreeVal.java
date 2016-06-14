@@ -1,6 +1,8 @@
 package cpslab.db;
 
-public class LSHBTreeVal {
+import java.io.Serializable;
+
+public class LSHBTreeVal implements Serializable {
   public int vectorId;
   public int hash;
 
