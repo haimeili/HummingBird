@@ -4232,7 +4232,7 @@ public class BTreeMap<K, V>
     ReentrantLock newLock = new ReentrantLock();
     ReentrantLock currentNodeLock = locks.putIfAbsent(recid, newLock);
     if (currentNodeLock == null) {
-      System.out.println("add new lock " + newLock + " for record " + recid);
+      //System.out.println("add new lock " + newLock + " for record " + recid);
       newLock.lock();
     } else {
       currentNodeLock.lock();
