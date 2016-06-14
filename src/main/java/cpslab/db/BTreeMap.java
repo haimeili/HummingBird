@@ -1197,7 +1197,7 @@ public class BTreeMap<K, V>
   }
 
   private int calculateNextLevelHash(int completeHash, int currentLevel) {
-    if (currentLevel == BTreeDatabase.btreeCompareGroupNum() - 1) {
+    if (currentLevel >= BTreeDatabase.btreeCompareGroupNum() - 1) {
       return completeHash;
     } else {
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
@@ -2251,13 +2251,12 @@ public class BTreeMap<K, V>
       Integer newPartialHash;
       if (currentLevel > oldRef.currentLevel) {
         newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
-                Math.max(currentLevel + 1, BTreeDatabase.btreeCompareGroupNum()));
-        appendExistingRecId((K) newPartialHash, valueRefId,
-                Math.max(currentLevel + 2, BTreeDatabase.btreeCompareGroupNum()));
+                currentLevel + 1);
+        appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 2);
       } else {
         newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
                 oldRef.currentLevel);
-        appendExistingRecId((K) newPartialHash, valueRefId, oldRef.currentLevel);
+        appendExistingRecId((K) newPartialHash, valueRefId, oldRef.currentLevel + 1);
       }
       System.out.println("meet a intermediate-ValRef at unmatched level " + oldRef.currentLevel +
               ", expect level " + currentLevel + " with hash " + newPartialHash);
@@ -2265,9 +2264,9 @@ public class BTreeMap<K, V>
     }
   }
 
-  private void appendExistingRecId(K newKey, long existingRecId, int currentLevel) {
+  private void appendExistingRecId(K newKey, long existingRecId, int proposedCurrentLevel) {
     K v = newKey;
-
+    int currentLevel = Math.max(proposedCurrentLevel, BTreeDatabase.btreeCompareGroupNum() - 1);
     int stackPos = -1;
     long[] stackVals = new long[4];
 
