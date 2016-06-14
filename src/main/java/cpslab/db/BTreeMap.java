@@ -1259,7 +1259,7 @@ public class BTreeMap<K, V>
                 ValRef oldRef = (ValRef) oldVal;
                 if (oldRef.recids.isEmpty()) {
                   // move to nextLevel
-                  unlock(nodeLocks, current);
+                  // unlock(nodeLocks, current);
                   // recalculate the next level hash
                   LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
                   int h = lshbTreeVal.hash;
@@ -1269,6 +1269,7 @@ public class BTreeMap<K, V>
                           " with nextShiftingBits " + nextShiftingLength);
                   Integer newPartialHash = h >>> nextShiftingLength;
                   appendExistingRecId((K) newPartialHash, recid, currentLevel + 1);
+                  value = (V) oldVal;
                 } else {
                   value = updateOldValueRef(oldRef, recid, current);
                 }
