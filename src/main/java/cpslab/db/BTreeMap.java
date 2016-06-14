@@ -1165,7 +1165,7 @@ public class BTreeMap<K, V>
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
-            currentLevel < BTreeDatabase.btreeCompareGroupNum()) {
+            currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
       System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + "\t");
@@ -2266,7 +2266,7 @@ public class BTreeMap<K, V>
 
   private void appendExistingRecId(K newKey, long existingRecId, int proposedCurrentLevel) {
     K v = newKey;
-    int currentLevel = Math.max(proposedCurrentLevel, BTreeDatabase.btreeCompareGroupNum() - 1);
+    int currentLevel = Math.min(proposedCurrentLevel, BTreeDatabase.btreeCompareGroupNum() - 1);
     int stackPos = -1;
     long[] stackVals = new long[4];
 
