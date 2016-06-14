@@ -1260,7 +1260,7 @@ public class BTreeMap<K, V>
                 ValRef oldRef = (ValRef) oldVal;
                 if (oldRef.recids.isEmpty()) {
                   // move to nextLevel
-                  unlock(nodeLocks, current);
+                  // unlock(nodeLocks, current);
                   // recalculate the next level hash
                   LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
                   int h = lshbTreeVal.hash;
@@ -2289,7 +2289,7 @@ public class BTreeMap<K, V>
               ValRef oldRef = (ValRef) oldVal;
               if (oldRef.recids.isEmpty()) {
                 // move to nextLevel
-                unlock(nodeLocks, current);
+                // unlock(nodeLocks, current);
                 value = engine.get(existingRecId, valueSerializer);
                 // recalculate the next level hash
                 LSHBTreeVal lshbTreeVal = (LSHBTreeVal) value;
