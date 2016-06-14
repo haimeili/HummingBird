@@ -1282,7 +1282,13 @@ public class BTreeMap<K, V>
             engine.update(current, A, nodeSerializer);
             //$DELAY$
             //already in here
-            V ret = valExpand(oldVal);
+            V ret;
+            ValRef oldValRef = (ValRef) oldVal;
+            if (oldValRef.recids.size() > 0) {
+              ret = valExpand(oldVal);
+            } else {
+              ret = null;
+            }
             notify(key, ret, value2);
             unlock(nodeLocks, current);
             //$DELAY$
