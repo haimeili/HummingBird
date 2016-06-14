@@ -1277,8 +1277,8 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-              throw new AssertionError();
+            //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+              //throw new AssertionError();
             engine.update(current, A, nodeSerializer);
             //$DELAY$
             //already in here
@@ -1338,8 +1338,8 @@ public class BTreeMap<K, V>
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-            throw new AssertionError();
+          //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
           notify(key, null, value2);
@@ -1357,8 +1357,8 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-            throw new AssertionError();
+          //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
           if ((current != rootRecid)) { //is not root
@@ -1395,8 +1395,8 @@ public class BTreeMap<K, V>
             //$DELAY$
             long newRootRecid = engine.put(R, nodeSerializer);
             //$DELAY$
-            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
-              throw new AssertionError();
+            //if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
+              //throw new AssertionError();
 
             leftEdges.add(newRootRecid);
             //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
@@ -2307,8 +2307,8 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-              throw new AssertionError();
+            //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+              //throw new AssertionError();
             engine.update(current, A, nodeSerializer);
             //$DELAY$
             //already in here
@@ -2361,8 +2361,8 @@ public class BTreeMap<K, V>
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-            throw new AssertionError();
+          //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
           System.out.println(Thread.currentThread().getName() + " add value " + existingRecId +
                   " without splitting node at node " + current + " with hash key " + newKey);
@@ -2380,8 +2380,8 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
-          if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-            throw new AssertionError();
+          //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
 
           if ((current != rootRecid)) { //is not root
@@ -2419,8 +2419,8 @@ public class BTreeMap<K, V>
             //$DELAY$
             long newRootRecid = engine.put(R, nodeSerializer);
             //$DELAY$
-            if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
-              throw new AssertionError();
+            //if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
+              //throw new AssertionError();
 
             leftEdges.add(newRootRecid);
             //TODO there could be a race condition between leftEdges  update and rootRecidRef update.
