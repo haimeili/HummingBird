@@ -4230,13 +4230,11 @@ public class BTreeMap<K, V>
     */
     ReentrantLock newLock = new ReentrantLock();
     ReentrantLock currentNodeLock = locks.putIfAbsent(recid, newLock);
-    int count;
     if (currentNodeLock == null) {
+      System.out.println("add new lock " + newLock);
       newLock.lock();
-      count  = newLock.getHoldCount();
     } else {
       currentNodeLock.lock();
-      count = currentNodeLock.getHoldCount();
     }
     // System.out.println(Thread.currentThread() + " acquires lock for rec " + recid + " count:" +
        //      count);
