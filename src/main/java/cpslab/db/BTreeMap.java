@@ -28,10 +28,7 @@ package cpslab.db;
 
 import cpslab.deploy.BTreeDatabase;
 
-import java.io.Closeable;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.locks.LockSupport;
@@ -266,12 +263,16 @@ public class BTreeMap<K, V>
 
     @Override
     public void serialize(DataOutput out, ValRef value) throws IOException {
+      Serializer.INTEGER.serialize(out, value.currentLevel);
       Serializer.BASIC.serialize(out, value.recids);
     }
 
     @Override
     public ValRef deserialize(DataInput in, int available) throws IOException {
-      return new ValRef((List<Long>) Serializer.BASIC.deserialize(in, -1));
+      int currentLevel = Serializer.INTEGER.deserialize(in, 4);
+      ValRef v = new ValRef((List<Long>) Serializer.BASIC.deserialize(in, -1));
+      v.currentLevel = currentLevel;
+      return v;
     }
 
     @Override
@@ -4231,7 +4232,7 @@ public class BTreeMap<K, V>
     ReentrantLock newLock = new ReentrantLock();
     ReentrantLock currentNodeLock = locks.putIfAbsent(recid, newLock);
     if (currentNodeLock == null) {
-      System.out.println("add new lock " + newLock);
+      System.out.println("add new lock " + newLock + " for record " + recid);
       newLock.lock();
     } else {
       currentNodeLock.lock();
