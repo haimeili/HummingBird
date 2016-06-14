@@ -1409,9 +1409,11 @@ public class BTreeMap<K, V>
         }
       }
     } catch (RuntimeException e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw e;
     } catch (Exception e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw new RuntimeException(e);
     }
@@ -1628,9 +1630,11 @@ public class BTreeMap<K, V>
         }
       }
     } catch (RuntimeException e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw e;
     } catch (Exception e) {
+      e.printStackTrace();
       unlockAll(nodeLocks);
       throw new RuntimeException(e);
     }
