@@ -1202,7 +1202,7 @@ public class BTreeMap<K, V>
     } else {
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
               (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-      return completeHash >>> nextShiftingLength * BTreeDatabase.btreeCompareGroupLength();
+      return completeHash >>> nextShiftingLength;
     }
   }
 
