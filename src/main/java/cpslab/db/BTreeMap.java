@@ -1175,9 +1175,11 @@ public class BTreeMap<K, V>
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         Integer nextLevelHash = fullHash >>> shiftBits;
+        Integer originalHash = fullHash >>> (shiftBits + 1) * BTreeDatabase.btreeCompareGroupLength();
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
-                tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId);
+                tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId + ", original hash: " +
+                originalHash);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
