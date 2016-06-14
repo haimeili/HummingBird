@@ -1197,7 +1197,7 @@ public class BTreeMap<K, V>
   }
 
   private int calculateNextLevelHash(int completeHash, int currentLevel) {
-    if (currentLevel == BTreeDatabase.btreeCompareGroupNum()) {
+    if (currentLevel == BTreeDatabase.btreeCompareGroupNum() - 1) {
       return completeHash;
     } else {
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
