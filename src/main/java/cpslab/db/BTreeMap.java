@@ -1272,12 +1272,13 @@ public class BTreeMap<K, V>
                 value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel);
               }
             }
-
-            //$DELAY$
-            A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            if (value != null) {
+              //$DELAY$
+              A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+              //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               //throw new AssertionError();
-            engine.update(current, A, nodeSerializer);
+              engine.update(current, A, nodeSerializer);
+            }
             //$DELAY$
             //already in here
             V ret;
@@ -2228,19 +2229,39 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId, int currentLevel) {
-    if (oldRef.recids.isEmpty()) {
-      // move to nextLevel
-      // unlock(nodeLocks, current);
-      V value = engine.get(valueRefId, valueSerializer);
-      // recalculate the next level hash
-      Integer newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
-              currentLevel);
-      System.out.println("meet a intermediate-ValRef at level " + currentLevel +
-              " with nextLevelHash " + newPartialHash);
-      appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
-      return oldRef;
+    if (oldRef.currentLevel == currentLevel) {
+      if (oldRef.recids.isEmpty()) {
+        // move to nextLevel
+        // unlock(nodeLocks, current);
+        V value = engine.get(valueRefId, valueSerializer);
+        // recalculate the next level hash
+        Integer newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
+                currentLevel);
+        System.out.println("meet a intermediate-ValRef at level " + currentLevel +
+                " with nextLevelHash " + newPartialHash);
+        appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
+        return oldRef;
+      } else {
+        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId);
+      }
     } else {
-      return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId);
+      // the found oldRef is in another currentLevel, we need to recalculate the hash of value
+      // and return null to indicate that we shall not add the value to the current ValRef
+      V value = engine.get(valueRefId, valueSerializer);
+      Integer newPartialHash;
+      if (currentLevel > oldRef.currentLevel) {
+        newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
+                Math.max(currentLevel + 1, BTreeDatabase.btreeCompareGroupNum()));
+        appendExistingRecId((K) newPartialHash, valueRefId,
+                Math.max(currentLevel + 2, BTreeDatabase.btreeCompareGroupNum()));
+      } else {
+        newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
+                oldRef.currentLevel);
+        appendExistingRecId((K) newPartialHash, valueRefId, oldRef.currentLevel);
+      }
+      System.out.println("meet a intermediate-ValRef at unmatched level " + oldRef.currentLevel +
+              ", expect level " + currentLevel + " with hash " + newPartialHash);
+      return null;
     }
   }
 
@@ -2305,10 +2326,12 @@ public class BTreeMap<K, V>
             }
 
             //$DELAY$
-            A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-            //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+            if (value != null) {
+              A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+              //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               //throw new AssertionError();
-            engine.update(current, A, nodeSerializer);
+              engine.update(current, A, nodeSerializer);
+            }
             //$DELAY$
             //already in here
             unlock(nodeLocks, current);
