@@ -237,7 +237,8 @@ public class BTreeMap<K, V>
 
     public void appendNewRecId(long recId) {
       if (recids.contains(recId)) {
-        System.out.println("FAULT: record " + recId + " already exists");
+        System.out.println("FAULT: record " + recId + " already exists, thread: " +
+                Thread.currentThread().getName());
         System.exit(1);
       }
       recids.add(recId);
@@ -1160,6 +1161,7 @@ public class BTreeMap<K, V>
    */
   private ValRef updateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
     ValRef oldValueRef = (ValRef) oldValue;
+    System.out.println(Thread.currentThread().getName() + " updates " + nodeRecId);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
