@@ -4215,8 +4215,14 @@ public class BTreeMap<K, V>
   protected static void unlockAll(LongConcurrentHashMap<ReentrantLock> locks) {
     final Thread t = Thread.currentThread();
     LongConcurrentHashMap.LongMapIterator<ReentrantLock> iter = locks.longMapIterator();
-    while (iter.moveToNext())
-      iter.value().unlock();
+    while (iter.moveToNext()) {
+      ReentrantLock lock = iter.value();
+      lock.unlock();
+      if (lock.getHoldCount() != 0) {
+        System.out.println(Thread.currentThread() + " acquired " + lock + " for " +
+                (lock.getHoldCount() + 1) + " times, but released only once");
+      }
+    }
   }
 
 
