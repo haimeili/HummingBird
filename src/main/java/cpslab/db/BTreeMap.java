@@ -1160,18 +1160,17 @@ public class BTreeMap<K, V>
    */
   private ValRef doUpdateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
     ValRef oldValueRef = (ValRef) oldValue;
-    //System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
-      //      ", value " + oldValueRef);
+    System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
+            ", value " + oldValueRef);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
-      /*
       System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
-        System.out.print(oldValueRef.recids.get(i) + "\t");
+        System.out.print(oldValueRef.recids.get(i) + " ");
       }
-      System.out.println(" at table " + tableId + " at node " + nodeRecId);*/
+      System.out.println(" at table " + tableId + " at node " + nodeRecId);
       // redistribution
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long existingValRecId = oldValueRef.recids.get(i);
@@ -1181,20 +1180,18 @@ public class BTreeMap<K, V>
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
         Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
-        /*
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId + ", original hash: " +
-                originalHash);*/
+                originalHash);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
       oldValueRef.recids.clear();
     } else {
       // directly append new recid
-      /*
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
               " at level " + currentLevel +
-              " at table " + tableId  + " at node " + nodeRecId);*/
+              " at table " + tableId  + " at node " + nodeRecId);
     }
     return oldValueRef;
   }
