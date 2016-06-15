@@ -365,9 +365,11 @@ object HashTreeTest {
                 if (v == null) {
                   println(s"found ${returnedVector.vectorId} as null")
                 }
-                val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
+                val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer).
+                  asInstanceOf[Long]
+                val lh = h & 0xffffffffL
                 //get the first group
-                val key = h >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
+                val key = lh >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
                   BTreeDatabase.btreeCompareGroupLength
                 vectorDatabaseBTree(tableId).append(key,
                   new LSHBTreeVal(returnedVector.vectorId, h), 0)
