@@ -1175,11 +1175,11 @@ public class BTreeMap<K, V>
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         long existingValRecId = oldValueRef.recids.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
-        int fullHash = btreeVal.hash;
+        long fullHash = btreeVal.hash;
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-        Integer nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
-        Integer originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
+        Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
+        Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId + ", original hash: " +
@@ -1196,7 +1196,7 @@ public class BTreeMap<K, V>
     return oldValueRef;
   }
 
-  private int calculateNextLevelHash(int completeHash, int currentLevel) {
+  private long calculateNextLevelHash(long completeHash, int currentLevel) {
     if (currentLevel >= BTreeDatabase.btreeCompareGroupNum() - 1) {
       return completeHash;
     } else {
@@ -2235,7 +2235,7 @@ public class BTreeMap<K, V>
         // unlock(nodeLocks, current);
         V value = engine.get(valueRefId, valueSerializer);
         // recalculate the next level hash
-        Integer newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
+        Long newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
                 currentLevel);
         System.out.println("meet a intermediate-ValRef at level " + currentLevel +
                 " with nextLevelHash " + newPartialHash);
@@ -2248,7 +2248,7 @@ public class BTreeMap<K, V>
       // the found oldRef is in another currentLevel, we need to recalculate the hash of value
       // and return null to indicate that we shall not add the value to the current ValRef
       V value = engine.get(valueRefId, valueSerializer);
-      Integer newPartialHash;
+      Long newPartialHash;
       if (currentLevel > oldRef.currentLevel) {
         newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
                 currentLevel + 1);

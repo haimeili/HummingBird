@@ -6,6 +6,17 @@ import cpslab.db.{LSHBTreeVal, Serializer}
 import cpslab.lsh.vector.SparseVector
 
 object Serializers {
+
+  val scalaLongSerializer = new Serializer[Long] {
+    override def serialize(out: DataOutput, value: Long): Unit = {
+      out.writeLong(value)
+    }
+
+    override def deserialize(in: DataInput, available: Int): Long = {
+      in.readLong()
+    }
+  }
+
   val scalaIntSerializer = new Serializer[Int] {
 
     override def serialize(out: DataOutput, value: Int): Unit = {
@@ -22,12 +33,12 @@ object Serializers {
       val vectorId = obj.vectorId
       val hash = obj.hash
       out.writeInt(vectorId)
-      out.writeInt(hash)
+      out.writeLong(hash)
     }
 
     override def deserialize(in: DataInput, available: Int): LSHBTreeVal = {
       val vectorId = in.readInt()
-      val hash = in.readInt()
+      val hash = in.readLong()
       new LSHBTreeVal(vectorId, hash)
     }
   }

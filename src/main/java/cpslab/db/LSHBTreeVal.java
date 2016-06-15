@@ -4,9 +4,9 @@ import java.io.Serializable;
 
 public class LSHBTreeVal implements Serializable {
   public int vectorId;
-  public int hash;
+  public long hash;
 
-  public LSHBTreeVal(int vId, int h) {
+  public LSHBTreeVal(int vId, long h) {
     vectorId = vId;
     hash = h;
   }
