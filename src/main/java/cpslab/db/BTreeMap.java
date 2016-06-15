@@ -1161,7 +1161,7 @@ public class BTreeMap<K, V>
   private ValRef doUpdateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
     ValRef oldValueRef = (ValRef) oldValue;
     System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
-            ", value " + oldValueRef + ", value record " + valueRecId);
+            ", value " + oldValueRef);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
@@ -2386,7 +2386,8 @@ public class BTreeMap<K, V>
             //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
           System.out.println(Thread.currentThread().getName() + " add value " + existingRecId +
-                  " without splitting node at node " + current + " with hash key " + newKey);
+                  " without splitting node at node " + current + " with hash key " + newKey +
+                  " at level " + currentLevel);
           //$DELAY$
           unlock(nodeLocks, current);
           // if (CC.ASSERT) assertNoLocks(nodeLocks);
