@@ -385,6 +385,7 @@ object HashTreeTest {
           cap * threadNumber / (duration.toDouble / 1000000000))
         finishedWriteThreadCount.set(threadNumber)
       case Failure(failure) =>
+        failure.printStackTrace()
         throw failure
     }
   }
