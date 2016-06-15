@@ -1173,7 +1173,7 @@ public class BTreeMap<K, V>
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
       System.out.println(" at table " + tableId + " at node " + nodeRecId);
-      Long[] recIdsToRedistribution = (Long[]) oldValueRef.recids.toArray();
+      Object[] recIdsToRedistribution = oldValueRef.recids.toArray();
       // save the current node
       oldValueRef.recids.clear();
       BNode A = engine.get(nodeRecId, nodeSerializer);
@@ -1181,7 +1181,7 @@ public class BTreeMap<K, V>
       updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
       for (int i = 0; i < recIdsToRedistribution.length; i++) {
-        long existingValRecId = recIdsToRedistribution[i];
+        long existingValRecId = (Long) recIdsToRedistribution[i];
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         long fullHash = btreeVal.hash;
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
