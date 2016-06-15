@@ -1317,17 +1317,17 @@ public class BTreeMap<K, V>
         } while (!found);
 
         V value = value2;
+        long recid = 0;
         if (valsOutsideNodes) {
-          long recid = engine.put(value2, valueSerializer);
+          recid = engine.put(value2, valueSerializer);
           List<Long> l = new LinkedList<Long>();
           l.add(recid);
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
-          /*
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + recid + " at level " + currentLevel + " at table " +
-                  tableId + " with key " + key);*/
+                  tableId + " with key " + key);
           value = (V) newValRef;
         }
 
@@ -1343,6 +1343,9 @@ public class BTreeMap<K, V>
           engine.update(current, A, nodeSerializer);
 
           notify(key, null, value2);
+          System.out.println(Thread.currentThread().getName() + " add value " + recid +
+                  " without splitting node at node " + current + " with hash key " + key +
+                  " at level " + currentLevel);
           //$DELAY$
           unlock(nodeLocks, current);
           // if (CC.ASSERT) assertNoLocks(nodeLocks);
@@ -1363,6 +1366,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
+            System.out.println("split " + current + " when inserting " + recid);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -1377,39 +1381,8 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            Object rootChild =
-                    (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
-                            new int[]{(int) current, (int) q, 0} :
-                            new long[]{current, q, 0};
-
-
-            BNode R = new DirNode(
-                    keySerializer.arrayToKeys(new Object[]{A.highKey(keySerializer)}),
-                    true, true, false,
-                    rootChild);
-            //$DELAY$
-            unlock(nodeLocks, current);
-            //$DELAY$
-            lock(nodeLocks, rootRecidRef);
-
-            //$DELAY$
-            long newRootRecid = engine.put(R, nodeSerializer);
-            //$DELAY$
-            //if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
-              //throw new AssertionError();
-
-            leftEdges.add(newRootRecid);
-            //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
-            //$DELAY$
-
-            engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
-
-            notify(key, null, value2);
-            //$DELAY$
-            unlock(nodeLocks, rootRecidRef);
-            //$DELAY$
-            // if (CC.ASSERT) assertNoLocks(nodeLocks);
-            //$DELAY$
+            System.out.println("split " + current + "(root) when inserting " + recid);
+            splitRoot(current, q, A);
             return null;
           }
         }
@@ -2229,6 +2202,41 @@ public class BTreeMap<K, V>
     return sizeLong();
   }
 
+  private void splitRoot(long currentNodeRecId, long newlyGeneratedNodeRecId, BNode originalNode)
+          throws InterruptedException{
+    Object rootChild =
+            (currentNodeRecId < Integer.MAX_VALUE && newlyGeneratedNodeRecId < Integer.MAX_VALUE) ?
+                    new int[]{(int) currentNodeRecId, (int) newlyGeneratedNodeRecId, 0} :
+                    new long[]{currentNodeRecId, newlyGeneratedNodeRecId, 0};
+
+
+    BNode R = new DirNode(
+            keySerializer.arrayToKeys(new Object[]{originalNode.highKey(keySerializer)}),
+            true, true, false,
+            rootChild);
+    //$DELAY$
+    unlock(nodeLocks, currentNodeRecId);
+    //$DELAY$
+    lock(nodeLocks, rootRecidRef);
+
+    //$DELAY$
+    long newRootRecid = engine.put(R, nodeSerializer);
+    //$DELAY$
+    //if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
+    //throw new AssertionError();
+
+    leftEdges.add(newRootRecid);
+    //TODO there could be a race condition between leftEdges  update and rootRecidRef update.
+    // Investigate!
+    //$DELAY$
+
+    engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
+
+    // notify(key, null, value2);
+    //$DELAY$
+    unlock(nodeLocks, rootRecidRef);
+  }
+
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId, int currentLevel) {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
@@ -2370,10 +2378,9 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
-          /*
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + existingRecId + " at level " + currentLevel + " at table " +
-                  tableId + " with key " + newKey + " with in appendExistingRecId()");*/
+                  tableId + " with key " + newKey + " with in appendExistingRecId()");
           value = (V) newValRef;
         } else {
           throw new Exception("append does not fully support in valuesInsideNodes");
@@ -2389,10 +2396,9 @@ public class BTreeMap<K, V>
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
-          /*
           System.out.println(Thread.currentThread().getName() + " add value " + existingRecId +
                   " without splitting node at node " + current + " with hash key " + newKey +
-                  " at level " + currentLevel);*/
+                  " at level " + currentLevel);
           //$DELAY$
           unlock(nodeLocks, current);
           // if (CC.ASSERT) assertNoLocks(nodeLocks);
@@ -2413,7 +2419,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            // System.out.println("split " + current + " when inserting " + existingRecId);
+            System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -2428,41 +2434,8 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            // System.out.println("split root when inserting " + existingRecId);
-            Object rootChild =
-                    (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
-                            new int[]{(int) current, (int) q, 0} :
-                            new long[]{current, q, 0};
-
-
-            BNode R = new DirNode(
-                    keySerializer.arrayToKeys(new Object[]{A.highKey(keySerializer)}),
-                    true, true, false,
-                    rootChild);
-            //$DELAY$
-            unlock(nodeLocks, current);
-            //$DELAY$
-            lock(nodeLocks, rootRecidRef);
-
-            //$DELAY$
-            long newRootRecid = engine.put(R, nodeSerializer);
-            //$DELAY$
-            //if (CC.ASSERT && !(nodeLocks.get(rootRecidRef).isHeldByCurrentThread()))
-              //throw new AssertionError();
-
-            leftEdges.add(newRootRecid);
-            //TODO there could be a race condition between leftEdges  update and rootRecidRef update.
-            // Investigate!
-            //$DELAY$
-
-            engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
-
-            // notify(key, null, value2);
-            //$DELAY$
-            unlock(nodeLocks, rootRecidRef);
-            //$DELAY$
-            // if (CC.ASSERT) assertNoLocks(nodeLocks);
-            //$DELAY$
+            System.out.println("split " + current + "(root) when inserting " + existingRecId);
+            splitRoot(current, q, A);
             return;
           }
         }
