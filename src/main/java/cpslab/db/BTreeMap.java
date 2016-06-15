@@ -1358,6 +1358,7 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
+          System.out.println("generate node " + q + " when inserting " + recid);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -2411,6 +2412,7 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
+          System.out.println("generate node " + q + " when inserting " + existingRecId);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
