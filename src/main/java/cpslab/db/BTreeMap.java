@@ -1173,15 +1173,18 @@ public class BTreeMap<K, V>
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
       System.out.println(" at table " + tableId + " at node " + nodeRecId);
-      Object[] recIdsToRedistribution = oldValueRef.recids.toArray();
       // save the current node
+      List<Long> recIdsToRedistribution = new LinkedList<Long>();//oldValueRef.recids.toArray();
+      for (int i = 0; i < oldValueRef.recids.size(); i++) {
+        recIdsToRedistribution.add(oldValueRef.recids.get(i));
+      }
       oldValueRef.recids.clear();
       BNode A = engine.get(nodeRecId, nodeSerializer);
       int pos = keySerializer.findChildren(A, oldValue);
       updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
-      for (int i = 0; i < recIdsToRedistribution.length; i++) {
-        long existingValRecId = (Long) recIdsToRedistribution[i];
+      for (int i = 0; i < recIdsToRedistribution.size(); i++) {
+        long existingValRecId = recIdsToRedistribution.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         long fullHash = btreeVal.hash;
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
