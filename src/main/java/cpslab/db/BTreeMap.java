@@ -1160,7 +1160,8 @@ public class BTreeMap<K, V>
    */
   private ValRef doUpdateOldValueRef(Object oldValue,
                                      long valueRecId,
-                                     long nodeRecId) {
+                                     long nodeRecId,
+                                     K searchKey) {
     ValRef oldValueRef = (ValRef) oldValue;
     System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
             ", value " + oldValueRef);
@@ -1180,7 +1181,7 @@ public class BTreeMap<K, V>
       }
       oldValueRef.recids.clear();
       BNode A = engine.get(nodeRecId, nodeSerializer);
-      int pos = keySerializer.findChildren(A, oldValue);
+      int pos = keySerializer.findChildren(A, searchKey);
       updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
       for (int i = 0; i < recIdsToRedistribution.size(); i++) {
@@ -1279,7 +1280,7 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel);
+                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, v);
               }
             }
             if (value != null) {
@@ -2246,7 +2247,7 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
-                              int currentLevel) {
+                              int currentLevel, K searchKey) {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2261,7 +2262,7 @@ public class BTreeMap<K, V>
         appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
         return oldRef;
       } else {
-        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId);
+        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, searchKey);
       }
     } else {
       // the found oldRef is in another currentLevel, we need to recalculate the hash of value
@@ -2347,7 +2348,7 @@ public class BTreeMap<K, V>
             //insert new
             V value = null;
             if (valsOutsideNodes) {
-              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel);
+              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel, v);
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }
