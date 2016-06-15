@@ -1161,7 +1161,7 @@ public class BTreeMap<K, V>
   private ValRef doUpdateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
     ValRef oldValueRef = (ValRef) oldValue;
     System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
-            ", value " + oldValueRef);
+            ", value " + oldValueRef + ", value record " + valueRecId);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
