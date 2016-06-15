@@ -1158,7 +1158,9 @@ public class BTreeMap<K, V>
    * to the ValRef with the new hash keys, otherwise, we directly update the ValRef by appending
    * the new record id
    */
-  private ValRef doUpdateOldValueRef(Object oldValue, long valueRecId, long nodeRecId) {
+  private ValRef doUpdateOldValueRef(Object oldValue,
+                                     long valueRecId,
+                                     long nodeRecId) {
     ValRef oldValueRef = (ValRef) oldValue;
     System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
             ", value " + oldValueRef);
@@ -1171,9 +1173,15 @@ public class BTreeMap<K, V>
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
       System.out.println(" at table " + tableId + " at node " + nodeRecId);
+      Long[] recIdsToRedistribution = (Long[]) oldValueRef.recids.toArray();
+      // save the current node
+      oldValueRef.recids.clear();
+      BNode A = engine.get(nodeRecId, nodeSerializer);
+      int pos = keySerializer.findChildren(A, oldValue);
+      updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
-      for (int i = 0; i < oldValueRef.recids.size(); i++) {
-        long existingValRecId = oldValueRef.recids.get(i);
+      for (int i = 0; i < recIdsToRedistribution.length; i++) {
+        long existingValRecId = recIdsToRedistribution[i];
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         long fullHash = btreeVal.hash;
         int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
@@ -1186,7 +1194,6 @@ public class BTreeMap<K, V>
                 originalHash);
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
-      oldValueRef.recids.clear();
     } else {
       // directly append new recid
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
@@ -1274,10 +1281,7 @@ public class BTreeMap<K, V>
             }
             if (value != null) {
               //$DELAY$
-              A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-              //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-              //throw new AssertionError();
-              engine.update(current, A, nodeSerializer);
+              updateLeafNode(current, A, pos, value);
             }
             //$DELAY$
             //already in here
@@ -2238,7 +2242,8 @@ public class BTreeMap<K, V>
     unlock(nodeLocks, rootRecidRef);
   }
 
-  private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId, int currentLevel) {
+  private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
+                              int currentLevel) {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2274,6 +2279,14 @@ public class BTreeMap<K, V>
               ", expect level " + currentLevel + " with hash " + newPartialHash);*/
       return null;
     }
+  }
+
+  private BNode updateLeafNode(long currentNodeId, BNode A, int pos, Object value) {
+    A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+    //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
+    //throw new AssertionError();
+    engine.update(currentNodeId, A, nodeSerializer);
+    return A;
   }
 
   private void appendExistingRecId(K newKey, long existingRecId, int proposedCurrentLevel) {
@@ -2338,10 +2351,7 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             if (value != null) {
-              A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
-              //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
-              //throw new AssertionError();
-              engine.update(current, A, nodeSerializer);
+              updateLeafNode(current, A, pos, value);
             }
             //$DELAY$
             //already in here
