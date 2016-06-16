@@ -1283,6 +1283,10 @@ public class BTreeMap<K, V>
             Object oldVal = A.val(pos - 1, valueSerializer);
             if (oldVal == null) {
               System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
+              if (!A.isLeaf()) {
+                System.out.println("FAULT: A shall be a leaf node");
+                System.exit(1);
+              }
             }
             //insert new
             V value = value2;
@@ -2373,6 +2377,10 @@ public class BTreeMap<K, V>
             if (oldVal == null) {
               System.out.println("fetch an null value in record " + current + " at pos " +
                       (pos - 1) + " in appendExistingRecId()");
+              if (!A.isLeaf()) {
+                System.out.println("FAULT: A shall be a leaf node");
+                System.exit(1);
+              }
             }
 
             //insert new
