@@ -1281,7 +1281,9 @@ public class BTreeMap<K, V>
             //$DELAY$
             //yes key is already in tree
             Object oldVal = A.val(pos - 1, valueSerializer);
-
+            if (oldVal == null) {
+              System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
+            }
             //insert new
             V value = value2;
             if (valsOutsideNodes) {
@@ -2365,6 +2367,9 @@ public class BTreeMap<K, V>
             //$DELAY$
             //yes key is already in tree
             Object oldVal = A.val(pos - 1, valueSerializer);
+            if (oldVal == null) {
+              System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
+            }
 
             //insert new
             V value = null;
