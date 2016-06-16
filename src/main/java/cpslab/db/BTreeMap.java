@@ -1163,17 +1163,18 @@ public class BTreeMap<K, V>
                                      long nodeRecId,
                                      K searchKey) {
     ValRef oldValueRef = (ValRef) oldValue;
-    System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
+    //System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
             ", value " + oldValueRef);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
+      /*
       System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
-      System.out.println(" at table " + tableId + " at node " + nodeRecId);
+      System.out.println(" at table " + tableId + " at node " + nodeRecId);*/
       // save the current node
       List<Long> recIdsToRedistribution = new LinkedList<Long>();//oldValueRef.recids.toArray();
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
@@ -1192,17 +1193,21 @@ public class BTreeMap<K, V>
                 (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
         Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
+        /*
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
                 tableId + ", shift bits: " + shiftBits + " at node " + nodeRecId + ", original hash: " +
                 originalHash);
+                */
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
     } else {
       // directly append new recid
+      /*
       System.out.println(Thread.currentThread().getName() + " directly add " + valueRecId +
               " at level " + currentLevel +
               " at table " + tableId  + " at node " + nodeRecId);
+              */
     }
     return oldValueRef;
   }
@@ -1340,9 +1345,10 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
+          /*
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + recid + " at level " + currentLevel + " at table " +
-                  tableId + " with key " + key);
+                  tableId + " with key " + key);*/
           value = (V) newValRef;
         }
 
@@ -1358,9 +1364,10 @@ public class BTreeMap<K, V>
           engine.update(current, A, nodeSerializer);
 
           notify(key, null, value2);
+          /*
           System.out.println(Thread.currentThread().getName() + " add value " + recid +
                   " without splitting node at node " + current + " with hash key " + key +
-                  " at level " + currentLevel);
+                  " at level " + currentLevel);*/
           //$DELAY$
           unlock(nodeLocks, current);
           // if (CC.ASSERT) assertNoLocks(nodeLocks);
@@ -1373,7 +1380,7 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
-          System.out.println("generate node " + q + " from " + current + " when inserting " + recid);
+          // System.out.println("generate node " + q + " from " + current + " when inserting " + recid);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -1382,7 +1389,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            System.out.println("split " + current + " when inserting " + recid);
+            // System.out.println("split " + current + " when inserting " + recid);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -1397,7 +1404,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + "(root) when inserting " + recid);
+            // System.out.println("split " + current + "(root) when inserting " + recid);
             splitRoot(current, q, A);
             return null;
           }
@@ -2405,9 +2412,11 @@ public class BTreeMap<K, V>
           //$DELAY$
           ValRef newValRef = new ValRef(l);
           newValRef.currentLevel = currentLevel;
+          /*
           System.out.println(Thread.currentThread().getName() +
                   " add new rec " + existingRecId + " at level " + currentLevel + " at table " +
                   tableId + " with key " + newKey + " with in appendExistingRecId()");
+                  */
           value = (V) newValRef;
         } else {
           throw new Exception("append does not fully support in valuesInsideNodes");
@@ -2423,9 +2432,10 @@ public class BTreeMap<K, V>
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
             //throw new AssertionError();
           engine.update(current, A, nodeSerializer);
+          /*
           System.out.println(Thread.currentThread().getName() + " add value " + existingRecId +
                   " without splitting node at node " + current + " with hash key " + newKey +
-                  " at level " + currentLevel);
+                  " at level " + currentLevel);*/
           //$DELAY$
           unlock(nodeLocks, current);
           // if (CC.ASSERT) assertNoLocks(nodeLocks);
@@ -2438,8 +2448,9 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
+          /*
           System.out.println("generate node " + q + " from " + current +
-                  " when inserting " + existingRecId);
+                  " when inserting " + existingRecId);*/
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -2448,7 +2459,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            System.out.println("split " + current + " when inserting " + existingRecId);
+            //System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -2463,7 +2474,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + "(root) when inserting " + existingRecId);
+            //System.out.println("split " + current + "(root) when inserting " + existingRecId);
             splitRoot(current, q, A);
             return;
           }
