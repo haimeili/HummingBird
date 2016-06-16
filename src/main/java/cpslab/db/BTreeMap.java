@@ -2309,6 +2309,9 @@ public class BTreeMap<K, V>
   }
 
   private BNode updateLeafNode(long currentNodeId, BNode A, int pos, Object value) {
+    if (value == null) {
+      System.out.println("in updateLeafNode, meet a null value when updating " + currentNodeId);
+    }
     A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
     //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
     //throw new AssertionError();
@@ -2368,7 +2371,8 @@ public class BTreeMap<K, V>
             //yes key is already in tree
             Object oldVal = A.val(pos - 1, valueSerializer);
             if (oldVal == null) {
-              System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
+              System.out.println("fetch an null value in record " + current + " at pos " +
+                      (pos - 1) + " in appendExistingRecId()");
             }
 
             //insert new
