@@ -1208,12 +1208,19 @@ public class BTreeMap<K, V>
   }
 
   private long calculateNextLevelHash(long completeHash, int currentLevel) {
-    if (currentLevel >= BTreeDatabase.btreeCompareGroupNum() - 1) {
-      return completeHash;
+    int totalHashBits = BTreeDatabase.btreeCompareGroupNum() *
+            BTreeDatabase.btreeCompareGroupLength();
+    int nextLevel = currentLevel + 1;
+    if (nextLevel >= BTreeDatabase.btreeCompareGroupNum()) {
+      // compose the level bits by shifting to the left for 32 bits
+      long levelBits = nextLevel << totalHashBits;
+      return levelBits | completeHash;
     } else {
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
-              (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-      return completeHash >>> nextShiftingLength;
+              nextLevel) * BTreeDatabase.btreeCompareGroupLength();
+      long hashBits = completeHash >>> nextShiftingLength;
+      long levelBits = (nextLevel + 1) << (totalHashBits - nextShiftingLength);
+      return hashBits | levelBits;
     }
   }
 
@@ -2247,7 +2254,7 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
-                              int currentLevel, K searchKey) {
+                              int currentLevel, K searchKey) throws Exception {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2266,7 +2273,9 @@ public class BTreeMap<K, V>
       }
     } else {
       // the found oldRef is in another currentLevel, we need to recalculate the hash of value
-      // and return null to indicate that we shall not add the value to the current ValRef
+      // and return null to indicate that we shall not add the value to the current ValRef and
+      // update the current leaf node
+      /*
       V value = engine.get(valueRefId, valueSerializer);
       Long newPartialHash;
       if (currentLevel > oldRef.currentLevel) {
@@ -2280,8 +2289,11 @@ public class BTreeMap<K, V>
       }
       /*
       System.out.println("meet a intermediate-ValRef at unmatched level " + oldRef.currentLevel +
-              ", expect level " + currentLevel + " with hash " + newPartialHash);*/
+              ", expect level " + currentLevel + " with hash " + newPartialHash);
       return null;
+      */
+      throw new Exception("currentLevel " + currentLevel + " does not match with the ValRef's" +
+              " level " + oldRef.currentLevel + " when inserting record " + valueRefId);
     }
   }
 

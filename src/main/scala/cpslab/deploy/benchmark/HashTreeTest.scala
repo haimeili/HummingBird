@@ -326,6 +326,14 @@ object HashTreeTest {
     startWriteWorkload(conf, threadNumber)
   }
 
+  private def calculateFirstLevelHashForBTree(completeHashKey: Long): Long = {
+    val key = completeHashKey >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
+      BTreeDatabase.btreeCompareGroupLength
+    // compose level bits in the first level by moving the 1L to 9th position and
+    val level = 1L << BTreeDatabase.btreeCompareGroupLength
+    level | key
+  }
+
   private def startWriteWorkloadToBTree(conf: Config, threadNumber: Int): Unit = {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
@@ -368,8 +376,7 @@ object HashTreeTest {
                 val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
                 val lh = h & 0xffffffffL
                 //get the first group
-                val key = lh >>> (BTreeDatabase.btreeCompareGroupNum - 1) *
-                  BTreeDatabase.btreeCompareGroupLength
+                val key = calculateFirstLevelHashForBTree(lh)
                 vectorDatabaseBTree(tableId).append(key,
                   new LSHBTreeVal(returnedVector.vectorId, lh), 0)
               }
