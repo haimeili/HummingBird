@@ -1516,9 +1516,7 @@ public class BTreeMap<K, V>
                 value = (V) oldVal;
               }
             }
-
-            System.out.println("A is leaf node: " + A.isLeaf());
-
+            
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
             if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
