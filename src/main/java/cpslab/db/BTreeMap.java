@@ -1166,7 +1166,7 @@ public class BTreeMap<K, V>
   private ValRef doUpdateOldValueRef(Object oldValue,
                                      long valueRecId,
                                      long nodeRecId,
-                                     K searchKey) {
+                                     int pos) {
     ValRef oldValueRef = (ValRef) oldValue;
     /*System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
             ", value " + oldValueRef);*/
@@ -1187,17 +1187,16 @@ public class BTreeMap<K, V>
       }
       oldValueRef.recids.clear();
       BNode A = engine.get(nodeRecId, nodeSerializer);
-      int pos = keySerializer.findChildren(A, searchKey);
       updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
       for (int i = 0; i < recIdsToRedistribution.size(); i++) {
         long existingValRecId = recIdsToRedistribution.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         long fullHash = btreeVal.hash;
-        int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
-                (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
+        // int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
+           //      (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
         Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
-        Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
+        // Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
         /*
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
                 " at level " + currentLevel + " with hash value " + nextLevelHash + " at table " +
@@ -1303,7 +1302,7 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, v);
+                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, pos);
               }
             }
             if (value != null) {
@@ -2316,7 +2315,7 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
-                              int currentLevel, K searchKey) throws Exception {
+                              int currentLevel, int pos) throws Exception {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2331,7 +2330,7 @@ public class BTreeMap<K, V>
         appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
         return oldRef;
       } else {
-        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, searchKey);
+        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, pos);
       }
     } else {
       // the found oldRef is in another currentLevel, we need to recalculate the hash of value
@@ -2433,7 +2432,7 @@ public class BTreeMap<K, V>
             //insert new
             V value = null;
             if (valsOutsideNodes) {
-              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel, v);
+              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel, pos);
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }

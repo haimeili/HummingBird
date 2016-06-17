@@ -359,7 +359,7 @@ object HashTreeTest {
         Future {
           vectorIdToVectorBTree.put(Random.nextInt(100000), vector)
           vector
-        }/*.flatMap {
+        }.flatMap {
           returnedVector =>
 
             val fs = (0 until tableNum).map(tableId => {
@@ -382,7 +382,7 @@ object HashTreeTest {
               }
             })
             Future.sequence(fs)
-        }*/
+        }
     }
     Future.sequence(mainFs).onComplete {
       case Success(result)  =>
