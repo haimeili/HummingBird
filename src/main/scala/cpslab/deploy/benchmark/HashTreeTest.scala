@@ -357,7 +357,7 @@ object HashTreeTest {
     val mainFs = taskQueue.map {
       vector =>
         Future {
-          vectorIdToVectorBTree.put(Random.nextInt(100000), vector)
+          vectorIdToVectorBTree.put(vector.vectorId, vector)
           vector
         }.flatMap {
           returnedVector =>
