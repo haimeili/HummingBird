@@ -2439,7 +2439,9 @@ public class BTreeMap<K, V>
                         Thread.currentThread().getName());
                 System.out.println(dir);
                 for (int i = 0; i < dir.childArrayLength(); i++) {
-                  System.out.println("child " + i + ": " + dir.child(i));
+                  long childRecId = dir.child(i);
+                  LeafNode child = (LeafNode) engine.get(childRecId, nodeSerializer);
+                  System.out.println("child " + i + ": " + child);
                 }
                 System.exit(1);
               }
