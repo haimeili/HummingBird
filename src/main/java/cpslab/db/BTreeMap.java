@@ -418,7 +418,8 @@ public class BTreeMap<K, V>
         }
         return 1;
       }
-      return keyser.compare(keys, pos, second);
+      int compareResult = keyser.compare(keys, pos, second);
+      return compareResult;
     }
 
 
@@ -1229,7 +1230,7 @@ public class BTreeMap<K, V>
               nextLevel) * BTreeDatabase.btreeCompareGroupLength();
       long hashBits = completeHash >>> nextShiftingLength;
       long levelBits = (nextLevel + 1) << (totalHashBits - nextShiftingLength);
-      return hashBits | levelBits;
+      return levelBits | hashBits;
     }
   }
 
@@ -1401,7 +1402,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            // System.out.println("split " + current + " when inserting " + recid);
+            System.out.println("split " + current + " when inserting " + recid);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -1594,7 +1595,7 @@ public class BTreeMap<K, V>
         System.out.println("A is leaf node: " + AIsLeafBefore + " (before adding key)" +
                 " thread: " + threadName);*/
         A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
-        /*boolean AIsLeafAfter = A.isLeaf();
+        /*giboolean AIsLeafAfter = A.isLeaf();
         System.out.println("A is leaf node: " + AIsLeafAfter + " (after adding key)" +
                 " thread: " + threadName);
         if (AIsLeafAfter != AIsLeafBefore) {
@@ -2531,7 +2532,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            //System.out.println("split " + current + " when inserting " + existingRecId);
+            System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
