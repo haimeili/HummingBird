@@ -2431,10 +2431,16 @@ public class BTreeMap<K, V>
                       (pos - 1) + " in appendExistingRecId(), for key " + v + " thread " +
                       Thread.currentThread().getName());
               if (!A.isLeaf()) {
+                DirNode dir = (DirNode) A;
                 System.out.println("compare result " + A.compare(keySerializer, pos, v) +
                         " second " + v +
                         " pos " + pos + " thread " + Thread.currentThread().getName());
-                System.out.println("FAULT: A shall be a leaf node at " + Thread.currentThread().getName());
+                System.out.println("FAULT: A shall be a leaf node at " +
+                        Thread.currentThread().getName());
+                System.out.println(dir);
+                for (int i = 0; i < dir.childArrayLength(); i++) {
+                  System.out.println("child " + i + ": " + dir.child(i));
+                }
                 System.exit(1);
               }
             }
