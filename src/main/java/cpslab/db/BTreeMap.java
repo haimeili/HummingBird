@@ -1559,12 +1559,13 @@ public class BTreeMap<K, V>
         int pos = keySerializer.findChildren(A, v);
         //$DELAY$
         boolean AIsLeafBefore = A.isLeaf();
-        System.out.println("A is leaf node: " + A.isLeaf() + " (before adding key)" +
-                " thread: " + AIsLeafBefore);
+        String threadName = Thread.currentThread().getName();
+        System.out.println("A is leaf node: " + AIsLeafBefore + " (before adding key)" +
+                " thread: " + threadName);
         A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
         boolean AIsLeafAfter = A.isLeaf();
-        System.out.println("A is leaf node: " + A.isLeaf() + " (after adding key)" +
-                " thread: " + AIsLeafAfter);
+        System.out.println("A is leaf node: " + AIsLeafAfter + " (after adding key)" +
+                " thread: " + threadName);
         if (AIsLeafAfter != AIsLeafBefore) {
           System.out.println("FAULT: inconsistent A's type, before " + AIsLeafBefore + " after " +
             AIsLeafAfter + " thread " + Thread.currentThread().getName());
