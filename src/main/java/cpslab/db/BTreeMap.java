@@ -419,6 +419,10 @@ public class BTreeMap<K, V>
         return 1;
       }
       int compareResult = keyser.compare(keys, pos, second);
+      if (!this.isLeaf()) {
+        System.out.println("compare result " + compareResult + " second " + second +
+                " pos " + pos + " thread " + Thread.currentThread().getName());
+      }
       return compareResult;
     }
 
@@ -1417,7 +1421,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + "(root) when inserting " + recid);
+            System.out.println("split " + current + " (root) when inserting " + recid);
             splitRoot(current, q, A);
             return null;
           }
@@ -2548,7 +2552,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + "(root) when inserting " + existingRecId);
+            System.out.println("split " + current + " (root) when inserting " + existingRecId);
             splitRoot(current, q, A);
             return;
           }
