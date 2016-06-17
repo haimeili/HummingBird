@@ -703,11 +703,21 @@ public class BTreeMap<K, V>
     }
 
     @Override
-    public LeafNode copyAddKey(BTreeKeySerializer keyser, Serializer valser, int pos, Object newKey, long newChild, Object newValue) {
+    public LeafNode copyAddKey(BTreeKeySerializer keyser, Serializer valser, int pos,
+                               Object newKey, long newChild, Object newValue) {
       Object keys2 = keyser.putKey(keys, pos - leftEdgeInc(), newKey);
       //$DELAY$
       Object vals2 = valser.valueArrayPut(vals, pos - 1, newValue);
       //$DELAY$
+      long[] updatedKeys = (long[]) keys2;
+      for (int i = 0; i < updatedKeys.length - 1; i++) {
+        for (int j = 1; j < updatedKeys.length; j++) {
+          if (updatedKeys[i] == updatedKeys[j]) {
+            System.out.println("FAULT: duplicate keys in " + this.toString());
+            System.exit(1);
+          }
+        }
+      }
       return new LeafNode(keys2, isLeftEdge(), isRightEdge(), false, vals2, next);
     }
 
