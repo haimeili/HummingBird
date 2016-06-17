@@ -1617,8 +1617,6 @@ public class BTreeMap<K, V>
           return null;
         } else {
           //node is not safe, it requires splitting
-          System.out.println("splitting node " + current + " thread " +
-                  Thread.currentThread().getName());
           final int splitPos = A.keysLen(keySerializer) / 2;
           //$DELAY$
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
@@ -1631,6 +1629,8 @@ public class BTreeMap<K, V>
           engine.update(current, A, nodeSerializer);
 
           if ((current != rootRecid)) { //is not root
+            System.out.println("splitting non-root node " + current + " thread " +
+                    Thread.currentThread().getName());
             unlock(nodeLocks, current);
             p = q;
             v = (K) A.highKey(keySerializer);
@@ -1646,6 +1646,9 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
+            System.out.println("splitting root node " + current + " thread " +
+                    Thread.currentThread().getName());
+
             Object rootChild =
                     (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
                             new int[]{(int) current, (int) q, 0} :
