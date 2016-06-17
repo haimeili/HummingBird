@@ -342,6 +342,7 @@ object HashTreeTest {
     val compareGroupLength = conf.getInt("cpslab.lsh.btree.compareGroupLength")
     val compareGroupNum = conf.getInt("cpslab.lsh.btree.compareGroupNum")
     val maxNodeNum = conf.getInt("cpslab.lsh.btree.maximumNodeNum")
+    val debug = conf.getBoolean("cpslab.lsh.btree.debug")
     BTreeDatabase.btreeCompareGroupLength = compareGroupLength
     BTreeDatabase.btreeCompareGroupNum = compareGroupNum
     BTreeDatabase.btreeMaximumNode = maxNodeNum
@@ -356,32 +357,36 @@ object HashTreeTest {
     val st = System.nanoTime()
     val mainFs = taskQueue.map {
       vector =>
-        Future {
+        val f1 = Future {
           vectorIdToVectorBTree.put(vector.vectorId, vector)
           vector
-        }.flatMap {
-          returnedVector =>
-
-            val fs = (0 until tableNum).map(tableId => {
-              Future {
-                val lshCalculator = HashTreeTest.lshEngines(tableId)
-                if (lshCalculator == null) {
-                  println(s"FAULT: lshcalculator for table $tableId is null")
+        }
+        if (debug) {
+          f1
+        } else {
+          f1.flatMap {
+            returnedVector =>
+              val fs = (0 until tableNum).map(tableId => {
+                Future {
+                  val lshCalculator = HashTreeTest.lshEngines(tableId)
+                  if (lshCalculator == null) {
+                    println(s"FAULT: lshcalculator for table $tableId is null")
+                  }
+                  // to be equivalent to the MapDB.hash()
+                  val v = vectorIdToVectorBTree.get(returnedVector.vectorId)
+                  if (v == null) {
+                    println(s"found ${returnedVector.vectorId} as null")
+                  }
+                  val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
+                  val lh = h & 0xffffffffL
+                  //get the first group
+                  val key = calculateFirstLevelHashForBTree(lh)
+                  vectorDatabaseBTree(tableId).append(key,
+                    new LSHBTreeVal(returnedVector.vectorId, lh), 0)
                 }
-                // to be equivalent to the MapDB.hash()
-                val v = vectorIdToVectorBTree.get(returnedVector.vectorId)
-                if (v == null) {
-                  println(s"found ${returnedVector.vectorId} as null")
-                }
-                val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                val lh = h & 0xffffffffL
-                //get the first group
-                val key = calculateFirstLevelHashForBTree(lh)
-                vectorDatabaseBTree(tableId).append(key,
-                  new LSHBTreeVal(returnedVector.vectorId, lh), 0)
-              }
-            })
-            Future.sequence(fs)
+              })
+              Future.sequence(fs)
+          }
         }
     }
     Future.sequence(mainFs).onComplete {
