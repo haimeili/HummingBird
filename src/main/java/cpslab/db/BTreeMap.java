@@ -419,10 +419,6 @@ public class BTreeMap<K, V>
         return 1;
       }
       int compareResult = keyser.compare(keys, pos, second);
-      if (!this.isLeaf()) {
-        System.out.println("compare result " + compareResult + " second " + second +
-                " pos " + pos + " thread " + Thread.currentThread().getName());
-      }
       return compareResult;
     }
 
@@ -2435,6 +2431,9 @@ public class BTreeMap<K, V>
                       (pos - 1) + " in appendExistingRecId(), for key " + v + " thread " +
                       Thread.currentThread().getName());
               if (!A.isLeaf()) {
+                System.out.println("compare result " + A.compare(keySerializer, pos, v) +
+                        " second " + v +
+                        " pos " + pos + " thread " + Thread.currentThread().getName());
                 System.out.println("FAULT: A shall be a leaf node at " + Thread.currentThread().getName());
                 System.exit(1);
               }
