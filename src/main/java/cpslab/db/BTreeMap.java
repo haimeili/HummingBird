@@ -1592,9 +1592,9 @@ public class BTreeMap<K, V>
         boolean AIsLeafBefore = A.isLeaf();
         String threadName = Thread.currentThread().getName();
         System.out.println("A is leaf node: " + AIsLeafBefore + " (before adding key)" +
-                " thread: " + threadName);
+                " thread: " + threadName);*/
         A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
-        boolean AIsLeafAfter = A.isLeaf();
+        /*boolean AIsLeafAfter = A.isLeaf();
         System.out.println("A is leaf node: " + AIsLeafAfter + " (after adding key)" +
                 " thread: " + threadName);
         if (AIsLeafAfter != AIsLeafBefore) {
