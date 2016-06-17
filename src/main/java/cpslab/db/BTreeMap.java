@@ -1558,11 +1558,17 @@ public class BTreeMap<K, V>
 
         int pos = keySerializer.findChildren(A, v);
         //$DELAY$
+        boolean AIsLeafBefore = A.isLeaf();
         System.out.println("A is leaf node: " + A.isLeaf() + " (before adding key)" +
-                " thread: " + Thread.currentThread().getName());
+                " thread: " + AIsLeafBefore);
         A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
+        boolean AIsLeafAfter = A.isLeaf();
         System.out.println("A is leaf node: " + A.isLeaf() + " (after adding key)" +
-                " thread: " + Thread.currentThread().getName());
+                " thread: " + AIsLeafAfter);
+        if (AIsLeafAfter != AIsLeafBefore) {
+          System.out.println("inconsistent A's type, before " + AIsLeafBefore + " after " +
+            AIsLeafAfter + " thread " + Thread.currentThread().getName());
+        }
         //$DELAY$
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
