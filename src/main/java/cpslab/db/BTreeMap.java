@@ -2428,7 +2428,8 @@ public class BTreeMap<K, V>
             Object oldVal = A.val(pos - 1, valueSerializer);
             if (oldVal == null) {
               System.out.println("fetch an null value in record " + current + " at pos " +
-                      (pos - 1) + " in appendExistingRecId()");
+                      (pos - 1) + " in appendExistingRecId(), for key " + v + " thread " +
+                      Thread.currentThread().getName());
               if (!A.isLeaf()) {
                 System.out.println("FAULT: A shall be a leaf node at " + Thread.currentThread().getName());
                 System.exit(1);
