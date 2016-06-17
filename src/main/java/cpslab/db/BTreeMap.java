@@ -1566,8 +1566,9 @@ public class BTreeMap<K, V>
         System.out.println("A is leaf node: " + A.isLeaf() + " (after adding key)" +
                 " thread: " + AIsLeafAfter);
         if (AIsLeafAfter != AIsLeafBefore) {
-          System.out.println("inconsistent A's type, before " + AIsLeafBefore + " after " +
+          System.out.println("FAULT: inconsistent A's type, before " + AIsLeafBefore + " after " +
             AIsLeafAfter + " thread " + Thread.currentThread().getName());
+          System.exit(1);
         }
         //$DELAY$
         // can be new item inserted into A without splitting it?
