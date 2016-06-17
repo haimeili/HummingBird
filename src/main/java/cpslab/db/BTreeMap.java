@@ -412,6 +412,10 @@ public class BTreeMap<K, V>
       //$DELAY$
       if (isRightEdge() && pos == keyser.length(keys)) {
         //last position is positive infinity, so everything else is smaller
+        if (!this.isLeaf()) {
+          System.out.println("in a dir node reaching right edge, thread " +
+                  Thread.currentThread().getName());
+        }
         return 1;
       }
       return keyser.compare(keys, pos, second);
