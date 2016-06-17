@@ -1473,6 +1473,9 @@ public class BTreeMap<K, V>
           //$DELAY$
           found = true;
           A = engine.get(current, nodeSerializer);
+          if (!A.isLeaf()) {
+            System.out.println("found a dir node in searching, thread " + Thread.currentThread().getName());
+          }
           int pos = keySerializer.findChildren(A, v);
           //check if keys is already in tree
           //$DELAY$
