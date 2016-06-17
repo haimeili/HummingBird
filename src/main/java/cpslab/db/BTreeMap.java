@@ -1285,7 +1285,7 @@ public class BTreeMap<K, V>
             if (oldVal == null) {
               System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
               if (!A.isLeaf()) {
-                System.out.println("FAULT: A shall be a leaf node");
+                System.out.println("FAULT: A shall be a leaf node" + Thread.currentThread().getName());
                 System.exit(1);
               }
             }
@@ -2390,7 +2390,7 @@ public class BTreeMap<K, V>
               System.out.println("fetch an null value in record " + current + " at pos " +
                       (pos - 1) + " in appendExistingRecId()");
               if (!A.isLeaf()) {
-                System.out.println("FAULT: A shall be a leaf node");
+                System.out.println("FAULT: A shall be a leaf node at " + Thread.currentThread().getName());
                 System.exit(1);
               }
             }
