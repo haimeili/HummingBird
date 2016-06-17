@@ -1309,9 +1309,9 @@ public class BTreeMap<K, V>
             if (value != null) {
               //$DELAY$
               updateLeafNode(current, A, pos, value);
-            } else {
+            } /*else {
               System.out.println("FAULT: value is null");
-            }
+            }*/
             //$DELAY$
             //already in here
             V ret;
@@ -2458,9 +2458,9 @@ public class BTreeMap<K, V>
             //$DELAY$
             if (value != null) {
               updateLeafNode(current, A, pos, value);
-            } else {
+            } /*else {
               System.out.println("FAULT: value is null");
-            }
+            }*/
             //$DELAY$
             //already in here
             unlock(nodeLocks, current);
