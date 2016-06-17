@@ -1417,7 +1417,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            // System.out.println("split " + current + "(root) when inserting " + recid);
+            System.out.println("split " + current + "(root) when inserting " + recid);
             splitRoot(current, q, A);
             return null;
           }
