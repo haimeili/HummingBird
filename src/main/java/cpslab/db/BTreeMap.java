@@ -1474,7 +1474,8 @@ public class BTreeMap<K, V>
           found = true;
           A = engine.get(current, nodeSerializer);
           if (!A.isLeaf()) {
-            System.out.println("found a dir node in searching, thread " + Thread.currentThread().getName());
+            System.out.println("found a dir node in searching, thread " +
+                    Thread.currentThread().getName());
           }
           int pos = keySerializer.findChildren(A, v);
           //check if keys is already in tree
@@ -1482,6 +1483,10 @@ public class BTreeMap<K, V>
           if (pos < A.keysLen(keySerializer) - 1 && v != null &&
                   A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
                   0 == A.compare(keySerializer, pos, v)) {
+            if (!A.isLeaf()) {
+              System.out.println("found a key " + v + " in dir node, thread " +
+                      Thread.currentThread().getName());
+            }
             //$DELAY$
             //yes key is already in tree
             // nan zhu: the implementation of val is calling valueArrayGet
@@ -1589,7 +1594,8 @@ public class BTreeMap<K, V>
           return null;
         } else {
           //node is not safe, it requires splitting
-
+          System.out.println("splitting node " + current + " thread " +
+                  Thread.currentThread().getName());
           final int splitPos = A.keysLen(keySerializer) / 2;
           //$DELAY$
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
