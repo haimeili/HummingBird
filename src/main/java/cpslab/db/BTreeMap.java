@@ -1537,7 +1537,7 @@ public class BTreeMap<K, V>
                     0 == A.compare(keySerializer, pos, v)*/
             System.out.println("thread " + Thread.currentThread().getName() + ", " +
                     (pos < A.keysLen(keySerializer) - 1) + ", " + (A.key(keySerializer, pos) != null) +
-                    A.compare(keySerializer, pos, v));
+                    ", " + A.compare(keySerializer, pos, v));
             System.out.println("thread " + Thread.currentThread().getName() + ", " + v);
           }
 
