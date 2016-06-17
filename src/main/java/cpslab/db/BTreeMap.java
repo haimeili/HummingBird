@@ -1535,9 +1535,19 @@ public class BTreeMap<K, V>
             pos < A.keysLen(keySerializer) - 1 && v != null &&
                     A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
                     0 == A.compare(keySerializer, pos, v)*/
-            System.out.println("thread " + Thread.currentThread().getName() + ", " +
-                    (pos < A.keysLen(keySerializer) - 1) + ", " + (A.key(keySerializer, pos) != null) +
-                    ", " + A.compare(keySerializer, pos, v));
+            boolean flag1 = pos < A.keysLen(keySerializer) - 1;
+            if (flag1) {
+              boolean flag2 = A.key(keySerializer, pos) != null;
+              if (flag2) {
+                int t = A.compare(keySerializer, pos, v);
+                boolean flag3 = t == 0;
+                System.out.println("flag 3: " + t);
+              } else {
+                System.out.println("flag 2: " + false);
+              }
+            } else {
+              System.out.println("flag 1: " + false);
+            }
             System.out.println("thread " + Thread.currentThread().getName() + ", " + v);
           }
 
