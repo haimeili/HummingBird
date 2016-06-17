@@ -1558,7 +1558,9 @@ public class BTreeMap<K, V>
 
         int pos = keySerializer.findChildren(A, v);
         //$DELAY$
+        System.out.println("A is leaf node: " + A.isLeaf() + " (before adding key)");
         A = A.copyAddKey(keySerializer, valueSerializer, pos, v, p, value);
+        System.out.println("A is leaf node: " + A.isLeaf() + " (after adding key)");
         //$DELAY$
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
