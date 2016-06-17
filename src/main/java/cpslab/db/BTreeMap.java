@@ -1516,7 +1516,7 @@ public class BTreeMap<K, V>
                 value = (V) oldVal;
               }
             }
-            
+
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
             if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -1530,6 +1530,15 @@ public class BTreeMap<K, V>
             //$DELAY$
             if (CC.ASSERT) assertNoLocks(nodeLocks);
             return ret;
+          } else {
+            /*
+            pos < A.keysLen(keySerializer) - 1 && v != null &&
+                    A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
+                    0 == A.compare(keySerializer, pos, v)*/
+            System.out.println("thread " + Thread.currentThread().getName() + ", " +
+                    (pos < A.keysLen(keySerializer) - 1) + ", " + (A.key(keySerializer, pos) != null) +
+                    A.compare(keySerializer, pos, v));
+            System.out.println("thread " + Thread.currentThread().getName() + ", " + v);
           }
 
           //if v > highvalue(a)
