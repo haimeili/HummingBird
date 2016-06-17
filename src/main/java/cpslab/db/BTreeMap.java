@@ -2334,7 +2334,7 @@ public class BTreeMap<K, V>
         System.out.println("meet a intermediate-ValRef at level " + currentLevel +
                 " with nextLevelHash " + newPartialHash);*/
         appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
-        return oldRef;
+        return null;
       } else {
         return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, pos);
       }
