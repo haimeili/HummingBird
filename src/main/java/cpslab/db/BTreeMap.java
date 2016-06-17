@@ -526,7 +526,8 @@ public class BTreeMap<K, V>
     }
 
     @Override
-    public DirNode copyAddKey(BTreeKeySerializer keyser, Serializer valser, int pos, Object newKey, long newChild, Object newValue) {
+    public DirNode copyAddKey(BTreeKeySerializer keyser, Serializer valser, int pos, Object newKey,
+                              long newChild, Object newValue) {
       Object keys2 = keyser.putKey(keys, pos - leftEdgeInc(), newKey);
 
       Object child2;
@@ -1508,6 +1509,8 @@ public class BTreeMap<K, V>
               }
             }
 
+            System.out.println("A is leaf node: " + A.isLeaf());
+
             //$DELAY$
             A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
             if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -1541,10 +1544,7 @@ public class BTreeMap<K, V>
               //$DELAY$
               pos2 = keySerializer.findChildren(A, v);
             }
-
           }
-
-
         } while (!found);
 
         V value = value2;
