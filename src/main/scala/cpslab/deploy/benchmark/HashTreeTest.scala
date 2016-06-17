@@ -343,6 +343,7 @@ object HashTreeTest {
     val compareGroupNum = conf.getInt("cpslab.lsh.btree.compareGroupNum")
     val maxNodeNum = conf.getInt("cpslab.lsh.btree.maximumNodeNum")
     val debug = conf.getBoolean("cpslab.lsh.btree.debug")
+    BTreeDatabase.debug = debug
     BTreeDatabase.btreeCompareGroupLength = compareGroupLength
     BTreeDatabase.btreeCompareGroupNum = compareGroupNum
     BTreeDatabase.btreeMaximumNode = maxNodeNum

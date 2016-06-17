@@ -1476,7 +1476,7 @@ public class BTreeMap<K, V>
           //$DELAY$
           found = true;
           A = engine.get(current, nodeSerializer);
-          if (!A.isLeaf()) {
+          if (BTreeDatabase.debug() && !A.isLeaf()) {
             System.out.println("found a dir node in searching, thread " +
                     Thread.currentThread().getName());
           }
@@ -1486,7 +1486,7 @@ public class BTreeMap<K, V>
           if (pos < A.keysLen(keySerializer) - 1 && v != null &&
                   A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
                   0 == A.compare(keySerializer, pos, v)) {
-            if (!A.isLeaf()) {
+            if (BTreeDatabase.debug() && !A.isLeaf()) {
               System.out.println("found a key " + v + " in dir node, thread " +
                       Thread.currentThread().getName());
             }
@@ -1538,7 +1538,7 @@ public class BTreeMap<K, V>
             pos < A.keysLen(keySerializer) - 1 && v != null &&
                     A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
                     0 == A.compare(keySerializer, pos, v)*/
-            if (!A.isLeaf()) {
+            if (BTreeDatabase.debug() && !A.isLeaf()) {
               boolean flag1 = pos < A.keysLen(keySerializer) - 1;
               if (flag1) {
                 boolean flag2 = A.key(keySerializer, pos) != null;
@@ -1588,6 +1588,7 @@ public class BTreeMap<K, V>
 
         int pos = keySerializer.findChildren(A, v);
         //$DELAY$
+        /*
         boolean AIsLeafBefore = A.isLeaf();
         String threadName = Thread.currentThread().getName();
         System.out.println("A is leaf node: " + AIsLeafBefore + " (before adding key)" +
@@ -1600,7 +1601,7 @@ public class BTreeMap<K, V>
           System.out.println("FAULT: inconsistent A's type, before " + AIsLeafBefore + " after " +
             AIsLeafAfter + " thread " + Thread.currentThread().getName());
           System.exit(1);
-        }
+        }*/
         //$DELAY$
         // can be new item inserted into A without splitting it?
         if (A.keysLen(keySerializer) - (A.isLeaf() ? 1 : 0) < maxNodeSize) {
@@ -1628,8 +1629,10 @@ public class BTreeMap<K, V>
           engine.update(current, A, nodeSerializer);
 
           if ((current != rootRecid)) { //is not root
-            System.out.println("splitting non-root node " + current + " thread " +
-                    Thread.currentThread().getName());
+            if (BTreeDatabase.debug()) {
+              System.out.println("splitting non-root node " + current + " thread " +
+                      Thread.currentThread().getName());
+            }
             unlock(nodeLocks, current);
             p = q;
             v = (K) A.highKey(keySerializer);
@@ -1645,8 +1648,10 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("splitting root node " + current + " thread " +
-                    Thread.currentThread().getName());
+            if (BTreeDatabase.debug()) {
+              System.out.println("splitting root node " + current + " thread " +
+                      Thread.currentThread().getName());
+            }
 
             Object rootChild =
                     (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
