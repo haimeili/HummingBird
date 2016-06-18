@@ -1171,7 +1171,7 @@ public class BTreeMap<K, V>
 
   public V putWithDebugging(K key, V value, boolean ifAppend) {
     if (key == null || value == null) throw new NullPointerException();
-    return put2(key, value, false, true);
+    return put2(key, value, false, ifAppend);
   }
 
   /**
