@@ -1550,17 +1550,18 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
                 System.out.println("found key " + key + " in dir node when updating " + value);
+                engine.update(recid, value2, valueSerializer);
               } else {
                 ((ValRef) oldVal).appendNewRecId(recid);
                 value = (V) oldVal;
+                A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
+                engine.update(current, A, nodeSerializer);
               }
             }
 
             //$DELAY$
-            A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
             if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
               throw new AssertionError();
-            engine.update(current, A, nodeSerializer);
             //$DELAY$
             //already in here
             V ret = valExpand(oldVal);
