@@ -1169,6 +1169,11 @@ public class BTreeMap<K, V>
     return put2(key, value, false, false);
   }
 
+  public V putWithDebugging(K key, V value, boolean ifAppend) {
+    if (key == null || value == null) throw new NullPointerException();
+    return put2(key, value, false, true);
+  }
+
   /**
    * update the existing ValRef with the recordID of new value
    * if ValRef has been reached the bufferoverflow point, we need to redistribute the record IDs

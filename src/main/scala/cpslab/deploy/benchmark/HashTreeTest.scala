@@ -343,6 +343,7 @@ object HashTreeTest {
     val compareGroupNum = conf.getInt("cpslab.lsh.btree.compareGroupNum")
     val maxNodeNum = conf.getInt("cpslab.lsh.btree.maximumNodeNum")
     val debug = conf.getBoolean("cpslab.lsh.btree.debug")
+    val appendDebug = conf.getBoolean("cpslab.lsh.btree.appendDebug")
     BTreeDatabase.debug = debug
     BTreeDatabase.btreeCompareGroupLength = compareGroupLength
     BTreeDatabase.btreeCompareGroupNum = compareGroupNum
@@ -359,7 +360,14 @@ object HashTreeTest {
     val mainFs = taskQueue.map {
       vector =>
         val f1 = Future {
-          vectorIdToVectorBTree.put(vector.vectorId, vector)
+          val vId = {
+            if (debug) {
+              Random.nextInt(100000)
+            } else {
+              vector.vectorId
+            }
+          }
+          vectorIdToVectorBTree.putWithDebugging(vId, vector, appendDebug)
           vector
         }
         if (debug) {
