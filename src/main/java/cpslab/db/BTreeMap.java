@@ -1495,7 +1495,7 @@ public class BTreeMap<K, V>
           A = engine.get(current, nodeSerializer);
           if (BTreeDatabase.debug() && !A.isLeaf()) {
             DirNode dir = (DirNode) A;
-            System.out.println("found a dir node in searching, thread " +
+            System.out.println("found a dir node in searching" + v + " thread " +
                     Thread.currentThread().getName());
             System.out.println(dir);
             for (int i = 0; i < dir.childArrayLength(); i++) {
