@@ -235,7 +235,7 @@ public class BTreeMap<K, V>
     }
 
     public void appendNewRecId(long recId) {
-      if (recids.contains(recId)) {
+      if (recids.contains(recId) && !BTreeDatabase.debug()) {
         System.out.println("FAULT: record " + recId + " already exists, thread: " +
                 Thread.currentThread().getName());
         System.exit(1);
@@ -1493,10 +1493,11 @@ public class BTreeMap<K, V>
           //$DELAY$
           found = true;
           A = engine.get(current, nodeSerializer);
+          /*
           if (BTreeDatabase.debug() && !A.isLeaf()) {
             System.out.println("found a dir node in searching, thread " +
                     Thread.currentThread().getName());
-          }
+          }*/
           int pos = keySerializer.findChildren(A, v);
           //check if keys is already in tree
           //$DELAY$
@@ -1556,6 +1557,7 @@ public class BTreeMap<K, V>
             pos < A.keysLen(keySerializer) - 1 && v != null &&
                     A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
                     0 == A.compare(keySerializer, pos, v)*/
+            /*
             if (BTreeDatabase.debug() && !A.isLeaf()) {
               boolean flag1 = pos < A.keysLen(keySerializer) - 1;
               if (flag1) {
@@ -1571,7 +1573,7 @@ public class BTreeMap<K, V>
                 System.out.println("flag 1: " + false);
               }
               System.out.println("thread " + Thread.currentThread().getName() + ", " + v);
-            }
+            }*/
           }
 
           //if v > highvalue(a)
