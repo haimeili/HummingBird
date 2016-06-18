@@ -709,10 +709,10 @@ public class BTreeMap<K, V>
       //$DELAY$
       Object vals2 = valser.valueArrayPut(vals, pos - 1, newValue);
       //$DELAY$
-      long[] updatedKeys = (long[]) keys2;
+      Object[] updatedKeys = keyser.keysToArray(keys2);
       for (int i = 0; i < updatedKeys.length - 1; i++) {
         for (int j = 1; j < updatedKeys.length; j++) {
-          if (updatedKeys[i] == updatedKeys[j]) {
+          if (updatedKeys[i].equals(updatedKeys[j])) {
             System.out.println("FAULT: duplicate keys in " + this.toString());
             System.exit(1);
           }
