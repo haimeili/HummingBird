@@ -2451,7 +2451,7 @@ public class BTreeMap<K, V>
                 System.out.println(dir);
                 for (int i = 0; i < dir.childArrayLength(); i++) {
                   long childRecId = dir.child(i);
-                  LeafNode child = (LeafNode) engine.get(childRecId, nodeSerializer);
+                  BNode child = engine.get(childRecId, nodeSerializer);
                   System.out.println("child " + i + ": " + child);
                 }
                 System.exit(1);
