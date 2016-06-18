@@ -1543,17 +1543,21 @@ public class BTreeMap<K, V>
             //insert new
             V value = value2;
             if (valsOutsideNodes) {
-              long recid = engine.put(value2, valueSerializer);
               if (!ifAppend) {
+                long recid = ((ValRef)oldVal).recids.get(0);
                 //$DELAY$
-                List<Long> l = new LinkedList<Long>();
-                l.add(recid);
-                value = (V) new ValRef(l);
+                /*
+                  List<Long> l = new LinkedList<Long>();
+                  l.add(recid);
+                  value = (V) new ValRef(l);
+                */
                 //System.out.println("found key " + key + " in dir node when updating " + value);
                 engine.update(recid, value2, valueSerializer);
               } else {
-                ((ValRef) oldVal).appendNewRecId(recid);
+                long recId = engine.put(value2, valueSerializer);
+                ((ValRef) oldVal).appendNewRecId(recId);
                 value = (V) oldVal;
+                //TODO: potentially ClassCastException
                 A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
                 engine.update(current, A, nodeSerializer);
               }
