@@ -1510,7 +1510,7 @@ public class BTreeMap<K, V>
             System.out.println("=======");
           }
           // instrument error
-          if (BTreeDatabase.instrumentError()) {
+          if (BTreeDatabase.instrumentError() && BTreeDatabase.debug()) {
             if (!A.isLeaf()) {
               Object k = ((long[]) ((DirNode) A).keys)[pos];
               v = (K) k;
