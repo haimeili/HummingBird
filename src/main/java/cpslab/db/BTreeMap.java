@@ -1493,6 +1493,7 @@ public class BTreeMap<K, V>
           //$DELAY$
           found = true;
           A = engine.get(current, nodeSerializer);
+          int pos = keySerializer.findChildren(A, v);
           if (BTreeDatabase.debug() && !A.isLeaf()) {
             DirNode dir = (DirNode) A;
             System.out.println("found a dir node in searching" + v + " thread " +
@@ -1505,9 +1506,9 @@ public class BTreeMap<K, V>
                 System.out.println("child " + i + ": " + child);
               }
             }
+            System.out.println(" found child at pos " + pos);
             System.out.println("=======");
           }
-          int pos = keySerializer.findChildren(A, v);
           //check if keys is already in tree
           //$DELAY$
           if (pos < A.keysLen(keySerializer) - 1 && v != null &&
