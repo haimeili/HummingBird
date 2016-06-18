@@ -1647,10 +1647,10 @@ public class BTreeMap<K, V>
           engine.update(current, A, nodeSerializer);
 
           if ((current != rootRecid)) { //is not root
-            if (BTreeDatabase.debug()) {
+            /*if (BTreeDatabase.debug()) {
               System.out.println("splitting non-root node " + current + " thread " +
                       Thread.currentThread().getName());
-            }
+            }*/
             unlock(nodeLocks, current);
             p = q;
             v = (K) A.highKey(keySerializer);
@@ -1666,10 +1666,10 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            if (BTreeDatabase.debug()) {
+            /*if (BTreeDatabase.debug()) {
               System.out.println("splitting root node " + current + " thread " +
                       Thread.currentThread().getName());
-            }
+            }*/
 
             Object rootChild =
                     (current < Integer.MAX_VALUE && q < Integer.MAX_VALUE) ?
