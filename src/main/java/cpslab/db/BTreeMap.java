@@ -1512,7 +1512,7 @@ public class BTreeMap<K, V>
           // instrument error
           if (BTreeDatabase.instrumentError() && BTreeDatabase.debug()) {
             if (!A.isLeaf()) {
-              Object k = ((long[]) ((DirNode) A).keys)[pos];
+              Object k = A.key(keySerializer, pos);
               v = (K) k;
             }
           }
