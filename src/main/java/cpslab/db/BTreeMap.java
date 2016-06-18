@@ -1418,7 +1418,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            System.out.println("split " + current + " when inserting " + recid);
+            // System.out.println("split " + current + " when inserting " + recid);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -1433,7 +1433,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + " (root) when inserting " + recid);
+            // System.out.println("split " + current + " (root) when inserting " + recid);
             splitRoot(current, q, A);
             return null;
           }
@@ -2575,7 +2575,7 @@ public class BTreeMap<K, V>
 
           if ((current != rootRecid)) { //is not root
             unlock(nodeLocks, current);
-            System.out.println("split " + current + " when inserting " + existingRecId);
+            // System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
             //$DELAY$
@@ -2590,7 +2590,7 @@ public class BTreeMap<K, V>
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
           } else {
-            System.out.println("split " + current + " (root) when inserting " + existingRecId);
+            // System.out.println("split " + current + " (root) when inserting " + existingRecId);
             splitRoot(current, q, A);
             return;
           }
