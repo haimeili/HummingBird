@@ -1493,11 +1493,18 @@ public class BTreeMap<K, V>
           //$DELAY$
           found = true;
           A = engine.get(current, nodeSerializer);
-          /*
           if (BTreeDatabase.debug() && !A.isLeaf()) {
+            DirNode dir = (DirNode) A;
             System.out.println("found a dir node in searching, thread " +
                     Thread.currentThread().getName());
-          }*/
+            System.out.println(dir);
+            for (int i = 0; i < dir.childArrayLength(); i++) {
+              long childRecId = dir.child(i);
+              BNode child = engine.get(childRecId, nodeSerializer);
+              System.out.println("child " + i + ": " + child);
+            }
+            System.out.println("=======");
+          }
           int pos = keySerializer.findChildren(A, v);
           //check if keys is already in tree
           //$DELAY$
