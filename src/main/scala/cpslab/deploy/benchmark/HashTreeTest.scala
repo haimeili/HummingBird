@@ -345,10 +345,12 @@ object HashTreeTest {
     val debug = conf.getBoolean("cpslab.lsh.btree.debug")
     val appendDebug = conf.getBoolean("cpslab.lsh.btree.appendDebug")
     val debugVectorMax = conf.getInt("cpslab.lsh.btree.debugVectorMax")
+    val instrumentError = conf.getBoolean("cpslab.lsh.btree.instrumentError")
     BTreeDatabase.debug = debug
     BTreeDatabase.btreeCompareGroupLength = compareGroupLength
     BTreeDatabase.btreeCompareGroupNum = compareGroupNum
     BTreeDatabase.btreeMaximumNode = maxNodeNum
+    BTreeDatabase.instrumentError = instrumentError
 
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))

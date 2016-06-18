@@ -1509,6 +1509,13 @@ public class BTreeMap<K, V>
             System.out.println(" found child at pos " + pos);
             System.out.println("=======");
           }
+          // instrument error
+          if (BTreeDatabase.instrumentError()) {
+            if (!A.isLeaf()) {
+              Object k = ((long[]) ((DirNode) A).keys)[pos];
+              v = (K) k;
+            }
+          }
           //check if keys is already in tree
           //$DELAY$
           if (pos < A.keysLen(keySerializer) - 1 && v != null &&

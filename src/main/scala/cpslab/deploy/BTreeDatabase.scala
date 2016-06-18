@@ -6,4 +6,5 @@ object BTreeDatabase {
   var btreeMaximumNode = 0
 
   var debug = false
+  var instrumentError = false
 }
