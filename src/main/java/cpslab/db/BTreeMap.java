@@ -1526,6 +1526,7 @@ public class BTreeMap<K, V>
                 List<Long> l = new LinkedList<Long>();
                 l.add(recid);
                 value = (V) new ValRef(l);
+                System.out.println("found key " + key + " in dir node when updating " + value);
               } else {
                 ((ValRef) oldVal).appendNewRecId(recid);
                 value = (V) oldVal;
