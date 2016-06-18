@@ -1734,6 +1734,9 @@ public class BTreeMap<K, V>
       throw e;
     } catch (Exception e) {
       e.printStackTrace();
+      if (BTreeDatabase.debug()) {
+        System.exit(1);
+      }
       unlockAll(nodeLocks);
       throw new RuntimeException(e);
     }
