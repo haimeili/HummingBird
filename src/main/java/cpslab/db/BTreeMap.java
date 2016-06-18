@@ -709,6 +709,7 @@ public class BTreeMap<K, V>
       //$DELAY$
       Object vals2 = valser.valueArrayPut(vals, pos - 1, newValue);
       //$DELAY$
+      /*
       Object[] updatedKeys = keyser.keysToArray(keys2);
       for (int i = 0; i < updatedKeys.length - 1; i++) {
         for (int j = 1; j < updatedKeys.length; j++) {
@@ -717,7 +718,7 @@ public class BTreeMap<K, V>
             //System.exit(1);
           }
         }
-      }
+      }*/
       return new LeafNode(keys2, isLeftEdge(), isRightEdge(), false, vals2, next);
     }
 
