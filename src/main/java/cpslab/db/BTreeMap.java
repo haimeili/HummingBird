@@ -714,7 +714,7 @@ public class BTreeMap<K, V>
         for (int j = 1; j < updatedKeys.length; j++) {
           if (updatedKeys[i].equals(updatedKeys[j])) {
             System.out.println("FAULT: duplicate keys in " + this.toString());
-            System.exit(1);
+            //System.exit(1);
           }
         }
       }
