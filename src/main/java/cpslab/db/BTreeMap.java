@@ -1500,8 +1500,10 @@ public class BTreeMap<K, V>
             System.out.println(dir);
             for (int i = 0; i < dir.childArrayLength(); i++) {
               long childRecId = dir.child(i);
-              BNode child = engine.get(childRecId, nodeSerializer);
-              System.out.println("child " + i + ": " + child);
+              if (childRecId > 0) {
+                BNode child = engine.get(childRecId, nodeSerializer);
+                System.out.println("child " + i + ": " + child);
+              }
             }
             System.out.println("=======");
           }
@@ -2466,8 +2468,10 @@ public class BTreeMap<K, V>
                 System.out.println(dir);
                 for (int i = 0; i < dir.childArrayLength(); i++) {
                   long childRecId = dir.child(i);
-                  BNode child = engine.get(childRecId, nodeSerializer);
-                  System.out.println("child " + i + ": " + child);
+                  if (childRecId > 0) {
+                    BNode child = engine.get(childRecId, nodeSerializer);
+                    System.out.println("child " + i + ": " + child);
+                  }
                 }
                 System.exit(1);
               }
