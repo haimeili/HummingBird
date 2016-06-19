@@ -2489,6 +2489,9 @@ public class BTreeMap<K, V>
                     System.out.println("child " + i + ": " + child);
                   }
                 }
+                for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+                  System.out.println(ste);
+                }
                 System.exit(1);
               }
             }
