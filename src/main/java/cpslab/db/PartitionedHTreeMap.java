@@ -1235,7 +1235,6 @@ public class PartitionedHTreeMap<K, V>
             ln = new LinkedNode<K, V>(ln.next, ln.key, value);
             if (CC.ASSERT && ln.next == recid)
               throw new DBException.DataCorruption("cyclic reference in linked list");
-
             engine.update(recid, ln, LN_SERIALIZER);
             return oldVal;
           }

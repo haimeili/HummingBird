@@ -1174,6 +1174,19 @@ public class BTreeMap<K, V>
     return put2(key, value, false, ifAppend);
   }
 
+  private void replaceOrAddVector (ValRef oldValueRef, int vectorId, long newRecId) {
+    List<Long> recIds = oldValueRef.recids;
+    for (int i = 0; i < recIds.size(); i++) {
+      long rId = recIds.get(i);
+      LSHBTreeVal v = (LSHBTreeVal) engine.get(rId, valueSerializer);
+      if (v.vectorId == vectorId) {
+        recIds.set(i, newRecId);
+        return;
+      }
+    }
+    oldValueRef.appendNewRecId(newRecId);
+  }
+
   /**
    * update the existing ValRef with the recordID of new value
    * if ValRef has been reached the bufferoverflow point, we need to redistribute the record IDs
@@ -1183,11 +1196,12 @@ public class BTreeMap<K, V>
   private ValRef doUpdateOldValueRef(Object oldValue,
                                      long valueRecId,
                                      long nodeRecId,
-                                     int pos) {
+                                     int pos, int vectorId) {
     ValRef oldValueRef = (ValRef) oldValue;
     //System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
       //      ", value " + oldValueRef);
-    oldValueRef.appendNewRecId(valueRecId);
+    //oldValueRef.appendNewRecId(valueRecId);
+    replaceOrAddVector(oldValueRef, vectorId, valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
@@ -1330,7 +1344,8 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, pos, (Long) v);
+                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, pos,
+                        (Long) v, ((LSHBTreeVal) value2).vectorId);
               }
             }
             if (value != null) {
@@ -1720,7 +1735,8 @@ public class BTreeMap<K, V>
               throw new AssertionError();
 
             leftEdges.add(newRootRecid);
-            //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
+            //TODO there could be a race condition between leftEdges  update and rootRecidRef update.
+            // Investigate!
             //$DELAY$
 
             engine.update(rootRecidRef, newRootRecid, Serializer.RECID);
@@ -2368,7 +2384,7 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
-                              int currentLevel, int pos, long key) throws Exception {
+                              int currentLevel, int pos, long key, int vectorId) throws Exception {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2383,7 +2399,7 @@ public class BTreeMap<K, V>
         appendExistingRecId((K) newPartialHash, valueRefId, currentLevel + 1);
         return null;
       } else {
-        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, pos);
+        return doUpdateOldValueRef(oldRef, valueRefId, nodeRecId, pos, vectorId);
       }
     } else {
       // the found oldRef is in another currentLevel, we need to recalculate the hash of value
@@ -2503,8 +2519,9 @@ public class BTreeMap<K, V>
             //insert new
             V value = null;
             if (valsOutsideNodes) {
+              int vectorId = ((LSHBTreeVal) engine.get(existingRecId, valueSerializer)).vectorId;
               value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel,
-                      pos, (Long) v);
+                      pos, (Long) v, vectorId);
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }
