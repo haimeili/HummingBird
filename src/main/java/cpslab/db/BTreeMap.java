@@ -1440,6 +1440,8 @@ public class BTreeMap<K, V>
             v = (K) A.highKey(keySerializer);
             //$DELAY$
             level = level + 1;
+            System.out.println("add " + v + " to parent node at level " + currentLevel +
+                    " in append()" + " thread " + Thread.currentThread().getName());
             if (stackPos != -1) { //if stack is not empty
               current = stackVals[stackPos--];
             } else {
