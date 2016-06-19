@@ -1222,6 +1222,9 @@ public class BTreeMap<K, V>
                 */
         appendExistingRecId((K) nextLevelHash, existingValRecId, currentLevel + 1);
       }
+    } else {
+      BNode A = engine.get(nodeRecId, nodeSerializer);
+      updateLeafNode(nodeRecId, A, pos, oldValueRef);
     }
     return oldValueRef;
   }
