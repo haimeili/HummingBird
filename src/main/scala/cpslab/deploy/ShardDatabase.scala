@@ -128,7 +128,6 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       vectorDatabaseBTree(tableId) =
         db1.treeMapCreate(s"vectorDatabaseBTree - $tableId").valuesOutsideNodesEnable().
           keySerializer(Serializers.scalaLongSerializer).
-          valueSerializer(Serializers.vectorIDHashPairSerializer).
           nodeSize(nodeSize).make[Long, LSHBTreeVal]()
       vectorDatabaseBTree(tableId).tableId = tableId
     }
