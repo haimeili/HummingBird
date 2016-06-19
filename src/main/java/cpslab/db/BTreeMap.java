@@ -1241,7 +1241,7 @@ public class BTreeMap<K, V>
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
               (int) nextLevel) * BTreeDatabase.btreeCompareGroupLength();
       long hashBits = completeHash >>> nextShiftingLength;
-      long levelBits = (nextLevel + 1) << (totalHashBits - nextShiftingLength);
+      long levelBits = (nextLevel + 1L) << (totalHashBits - nextShiftingLength);
       return levelBits | hashBits;
     }
   }
