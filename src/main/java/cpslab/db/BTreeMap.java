@@ -1192,7 +1192,7 @@ public class BTreeMap<K, V>
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
 
-      System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
+      //System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
