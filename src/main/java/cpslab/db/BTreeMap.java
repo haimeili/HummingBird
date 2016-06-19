@@ -2571,7 +2571,8 @@ public class BTreeMap<K, V>
             // System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
-            System.out.println("add " + v + " to parent node");
+            System.out.println("add " + v + " to parent node at level " + currentLevel + " thread " +
+              Thread.currentThread().getName());
             //$DELAY$
             level = level + 1;
             if (stackPos != -1) { //if stack is not empty
@@ -2580,7 +2581,8 @@ public class BTreeMap<K, V>
               //current := the left most node at level
               current = leftEdges.get(level - 1);
             }
-            System.out.println("track back to parent node " + current);
+            System.out.println("track back to parent node " + current + " at level " +
+                    currentLevel + " thread " + Thread.currentThread().getName());
             //$DELAY$
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
