@@ -1232,14 +1232,14 @@ public class BTreeMap<K, V>
   private long calculateNextLevelHash(long completeHash, int currentLevel) {
     int totalHashBits = BTreeDatabase.btreeCompareGroupNum() *
             BTreeDatabase.btreeCompareGroupLength();
-    int nextLevel = currentLevel + 1;
+    long nextLevel = currentLevel + 1;
     if (nextLevel >= BTreeDatabase.btreeCompareGroupNum()) {
       // compose the level bits by shifting to the left for 32 bits
       long levelBits = nextLevel << totalHashBits;
       return levelBits | completeHash;
     } else {
       int nextShiftingLength = (BTreeDatabase.btreeCompareGroupNum() - 1 -
-              nextLevel) * BTreeDatabase.btreeCompareGroupLength();
+              (int) nextLevel) * BTreeDatabase.btreeCompareGroupLength();
       long hashBits = completeHash >>> nextShiftingLength;
       long levelBits = (nextLevel + 1) << (totalHashBits - nextShiftingLength);
       return levelBits | hashBits;
