@@ -1196,7 +1196,7 @@ public class BTreeMap<K, V>
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
-      System.out.println(" at table " + tableId + " at node " + nodeRecId);
+      System.out.println(" at table " + tableId + " at node " + nodeRecId + " at pos " + pos);
       // save the current node
       List<Long> recIdsToRedistribution = new LinkedList<Long>();//oldValueRef.recids.toArray();
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
