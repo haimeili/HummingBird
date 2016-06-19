@@ -2411,6 +2411,7 @@ public class BTreeMap<K, V>
   private BNode updateLeafNode(long currentNodeId, BNode A, int pos, Object value) {
     if (value == null) {
       System.out.println("in updateLeafNode, meet a null value when updating " + currentNodeId);
+      System.exit(1);
     }
     A = ((LeafNode) A).copyChangeValue(valueSerializer, pos, value);
     //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -2506,7 +2507,7 @@ public class BTreeMap<K, V>
 
             //$DELAY$
             if (value != null) {
-              updateLeafNode(current, A, pos, value);
+              // updateLeafNode(current, A, pos, value);
             } /*else {
               System.out.println("FAULT: value is null");
             }*/
