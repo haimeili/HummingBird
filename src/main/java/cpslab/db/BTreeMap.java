@@ -2559,7 +2559,7 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
 
           System.out.println("generate node " + q + " from " + current +
-                  " when inserting " + existingRecId);
+                  " when inserting " + existingRecId + " thread " + Thread.currentThread().getName());
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
