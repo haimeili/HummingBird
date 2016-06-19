@@ -1330,7 +1330,7 @@ public class BTreeMap<K, V>
                 l.add(recid);
                 value = (V) new ValRef(l);
               } else {
-                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, pos);
+                value = (V) updateOldRef((ValRef) oldVal, recid, current, currentLevel, pos, (Long) v);
               }
             }
             if (value != null) {
@@ -2361,7 +2361,7 @@ public class BTreeMap<K, V>
   }
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
-                              int currentLevel, int pos) throws Exception {
+                              int currentLevel, int pos, long key) throws Exception {
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2400,7 +2400,7 @@ public class BTreeMap<K, V>
       return null;
       */
       throw new Exception("currentLevel " + currentLevel + " does not match with the ValRef's" +
-              " level " + oldRef.currentLevel + " when inserting record " + valueRefId);
+              " level " + oldRef.currentLevel + " when inserting record " + valueRefId + " at key " + key);
     }
   }
 
@@ -2496,7 +2496,8 @@ public class BTreeMap<K, V>
             //insert new
             V value = null;
             if (valsOutsideNodes) {
-              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel, pos);
+              value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel,
+                      pos, (Long) newKey);
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }
