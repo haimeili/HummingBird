@@ -1185,18 +1185,18 @@ public class BTreeMap<K, V>
                                      long nodeRecId,
                                      int pos) {
     ValRef oldValueRef = (ValRef) oldValue;
-    /*System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
-            ", value " + oldValueRef);*/
+    System.out.println(Thread.currentThread().getName() + " updates node " + nodeRecId +
+            ", value " + oldValueRef);
     oldValueRef.appendNewRecId(valueRecId);
     int currentLevel = oldValueRef.currentLevel;
     if (oldValueRef.recids.size() >= BTreeDatabase.btreeMaximumNode() &&
             currentLevel < BTreeDatabase.btreeCompareGroupNum() - 1) {
-      /*
+
       System.out.print(Thread.currentThread().getName() + " redistributing oldValue: ");
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
         System.out.print(oldValueRef.recids.get(i) + " ");
       }
-      System.out.println(" at table " + tableId + " at node " + nodeRecId);*/
+      System.out.println(" at table " + tableId + " at node " + nodeRecId);
       // save the current node
       List<Long> recIdsToRedistribution = new LinkedList<Long>();//oldValueRef.recids.toArray();
       for (int i = 0; i < oldValueRef.recids.size(); i++) {
