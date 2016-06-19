@@ -1544,7 +1544,7 @@ public class BTreeMap<K, V>
             V value = value2;
             if (valsOutsideNodes) {
               if (!ifAppend) {
-                long recid = ((ValRef)oldVal).recids.get(0);
+                long recid = ((ValRef) oldVal).recids.get(0);
                 //$DELAY$
                 /*
                   List<Long> l = new LinkedList<Long>();
@@ -1574,28 +1574,6 @@ public class BTreeMap<K, V>
             //$DELAY$
             if (CC.ASSERT) assertNoLocks(nodeLocks);
             return ret;
-          } else {
-            /*
-            pos < A.keysLen(keySerializer) - 1 && v != null &&
-                    A.key(keySerializer, pos) != null && //TODO A.key(pos]!=null??
-                    0 == A.compare(keySerializer, pos, v)*/
-            /*
-            if (BTreeDatabase.debug() && !A.isLeaf()) {
-              boolean flag1 = pos < A.keysLen(keySerializer) - 1;
-              if (flag1) {
-                boolean flag2 = A.key(keySerializer, pos) != null;
-                if (flag2) {
-                  int t = A.compare(keySerializer, pos, v);
-                  boolean flag3 = t == 0;
-                  System.out.println("flag 3: " + t);
-                } else {
-                  System.out.println("flag 2: " + false);
-                }
-              } else {
-                System.out.println("flag 1: " + false);
-              }
-              System.out.println("thread " + Thread.currentThread().getName() + ", " + v);
-            }*/
           }
 
           //if v > highvalue(a)
@@ -2579,9 +2557,9 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
-          /*
+
           System.out.println("generate node " + q + " from " + current +
-                  " when inserting " + existingRecId);*/
+                  " when inserting " + existingRecId);
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -2593,6 +2571,7 @@ public class BTreeMap<K, V>
             // System.out.println("split " + current + " when inserting " + existingRecId);
             p = q;
             v = (K) A.highKey(keySerializer);
+            System.out.println("add " + v + " to parent node");
             //$DELAY$
             level = level + 1;
             if (stackPos != -1) { //if stack is not empty
@@ -2601,6 +2580,7 @@ public class BTreeMap<K, V>
               //current := the left most node at level
               current = leftEdges.get(level - 1);
             }
+            System.out.println("track back to parent node " + current);
             //$DELAY$
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
