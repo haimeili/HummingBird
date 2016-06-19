@@ -1303,9 +1303,24 @@ public class BTreeMap<K, V>
             //yes key is already in tree
             Object oldVal = A.val(pos - 1, valueSerializer);
             if (oldVal == null) {
-              System.out.println("fetch an null value in record " + current + " at pos " + (pos - 1));
+              System.out.println("fetch an null value in record " + current + " at pos " +
+                      (pos - 1) + " in putWithRedistribution(), for key " + v + " thread " +
+                      Thread.currentThread().getName());
               if (!A.isLeaf()) {
-                System.out.println("FAULT: A shall be a leaf node" + Thread.currentThread().getName());
+                DirNode dir = (DirNode) A;
+                System.out.println("compare result " + A.compare(keySerializer, pos, v) +
+                        " second " + v +
+                        " pos " + pos + " thread " + Thread.currentThread().getName());
+                System.out.println("FAULT: A shall be a leaf node at " +
+                        Thread.currentThread().getName());
+                System.out.println(dir);
+                for (int i = 0; i < dir.childArrayLength(); i++) {
+                  long childRecId = dir.child(i);
+                  if (childRecId > 0) {
+                    BNode child = engine.get(childRecId, nodeSerializer);
+                    System.out.println("child " + i + ": " + child);
+                  }
+                }
                 System.exit(1);
               }
             }
@@ -1409,7 +1424,8 @@ public class BTreeMap<K, V>
           BNode B = A.copySplitRight(keySerializer, valueSerializer, splitPos);
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
-          // System.out.println("generate node " + q + " from " + current + " when inserting " + recid);
+          System.out.println("generate node " + q + " from " + current + " when inserting " +
+                  recid + " thread " + Thread.currentThread().getName());
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -1429,6 +1445,8 @@ public class BTreeMap<K, V>
               //current := the left most node at level
               current = leftEdges.get(level - 1);
             }
+            System.out.println("track back to parent node " + current + " at level " +
+                    currentLevel + " thread " + Thread.currentThread().getName());
             //$DELAY$
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
