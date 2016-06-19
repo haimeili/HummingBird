@@ -1425,7 +1425,8 @@ public class BTreeMap<K, V>
           //$DELAY$
           long q = engine.put(B, nodeSerializer);
           System.out.println("generate node " + q + " from " + current + " when inserting " +
-                  recid + " thread " + Thread.currentThread().getName());
+                  v + " with key " + key + " thread " + Thread.currentThread().getName() +
+                  " in putWithRedistribution()");
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
@@ -1446,7 +1447,8 @@ public class BTreeMap<K, V>
               current = leftEdges.get(level - 1);
             }
             System.out.println("track back to parent node " + current + " at level " +
-                    currentLevel + " thread " + Thread.currentThread().getName());
+                    currentLevel + " thread " + Thread.currentThread().getName() +
+                    " in putWithRedistribution()");
             //$DELAY$
             if (CC.ASSERT && !(current > 0))
               throw new DBException.DataCorruption("wrong recid");
@@ -2577,7 +2579,8 @@ public class BTreeMap<K, V>
           long q = engine.put(B, nodeSerializer);
 
           System.out.println("generate node " + q + " from " + current +
-                  " when inserting " + existingRecId + " thread " + Thread.currentThread().getName());
+                  " when updating " + existingRecId + " with key " + newKey +
+                  " thread " + Thread.currentThread().getName());
           A = A.copySplitLeft(keySerializer, valueSerializer, splitPos, q);
           //$DELAY$
           //if (CC.ASSERT && !(nodeLocks.get(current).isHeldByCurrentThread()))
