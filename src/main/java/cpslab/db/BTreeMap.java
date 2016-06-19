@@ -2497,7 +2497,7 @@ public class BTreeMap<K, V>
             V value = null;
             if (valsOutsideNodes) {
               value = (V) updateOldRef((ValRef) oldVal, existingRecId, current, currentLevel,
-                      pos, (Long) newKey);
+                      pos, (Long) v);
             } else {
               throw new Exception("appendExistingRecId does not support in valsInsideNodes");
             }
