@@ -392,6 +392,7 @@ object HashTreeTest {
                     println(s"found ${returnedVector.vectorId} as null")
                   }
                   val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
+                  val h1 = lshPartitioners(tableId).getPartition(h)
                   val lh = h & 0xffffffffL
                   //get the first group
                   val key = calculateFirstLevelHashForBTree(lh)
