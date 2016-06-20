@@ -1634,9 +1634,11 @@ public class BTreeMap<K, V>
               //$DELAY$
               if (next == 0) break;
               current = next;
+              lock(nodeLocks, current);
               A = engine.get(current, nodeSerializer);
               //$DELAY$
               pos2 = keySerializer.findChildren(A, v);
+              unlock(nodeLocks, current);
             }
           }
         } while (!found);
