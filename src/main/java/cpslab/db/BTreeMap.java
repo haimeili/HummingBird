@@ -272,6 +272,9 @@ public class BTreeMap<K, V>
       int currentLevel = Serializer.INTEGER.deserialize(in, 4);
       ValRef v = new ValRef((List<Long>) Serializer.BASIC.deserialize(in, -1));
       v.currentLevel = currentLevel;
+      if (v.recids.size() > 0) {
+        System.out.println(v.recids.size());
+      }
       return v;
     }
 
