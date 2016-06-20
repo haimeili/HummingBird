@@ -418,6 +418,7 @@ object HashTreeTest {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val htreeDebug = conf.getBoolean("cpslab.lsh.htree.debug")
 
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
@@ -431,16 +432,21 @@ object HashTreeTest {
     val st = System.nanoTime()
     val mainFs = taskQueue.map {
       vector =>
-        Future {
+        val f = Future {
           vectorIdToVector.put(vector.vectorId, vector)
-        }.flatMap {
-          returnedVector =>
-            val fs = (0 until tableNum).map(tableId => {
-              Future {
-                vectorDatabase(tableId).put(returnedVector.vectorId, true)
-              }
-            })
-            Future.sequence(fs)
+        }
+        if (htreeDebug) {
+          f
+        } else {
+          f.flatMap {
+            returnedVector =>
+              val fs = (0 until tableNum).map(tableId => {
+                Future {
+                  vectorDatabase(tableId).put(returnedVector.vectorId, true)
+                }
+              })
+              Future.sequence(fs)
+          }
         }
     }
     Future.sequence(mainFs).onComplete {
