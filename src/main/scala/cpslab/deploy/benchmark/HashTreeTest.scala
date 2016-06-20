@@ -589,29 +589,28 @@ object HashTreeTest {
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
 
     val interestVectorIds = {
-      val l = new ListBuffer[(Int, Int)]
+      val l = new ListBuffer[(SparseVector, Int)]
       for (i <- 0 until requestNumberPerThread * threadNumber) {
         val vectorId = Random.nextInt(cap * threadNumber)
         for(tableId <- 0 until tableNum)
-          l += Tuple2(vectorId, tableId)
+          l += Tuple2(ShardDatabase.vectorIdToVectorBTree.get(vectorId), tableId)
       }
       l.toList
     }
 
-    val fs = interestVectorIds.map {case (vectorId, tableId) =>
+    val fs = interestVectorIds.map {case (vector, tableId) =>
         Future {
           if (dbType != "btree") {
-            ShardDatabase.vectorDatabase(tableId).getSimilar(vectorId)
+            ShardDatabase.vectorDatabase(tableId).getSimilar(vector.vectorId)
           } else {
             // b-tree
             //1. fetch the corresponding vector
-            val v = ShardDatabase.vectorIdToVectorBTree.get(vectorId)
             //2. calculate the lsh value
-            if (v == null) {
-              println(s"get $vectorId as null")
+            if (vector == null) {
+              println(s"get ${vector.vectorId} as null")
             } else {
               //3. get from vectorDatabase
-              val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer).toLong
+              val h = lshEngines(tableId).hash(vector, Serializers.VectorSerializer).toLong
               ShardDatabase.vectorDatabaseBTree(tableId).getAll(h)
             }
           }
