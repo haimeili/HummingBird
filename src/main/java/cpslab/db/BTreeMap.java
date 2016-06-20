@@ -1134,11 +1134,15 @@ public class BTreeMap<K, V>
 
   protected List<V> valExpandList(Object ret) {
     List<V> retList = new LinkedList<>();
+    HashSet<Long> loaded = new HashSet<>();
     if (valsOutsideNodes && ret != null) {
       for (int i = 0; i < ((ValRef) ret).recids.size(); i++) {
         long recid = ((ValRef) ret).recids.get(i);
-        //$DELAY$
-        retList.add((V) engine.get(recid, valueSerializer));
+        if (!loaded.contains(recid)) {
+          //$DELAY$
+          retList.add(engine.get(recid, valueSerializer));
+          loaded.add(recid);
+        }
       }
     }
     return retList;
