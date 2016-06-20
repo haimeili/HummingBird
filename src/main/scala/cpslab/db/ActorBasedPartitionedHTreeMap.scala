@@ -5,6 +5,7 @@ import java.util.concurrent.{ConcurrentHashMap, ExecutorService}
 import java.util.concurrent.atomic.AtomicInteger
 
 import cpslab.deploy.ShardDatabase
+import cpslab.deploy.benchmark.HashTreeTest
 import cpslab.utils.LocalitySensitivePartitioner
 
 import scala.collection.mutable
@@ -128,27 +129,29 @@ class ActorBasedPartitionedHTreeMap[K, V](
     import ActorBasedPartitionedHTreeMap._
 
     private def innerDispatchLSHCalculationWithSharedActor(vectorId: Int): Unit = {
-      for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
-        if (lshBufferSize > 0) {
-          val table = vectorDatabase(tableId).
-            asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
-          val h = table.hash(vectorId)
-          val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
-          val partitionId = table.getPartition(h)
-          val actorId = math.abs(s"$tableId-$segId".hashCode) %
-            ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
-          val actorIndex = s"$partitionId-$actorId"
-          if (!lshTableMsgBuffer.contains(actorIndex)) {
-            lshTableMsgBuffer += actorIndex -> new ListBuffer[KeyAndHash]
+      if (!HashTreeTest.htreeDebug) {
+        for (tableId <- 0 until ActorBasedPartitionedHTreeMap.tableNum) {
+          if (lshBufferSize > 0) {
+            val table = vectorDatabase(tableId).
+              asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
+            val h = table.hash(vectorId)
+            val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+            val partitionId = table.getPartition(h)
+            val actorId = math.abs(s"$tableId-$segId".hashCode) %
+              ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
+            val actorIndex = s"$partitionId-$actorId"
+            if (!lshTableMsgBuffer.contains(actorIndex)) {
+              lshTableMsgBuffer += actorIndex -> new ListBuffer[KeyAndHash]
+            }
+            lshTableMsgBuffer(actorIndex) += KeyAndHash(tableId, vectorId, h)
+            if (lshTableMsgBuffer(actorIndex).size >= lshBufferSize) {
+              writerActors(partitionId)(actorId) !
+                BatchKeyAndHash(lshTableMsgBuffer(actorIndex).toList)
+              lshTableMsgBuffer(actorIndex) = new ListBuffer[KeyAndHash]
+            }
+          } else {
+            vectorDatabase(tableId).put(vectorId, true)
           }
-          lshTableMsgBuffer(actorIndex) += KeyAndHash(tableId, vectorId, h)
-          if (lshTableMsgBuffer(actorIndex).size >= lshBufferSize) {
-            writerActors(partitionId)(actorId) !
-              BatchKeyAndHash(lshTableMsgBuffer(actorIndex).toList)
-            lshTableMsgBuffer(actorIndex) = new ListBuffer[KeyAndHash]
-          }
-        } else {
-          vectorDatabase(tableId).put(vectorId, true)
         }
       }
     }

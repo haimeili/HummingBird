@@ -29,6 +29,7 @@ object HashTreeTest {
   //initialize lsh engine
   var lshEngines: Array[LocalitySensitiveHasher] = null
   var lshPartitioners: Array[LocalitySensitivePartitioner[Int]] = null
+  var htreeDebug = false
 
   case object Ticket
   case object TicketForRead
@@ -248,6 +249,7 @@ object HashTreeTest {
     val lshBufferSize = conf.getInt("cpslab.lsh.benchmark.lshBufferSize")
     ActorBasedPartitionedHTreeMap.lshBufferSize = lshBufferSize
     ActorBasedPartitionedHTreeMap.totalFeedingThreads = threadNumber
+    htreeDebug = conf.getBoolean("cpslab.lsh.htree.debug")
 
     val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
 
@@ -418,8 +420,6 @@ object HashTreeTest {
     val filePath = conf.getString("cpslab.lsh.inputFilePath")
     val cap = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val htreeDebug = conf.getBoolean("cpslab.lsh.htree.debug")
-
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
 
@@ -432,21 +432,16 @@ object HashTreeTest {
     val st = System.nanoTime()
     val mainFs = taskQueue.map {
       vector =>
-        val f = Future {
+        Future {
           vectorIdToVector.put(vector.vectorId, vector)
-        }
-        if (htreeDebug) {
-          f
-        } else {
-          f.flatMap {
-            returnedVector =>
-              val fs = (0 until tableNum).map(tableId => {
-                Future {
-                  vectorDatabase(tableId).put(returnedVector.vectorId, true)
-                }
-              })
-              Future.sequence(fs)
-          }
+        }.flatMap {
+          returnedVector =>
+            val fs = (0 until tableNum).map(tableId => {
+              Future {
+                vectorDatabase(tableId).put(returnedVector.vectorId, true)
+              }
+            })
+            Future.sequence(fs)
         }
     }
     Future.sequence(mainFs).onComplete {
