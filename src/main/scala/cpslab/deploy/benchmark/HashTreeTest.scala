@@ -890,6 +890,12 @@ object HashTreeTest {
 
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
+    loadAccuracyTestFiles(conf)
+
+    testAccuracy(conf)
+
+    /*
+
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
@@ -904,7 +910,7 @@ object HashTreeTest {
         println("======read performance======")
         testReadThreadScalability(conf, requestPerThread, readThreadNum)
       }
-    }
+    }(*/
 
 
     //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
