@@ -378,12 +378,15 @@ public class PartitionedHTreeMap<K, V>
   public static void updateDirectoryNodeSize(int newNodeSize, int totalHashLength) {
     DIRECTORY_NODE_SIZE = newNodeSize;
     NUM_BITS_PER_COMPARISON = (int) (Math.log(DIRECTORY_NODE_SIZE) / Math.log(2));
+    System.out.println("NUM_BITS_PER_COMPARISON: " + NUM_BITS_PER_COMPARISON);
     BITS_COMPARISON_MASK = 1;
     for (int i = 0; i < NUM_BITS_PER_COMPARISON; i++) {
       BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
     }
     MAX_TREE_LEVEL = (totalHashLength - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
+    System.out.println("MAX_TREE_LEVEL: " + MAX_TREE_LEVEL);
     BITMAP_SIZE = newNodeSize / 32;
+    System.out.println("BITMAP_SIZE: " + BITMAP_SIZE);
     if (BITMAP_SIZE < 1) {
       System.out.println("Fault: the minimum allowed directory node size is 32");
       System.exit(1);
