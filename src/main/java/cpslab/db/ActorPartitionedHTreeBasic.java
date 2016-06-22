@@ -80,8 +80,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   protected String initPartitionIfNecessary(int partitionId, int segId) {
     String storageName = buildStorageName(partitionId, segId);
-    Lock structureLock = structureLocks.get(storageName).writeLock();
+    Lock structureLock = null;
     try {
+      structureLock = structureLocks.get(storageName).writeLock();
       structureLock.lock();
       if (!partitionRamLock.containsKey(storageName) ||
               !partitionPersistLock.containsKey(storageName)) {
@@ -94,7 +95,11 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } catch (Exception e){
       e.printStackTrace();
     } finally {
-      structureLock.unlock();
+      if (structureLock == null) {
+        System.out.println("cannot find lock for " + storageName);
+      } else {
+        structureLock.unlock();
+      }
     }
     return storageName;
   }
