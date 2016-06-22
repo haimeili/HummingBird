@@ -143,6 +143,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
+    val chainLength = conf.getInt("cpslab.lsh.chainLength")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
@@ -192,7 +193,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorIdToVector = initializeIdToVectorMap()
     PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.updateBucketLength(bucketBits)
-    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
+    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize, chainLength)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId).initStructureLocks()
     }
@@ -209,6 +210,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
     val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
+    val chainLength = conf.getInt("cpslab.lsh.chainLength")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
@@ -258,7 +260,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorIdToVector = initializeIdToVectorMap()
     PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.updateBucketLength(bucketBits)
-    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize)
+    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize, chainLength)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId).initStructureLocks()
     }
