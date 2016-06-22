@@ -755,7 +755,7 @@ object HashTreeTest {
         ifOverHit = true
         distances.length / mostK
       } else {
-        0.0
+        distances.length / mostK
       }
     }
     (efficiency, kNN, ifOverHit)
