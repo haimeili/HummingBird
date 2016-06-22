@@ -667,7 +667,7 @@ public class PartitionedHTreeMap<K, V>
         while (true) {
           LinkedNode<K, V> ln = engine.get(workingRecId, LN_SERIALIZER);
           if (ln == null) {
-            return null;
+            return ret;
           }
           if (ln.key != key) {
             ret.add(ln.key);

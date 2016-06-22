@@ -839,6 +839,9 @@ object HashTreeTest {
     println("ratios:" + ratioOutputStr.toString())
     println("efficiency:" + effSumOutputStr.toString())
     println("hitNum:" + overHitInstances.toList.toString())
+    for (idx <- overHitInstances.indices) {
+      print(s"${effSumInstances(idx) / overHitInstances(idx) * 50}\t")
+    }
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
