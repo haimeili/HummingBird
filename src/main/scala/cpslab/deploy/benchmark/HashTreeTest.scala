@@ -795,7 +795,7 @@ object HashTreeTest {
         println(sortedDistances.toList)
         //step 2: calculate the distance of the ground truth
         val groundTruth = new ListBuffer[(Int, Double)]
-        val itr = trainingIDs.iterator
+        val itr = (trainingIDs ++ testIDs).iterator
         while (itr.hasNext) {
           val vId = itr.next()
           val vector = vectorIdToVector.get(vId)
