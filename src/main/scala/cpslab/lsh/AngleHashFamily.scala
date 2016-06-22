@@ -94,8 +94,8 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
       val signResult = sign(
         SimilarityCalculator.fastCalculateSimilarity(chainedFunctions(hashFunctionId).a,
         vector))
-      //result = result << 1 | signResult
-      result = signResult << (chainSize - hashFunctionId - 1) | result
+      result = result << 1 | signResult
+      //result = signResult << (chainSize - hashFunctionId - 1) | result
     }
     result = result << (intLength - chainSize)
     result
