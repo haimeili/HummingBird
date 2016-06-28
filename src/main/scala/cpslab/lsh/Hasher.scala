@@ -12,6 +12,7 @@ class DefaultHasher(hashSalt: Int) extends Hasher {
 
   override def hash[K](key: K, keySerializer: Serializer[K]): Int = key match {
     case intKey: Int =>
+      System.out.println("hashing " + key + " as " + intKey)
       intKey
     case x =>
       key.hashCode()
