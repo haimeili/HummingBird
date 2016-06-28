@@ -711,7 +711,6 @@ public class PartitionedHTreeMap<K, V>
         //n / 2, next, next, next
         recId = recId >>> 1;
         long workingRecId = recId;
-        int missCnt = 0;
         while (true) {
           LinkedNode<K, V> ln = engine.get(workingRecId, LN_SERIALIZER);
           if (ln == null) {
@@ -721,14 +720,12 @@ public class PartitionedHTreeMap<K, V>
             if (CC.ASSERT && hash(ln.key) != h) {
               throw new DBException.DataCorruption("inconsistent hash");
             }
-            System.out.println("===" + missCnt + "===");
             return ln;
           }
           if (ln.next == 0) {
             return null;
           }
           workingRecId = ln.next;
-          missCnt += 1;
         }
       }
       recId = recId >>> 1;

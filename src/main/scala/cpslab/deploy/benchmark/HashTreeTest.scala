@@ -881,25 +881,16 @@ object HashTreeTest {
     LSHServer.lshEngine = new LSH(conf)
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
 
-    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
-
-    ShardDatabase.initializePartitionedHashMap(conf)
-
-    val trainingPath = conf.getString("cpslab.lsh.trainingPath")
-    val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
-    val existIDs = new ListBuffer[Int]
-    loadFiles(allTrainingFiles, existIDs, 1)
 
 
     // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
 
 
 
-/*
+
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)*/
+    testAccuracy(conf)
 
     //initializeActorBasedHashTree(conf)
 
