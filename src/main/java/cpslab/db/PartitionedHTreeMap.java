@@ -721,7 +721,7 @@ public class PartitionedHTreeMap<K, V>
             if (CC.ASSERT && hash(ln.key) != h) {
               throw new DBException.DataCorruption("inconsistent hash");
             }
-            System.out.println("===missCnt===");
+            System.out.println("===" + missCnt + "===");
             return ln;
           }
           if (ln.next == 0) {

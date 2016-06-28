@@ -845,22 +845,23 @@ object HashTreeTest {
     }
   }
 
-  def loadAccuracyTestFiles(conf: Config): Unit = {
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int]): Unit = {
-      for (file <- files; line <- Source.fromFile(file).getLines()) {
-        val (id, size, indices, values) = Vectors.fromString(line)
-        updateExistingID += id
-        val squareSum = math.sqrt(values.foldLeft(0.0) {
-          case (sum, weight) => sum + weight * weight })
-        val vector = new SparseVector(id, size, indices,
-          values.map(_ / squareSum))
-        vectorIdToVector.put(id, vector)
-        for (i <- 0 until tableNum) {
-          vectorDatabase(i).put(id, true)
-        }
+  def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int], tableNum: Int): Unit = {
+    for (file <- files; line <- Source.fromFile(file).getLines()) {
+      val (id, size, indices, values) = Vectors.fromString(line)
+      updateExistingID += id
+      val squareSum = math.sqrt(values.foldLeft(0.0) {
+        case (sum, weight) => sum + weight * weight })
+      val vector = new SparseVector(id, size, indices,
+        values.map(_ / squareSum))
+      vectorIdToVector.put(id, vector)
+      for (i <- 0 until tableNum) {
+        vectorDatabase(i).put(id, true)
       }
     }
+  }
+
+  def loadAccuracyTestFiles(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
 
     val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
@@ -871,14 +872,29 @@ object HashTreeTest {
     val testPath = conf.getString("cpslab.lsh.testPath")
     val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
     val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
-    loadFiles(allTrainingFiles, trainingIDs)
-    loadFiles(allTestFiles, testIDs)
+    loadFiles(allTrainingFiles, trainingIDs, tableNum)
+    loadFiles(allTestFiles, testIDs, tableNum)
   }
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
     val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+
+    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
+    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
+
+    ShardDatabase.initializePartitionedHashMap(conf)
+
+    val trainingPath = conf.getString("cpslab.lsh.trainingPath")
+    val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
+    val existIDs = new ListBuffer[Int]
+    loadFiles(allTrainingFiles, existIDs, 1)
+
+
+    // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
+
+
 
 /*
     loadAccuracyTestFiles(conf)
@@ -892,11 +908,14 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
 
+    /*
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)
+    testAccuracy(conf)*/
+
+
 
     /*
 
