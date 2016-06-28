@@ -284,6 +284,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
           if (CC.ASSERT && ln != null && ln.next == recid)
             throw new DBException.DataCorruption("cyclic reference in linked list");
           bucketConflictCost++;
+          System.out.println("hash code:" + h + ", bucketConflictCost:" + bucketConflictCost);
           if (CC.ASSERT && bucketConflictCost > 1024 * 1024)
             throw new DBException.DataCorruption("linked list too large");
         }
