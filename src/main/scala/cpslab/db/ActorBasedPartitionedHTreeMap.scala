@@ -135,7 +135,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
             val table = vectorDatabase(tableId).
               asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
             val h = table.hash(vectorId)
-            val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+            val segId = h >>> BUCKET_LENGTH
             val partitionId = table.getPartition(h)
             val actorId = math.abs(s"$tableId-$segId".hashCode) %
               ActorBasedPartitionedHTreeMap.writerActorsNumPerPartition
@@ -162,7 +162,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           val table = vectorDatabase(tableId).
             asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
           val h = table.hash(vectorId)
-          val segId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+          val segId = h >>> BUCKET_LENGTH
           val partitionId = table.getPartition(h)
           val actor = actors(partitionId)(segId)
           val actorIndex = s"$partitionId-$segId"
@@ -192,7 +192,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         Unit = {
       val table = vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[Int,
         Boolean]]
-      val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
+      val segId = hash >>> BUCKET_LENGTH
       val storageName = table.initPartitionIfNecessary(partitionId, segId)
       val rootRecId = table.getRootRecId(partitionId, segId)
       val engine = table.storageSpaces.get(storageName)
@@ -326,7 +326,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   } else {
     for (partitionId <- 0 until partitioner.numPartitions) {
-      val actorNum = math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt
+      val actorNum = math.pow(2, 32 - BUCKET_LENGTH).toInt
       actors.put(partitionId, new Array[ActorRef](actorNum))
       for (segmentId <- 0 until actorNum) {
         actors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
@@ -347,7 +347,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
       }
     } else {
       for (partitionId <- 0 until partitioner.numPartitions) {
-        for (i <- 0 until math.pow(2, 32 - PartitionedHTreeMap.BUCKET_LENGTH).toInt) {
+        for (i <- 0 until math.pow(2, 32 - BUCKET_LENGTH).toInt) {
           val id = s"$partitionId-$i"
           bufferOfMainTable.put(id, new ListBuffer[(SparseVector, Int)])
           bufferOfMainTableLocks.put(id, new ReentrantReadWriteLock())
@@ -385,9 +385,9 @@ class ActorBasedPartitionedHTreeMap[K, V](
       value: V): Unit = {
     val seg: Int = {
       if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
-        h >>> PartitionedHTreeMap.BUCKET_LENGTH
+        h >>> BUCKET_LENGTH
       } else {
-        h % PartitionedHTreeMap.SEG
+        h % SEG
       }
     }
     val storageName = buildStorageName(partition, seg)
@@ -452,7 +452,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
     var segmentId = 0 // h >>> PartitionedHTreeMap.BUCKET_LENGTH
     if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      segmentId = h % PartitionedHTreeMap.SEG
+      segmentId = h % SEG
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
         if (bufferSize <= 0) {
@@ -468,7 +468,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
         }
       }
     } else {
-      segmentId = h >>> PartitionedHTreeMap.BUCKET_LENGTH
+      segmentId = h >>> BUCKET_LENGTH
       if (shareActor) {
         val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
           writerActorsNumPerPartition

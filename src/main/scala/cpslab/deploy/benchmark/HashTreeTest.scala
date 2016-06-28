@@ -164,83 +164,6 @@ object HashTreeTest {
   }
 
 
-  def initializeActorBasedHashTree(conf: Config): Unit = {
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
-    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
-    val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
-    val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
-    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
-    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
-    val chainLength = conf.getInt("cpslab.lsh.chainLength")
-    val confForPartitioner = ConfigFactory.parseString(
-      s"""
-        |cpslab.lsh.vectorDim=32
-        |cpslab.lsh.chainLength=$partitionBits
-      """.stripMargin).withFallback(conf)
-    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
-      concurrentCollectionType match {
-        case "Doraemon" =>
-          val newTree = new ActorBasedPartitionedHTreeMap[Int, Boolean](
-            conf,
-            tableId,
-            "lsh",
-            workingDirRoot + "-" + tableId,
-            "partitionedTree-" + tableId,
-            //new HashPartitioner[Int](numPartitions),
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
-            true,
-            1,
-            Serializers.scalaIntSerializer,
-            null,
-            null,
-            Executors.newCachedThreadPool(),
-            true,
-            ramThreshold)
-          newTree
-      }
-    def initializeIdToVectorMap(conf: Config): PartitionedHTreeMap[Int, SparseVector] =
-      concurrentCollectionType match {
-        case "Doraemon" =>
-          new ActorBasedPartitionedHTreeMap[Int, SparseVector](
-            conf,
-            tableNum,
-            "default",
-            workingDirRoot + "-vector",
-            "vectorIdToVector",
-            new HashPartitioner[Int](numPartitions),
-            true,
-            1,
-            Serializers.scalaIntSerializer,
-            Serializers.vectorSerializer,
-            null,
-            Executors.newCachedThreadPool(),
-            true,
-            ramThreshold)
-      }
-    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
-    PartitionedHTreeMap.updateBucketLength(bucketBits)
-    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize, chainLength)
-    vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
-    ActorBasedPartitionedHTreeMap.histogramOfPartitions = new Array[Array[Int]](tableNum)
-    ActorBasedPartitionedHTreeMap.histogramOfSegments = new Array[Array[Array[Int]]](tableNum)
-    for (tableId <- 0 until tableNum) {
-      vectorDatabase(tableId) = initializeVectorDatabase(tableId)
-      vectorDatabase(tableId).initStructureLocks()
-      ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId) = new Array[Array[Int]](
-        math.pow(2, partitionBits).toInt)
-      for (partition <- 0 until math.pow(2, partitionBits).toInt) {
-        ActorBasedPartitionedHTreeMap.histogramOfSegments(tableId)(partition) = new Array[Int](
-          math.pow(2, 32 - bucketBits).toInt)
-      }
-      ActorBasedPartitionedHTreeMap.histogramOfPartitions(tableId) = new Array[Int](
-        math.pow(2, partitionBits).toInt)
-    }
-    vectorIdToVector = initializeIdToVectorMap(conf)
-    vectorIdToVector.initStructureLocks()
-  }
-
   def asyncTestWriteThreadScalability (
     conf: Config, threadNumber: Int): Unit = {
     val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.actorNum")
@@ -321,10 +244,6 @@ object HashTreeTest {
 
   def testWriteThreadScalabilityWithMapDB(conf: Config,
                                           threadNumber: Int): Unit = {
-    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
-
-
     ShardDatabase.initializeMapDBHashMap(conf)
     startWriteWorkload(conf, threadNumber)
   }
@@ -461,9 +380,7 @@ object HashTreeTest {
   def testWriteThreadScalability(
     conf: Config,
     threadNumber: Int): Unit = {
-    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
     val dbType = conf.getString("cpslab.lsh.benchmark.dbtype")
-    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
     if (dbType == "partitionedHashMap") {
       println("partitionedHashMap initialized")
@@ -538,7 +455,7 @@ object HashTreeTest {
                 asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]]
               val hash = table.hash(interestVectorId)
               val partitionId = table.getPartition(hash)
-              val segId = hash >>> PartitionedHTreeMap.BUCKET_LENGTH
+              val segId = hash >>> table.BUCKET_LENGTH
               val actorId = math.abs(s"$tableId-$segId".hashCode) %
                 ActorBasedPartitionedHTreeMap.readerActorsNumPerPartition
               if (bufferSize > 0) {
@@ -862,9 +779,6 @@ object HashTreeTest {
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-
-    val bufferOverflow = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.BUCKET_OVERFLOW = bufferOverflow
 
     ShardDatabase.initializePartitionedHashMap(conf)
 

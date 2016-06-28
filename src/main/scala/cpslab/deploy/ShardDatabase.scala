@@ -15,6 +15,14 @@ import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
 
 private[cpslab] object ShardDatabase extends DataSetLoader {
 
+  private def setupTable(tableName: String, confInstance: Config,
+                         table: PartitionedHTreeMap[_, _]): Unit = {
+    table.BUCKET_OVERFLOW = confInstance.getInt(s"cpslab.$tableName.bufferOverflow")
+    table.updateBucketLength(confInstance.getInt(s"cpslab.$tableName.bucketBits"))
+    table.updateDirectoryNodeSize(confInstance.getInt(s"cpslab.$tableName.dirNodeSize"),
+      confInstance.getInt(s"cpslab.$tableName.chainLength"))
+  }
+
   var actors: Seq[ActorRef] = null
   @volatile var startTime = -1L
   @volatile var endTime = -1L
@@ -114,6 +122,71 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorIdToVectorOnheap = initializeIdToVectorMap()
   }
 
+  def initializeActorBasedHashTree(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
+    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
+    val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
+    val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
+    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
+    val confForPartitioner = ConfigFactory.parseString(
+      s"""
+         |cpslab.lsh.vectorDim=32
+         |cpslab.lsh.chainLength=$partitionBits
+      """.stripMargin).withFallback(conf)
+    def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          val newTree = new ActorBasedPartitionedHTreeMap[Int, Boolean](
+            conf,
+            tableId,
+            "lsh",
+            workingDirRoot + "-" + tableId,
+            "partitionedTree-" + tableId,
+            //new HashPartitioner[Int](numPartitions),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            null,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+          newTree
+      }
+    def initializeIdToVectorMap(conf: Config): PartitionedHTreeMap[Int, SparseVector] =
+      concurrentCollectionType match {
+        case "Doraemon" =>
+          new ActorBasedPartitionedHTreeMap[Int, SparseVector](
+            conf,
+            tableNum,
+            "default",
+            workingDirRoot + "-vector",
+            "vectorIdToVector",
+            new HashPartitioner[Int](numPartitions),
+            true,
+            1,
+            Serializers.scalaIntSerializer,
+            Serializers.vectorSerializer,
+            null,
+            Executors.newCachedThreadPool(),
+            true,
+            ramThreshold)
+      }
+    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
+    for (tableId <- 0 until tableNum) {
+      vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+      setupTable("lshTable", conf, vectorDatabase(tableId))
+      vectorDatabase(tableId).initStructureLocks()
+    }
+    vectorIdToVector = initializeIdToVectorMap(conf)
+    setupTable("mainTable", conf, vectorIdToVector)
+    vectorIdToVector.initStructureLocks()
+  }
+
   def initializeBTree(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val lockScale = conf.getInt("cpslab.lsh.btree.lockScale")
@@ -137,13 +210,10 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
   def initializeMapDBHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
-    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val numPartitions = conf.getInt("cpslab.mainTable.numPartitions")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
-    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
-    val chainLength = conf.getInt("cpslab.lsh.chainLength")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
@@ -189,11 +259,10 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+      setupTable("lshTable", conf, vectorDatabase(tableId))
     }
     vectorIdToVector = initializeIdToVectorMap()
-    PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.updateBucketLength(bucketBits)
-    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize, chainLength)
+    setupTable("mainTable", conf, vectorIdToVector)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId).initStructureLocks()
     }
@@ -204,13 +273,13 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
   def initializePartitionedHashMap(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
-    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
+    val numPartitions = conf.getInt("cpslab.mainTable.numPartitions")
+
+    // LSHTable configurations
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
-    val bucketBits = conf.getInt("cpslab.lsh.bucketBits")
-    val chainLength = conf.getInt("cpslab.lsh.chainLength")
+
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
@@ -256,11 +325,10 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](tableNum)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
+      setupTable("lshTable", conf, vectorDatabase(tableId))
     }
     vectorIdToVector = initializeIdToVectorMap()
-    PartitionedHTreeMap.BUCKET_OVERFLOW = conf.getInt("cpslab.bufferOverflow")
-    PartitionedHTreeMap.updateBucketLength(bucketBits)
-    PartitionedHTreeMap.updateDirectoryNodeSize(dirNodeSize, chainLength)
+    setupTable("mainTable", conf, vectorIdToVector)
     for (tableId <- 0 until tableNum) {
       vectorDatabase(tableId).initStructureLocks()
     }

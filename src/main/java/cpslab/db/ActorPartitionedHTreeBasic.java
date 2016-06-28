@@ -387,7 +387,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   @Override
   public void initStructureLocks() {
     int partitionNum = partitioner.numPartitions;
-    int segNum = PartitionedHTreeMap.SEG;
+    int segNum = this.SEG;
     for (int i = 0; i < partitionNum; i++) {
       for (int j = 0; j < segNum; j++) {
         structureLocks.put(buildStorageName(i, j), new ReentrantReadWriteLock());

@@ -31,20 +31,20 @@ public class PartitionedHTreeMap<K, V>
 
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
-  public static int BUCKET_OVERFLOW = 4;
-  public static int BUCKET_LENGTH = 28;
+  public int BUCKET_OVERFLOW = 4;
+  public int BUCKET_LENGTH = 28;
 
-  protected static int DIRECTORY_NODE_SIZE = 0;
-  protected static int NUM_BITS_PER_COMPARISON = 0;
-  protected static int BITS_COMPARISON_MASK = 0;
+  protected int DIRECTORY_NODE_SIZE = 0;
+  protected int NUM_BITS_PER_COMPARISON = 0;
+  protected int BITS_COMPARISON_MASK = 0;
 
-  protected static int BITMAP_SIZE = 0;
-  protected static int MAX_TREE_LEVEL = 0;
+  protected int BITMAP_SIZE = 0;
+  protected int MAX_TREE_LEVEL = 0;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
 
-  public static int SEG = 0;
+  public int SEG = 0;
   /**
    * is this a Map or Set?  if false, entries do not have values, only keys are allowed
    */
@@ -189,7 +189,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
 
-  protected static final Serializer<Object> DIR_SERIALIZER = new Serializer<Object>() {
+  protected final Serializer<Object> DIR_SERIALIZER = new Serializer<Object>() {
     @Override
     public void serialize(DataOutput out, Object value) throws IOException {
       DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
@@ -370,12 +370,12 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  public static void updateBucketLength(int bucketLength) {
+  public void updateBucketLength(int bucketLength) {
     BUCKET_LENGTH = bucketLength;
     SEG = (int) Math.pow(2, 32 - BUCKET_LENGTH);
   }
 
-  public static void updateDirectoryNodeSize(int newNodeSize, int totalHashLength) {
+  public void updateDirectoryNodeSize(int newNodeSize, int totalHashLength) {
     DIRECTORY_NODE_SIZE = newNodeSize;
     NUM_BITS_PER_COMPARISON = (int) (Math.log(DIRECTORY_NODE_SIZE) / Math.log(2));
     System.out.println("NUM_BITS_PER_COMPARISON: " + NUM_BITS_PER_COMPARISON);
@@ -851,7 +851,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
 
-  protected static int dirOffsetFromSlot(Object dir, int slot) {
+  protected int dirOffsetFromSlot(Object dir, int slot) {
     if (dir instanceof int[])
       return dirOffsetFromSlot((int[]) dir, slot);
     else
@@ -867,7 +867,7 @@ public class PartitionedHTreeMap<K, V>
    *             indicating the slot in this level
    * @return negative -offset if the slot hasn't been occupied, positive offset if the slot is set
    */
-  protected static final int dirOffsetFromSlot(int[] dir, int slot) {
+  protected final int dirOffsetFromSlot(int[] dir, int slot) {
     if (CC.ASSERT && slot > DIRECTORY_NODE_SIZE - 1)
       throw new DBException.DataCorruption("slot " + slot +  " too high");
     //Nan's comments below
@@ -944,7 +944,7 @@ public class PartitionedHTreeMap<K, V>
    * @param newRecid the new record id
    * @return updated dir node reference
    */
-  protected static final Object putNewRecordIdInDir(Object dir, int slot, long newRecid) {
+  protected final Object putNewRecordIdInDir(Object dir, int slot, long newRecid) {
     if (dir instanceof int[]) {
       int[] updatedDir = (int[]) dir;
       int offset = dirOffsetFromSlot(updatedDir, slot);
@@ -1006,7 +1006,7 @@ public class PartitionedHTreeMap<K, V>
     return dir_;
   }
 
-  protected static final Object dirRemove(Object dir, final int slot) {
+  protected final Object dirRemove(Object dir, final int slot) {
     int offset = dirOffsetFromSlot(dir, slot);
     if (CC.ASSERT && offset <= 0) {
       throw new DBException.DataCorruption("offset too low");
