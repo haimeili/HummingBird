@@ -10,14 +10,18 @@ trait Hasher {
 
 class DefaultHasher(hashSalt: Int) extends Hasher {
 
-  override def hash[K](key: K, keySerializer: Serializer[K]): Int = {
+  override def hash[K](key: K, keySerializer: Serializer[K]): Int = key match {
+    case intKey: Int =>
+      intKey
+    case x =>
+      key.hashCode()
     //TODO investigate if hashSalt has any effect
-    var h: Int = keySerializer.hashCode(key) ^ hashSalt
+    /*var h: Int = keySerializer.hashCode(key) ^ hashSalt
     //stear hashcode a bit, to make sure bits are spread
     h = h * -1640531527
     h = h ^ h >> 16
     //TODO koloboke credit
-    h
+    h*/
   }
 }
 
