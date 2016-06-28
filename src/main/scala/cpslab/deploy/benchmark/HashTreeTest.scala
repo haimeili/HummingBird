@@ -679,7 +679,9 @@ object HashTreeTest {
     (efficiency, kNN, ifOverHit)
   }
 
-  private def percentileDist(list: ListBuffer[Double]): (Double, Double, Double, Double, Double) = {
+  private def percentileDist(unSortedList: ListBuffer[Double]):
+      (Double, Double, Double, Double, Double) = {
+    val list = unSortedList.sortWith((a, b) => a < b)
     val a = list((list.length * 0.05).toInt)
     val b = list((list.length * 0.25).toInt)
     val c = list((list.length * 0.5).toInt)
