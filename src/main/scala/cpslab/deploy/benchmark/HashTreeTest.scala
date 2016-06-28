@@ -680,11 +680,11 @@ object HashTreeTest {
   }
 
   private def percentileDist(list: ListBuffer[Double]): (Double, Double, Double, Double, Double) = {
-    val a = list(list.length * 0.05.toInt)
-    val b = list(list.length * 0.25.toInt)
-    val c = list(list.length * 0.5.toInt)
-    val d = list(list.length * 0.75.toInt)
-    val e = list(list.length * 0.95.toInt)
+    val a = list((list.length * 0.05).toInt)
+    val b = list((list.length * 0.25).toInt)
+    val c = list((list.length * 0.5).toInt)
+    val d = list((list.length * 0.75).toInt)
+    val e = list((list.length * 0.95).toInt)
     (a, b, c, d, e)
   }
 
