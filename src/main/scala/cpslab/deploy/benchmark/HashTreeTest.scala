@@ -679,12 +679,22 @@ object HashTreeTest {
     (efficiency, kNN, ifOverHit)
   }
 
+  private def percentileDist(list: ListBuffer[Double]): (Double, Double, Double, Double, Double) = {
+    val a = list(2)
+    val b = list(12)
+    val c = list(25)
+    val d = list(37)
+    val e = list(47)
+    (a, b, c, d, e)
+  }
+
   def testAccuracy(conf: Config): Unit = {
     import scala.collection.JavaConversions._
     val ratiosInstances = new ListBuffer[Double]
     val effSumInstances = new ListBuffer[Double]
     val experimentalInstances = conf.getInt("cpslab.expInstance")
     val overHitInstances = new Array[Int](experimentalInstances)
+    val efficiencyDist = new ListBuffer[(Double, Double, Double, Double, Double)]
     for (exp <- 0 until experimentalInstances) {
       var ratio = 0.0
       val totalCnt = 50
@@ -742,7 +752,8 @@ object HashTreeTest {
       //println("efficiency:" + efficiencySum.sum)
       ratiosInstances += ratio / totalCnt
       effSumInstances += efficiencySum.sum
-      overHitInstances
+      //analyze efficiency distribution
+      efficiencyDist += percentileDist(efficiencySum)
     }
     assert(ratiosInstances.length == experimentalInstances)
     assert(effSumInstances.length == experimentalInstances)
@@ -757,9 +768,7 @@ object HashTreeTest {
     println("ratios:" + ratioOutputStr.toString())
     println("efficiency:" + effSumOutputStr.toString())
     println("hitNum:" + overHitInstances.toList.toString())
-    for (idx <- overHitInstances.indices) {
-      print(s"${effSumInstances(idx) / overHitInstances(idx) * 50}\t")
-    }
+    println("efficiencyDist:" + efficiencyDist.toList)
   }
 
   def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int], tableNum: Int): Unit = {
