@@ -37,9 +37,9 @@ public class PartitionedHTreeMap<K, V>
   protected int DIRECTORY_NODE_SIZE = 0;
   protected int NUM_BITS_PER_COMPARISON = 0;
   protected int BITS_COMPARISON_MASK = 0;
-
   protected int BITMAP_SIZE = 0;
   protected int MAX_TREE_LEVEL = 0;
+  protected int TOTAL_HASH_LENGTH = 0;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
@@ -383,7 +383,9 @@ public class PartitionedHTreeMap<K, V>
     for (int i = 0; i < NUM_BITS_PER_COMPARISON; i++) {
       BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
     }
-    MAX_TREE_LEVEL = (totalHashLength - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
+    TOTAL_HASH_LENGTH = totalHashLength;
+    MAX_TREE_LEVEL = (TOTAL_HASH_LENGTH - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
+    System.out.println("TOTAL_HASH_LENGTH:" + TOTAL_HASH_LENGTH);
     System.out.println("MAX_TREE_LEVEL: " + MAX_TREE_LEVEL);
     BITMAP_SIZE = newNodeSize / 32;
     System.out.println("BITMAP_SIZE: " + BITMAP_SIZE);

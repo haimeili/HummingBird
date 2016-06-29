@@ -373,6 +373,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       seg = h % SEG;
     } else {
       seg = h >>> BUCKET_LENGTH;
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
     }
     long dirRecid = partitionRootRec.get(partition)[seg];
     String storageName = buildStorageName(partition, seg);
