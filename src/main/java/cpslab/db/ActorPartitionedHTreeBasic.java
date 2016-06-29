@@ -324,7 +324,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         while (nodeRecid != 0) {
           PartitionedHTreeMap.LinkedNode<K, V> n = engine.get(nodeRecid, LN_SERIALIZER);
           final long nextRecid = n.next;
-          final int pos = (hash(n.key) >>> (NUM_BITS_PER_COMPARISON * (level - 1))) &
+          final int h1 = hash(n.key) >>> (32 - TOTAL_HASH_LENGTH);
+          final int pos = (h1 >>> (NUM_BITS_PER_COMPARISON * (level - 1))) &
                   BITS_COMPARISON_MASK;
           final long recid2 = dirGetSlot(newDirNode, pos);
           n = new PartitionedHTreeMap.LinkedNode<K, V>(recid2 >>> 1, n.key, n.value);

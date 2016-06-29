@@ -659,7 +659,11 @@ public class PartitionedHTreeMap<K, V>
       if (recId == 0) {
         //Nan: no such node
         //search from persisted storage for the directory
-        System.out.println("met a rec with 0");
+        System.out.println("met a rec with 0, level: " + level + " hash: " + h);
+        int[] dir1 = (int[]) dir;
+        for (int i = 0; i < dir1.length; i++) {
+          System.out.println(dir1[i]);
+        }
         return null;
       }
       //Nan: last bite indicates if referenced record is LinkedNode
