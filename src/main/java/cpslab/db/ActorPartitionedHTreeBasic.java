@@ -122,7 +122,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   @Override
   public V get(final Object o) {
     if (o == null) return null;
-    final int h = hash((K) o);
+    int h = hash((K) o);
     final int seg;// = h >>> BUCKET_LENGTH;
     final int partition1 = partitioner.getPartition((K) o);
     int partition = 0;
@@ -133,6 +133,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } else {
       partition = partition1;
       seg = h >>> BUCKET_LENGTH;
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
     }
     String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
@@ -200,13 +201,14 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   public LinkedList<K> getSimilar(
           final Object key) {
     //TODO: Finish getSimilar
-    final int h = hash((K) key);
+    int h = hash((K) key);
     final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
 
     LinkedList<K> lns;
     try {
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
       lns = getInnerWithSimilarity(key, seg, h, partition);
     } catch (NullPointerException npe) {
       npe.printStackTrace();
