@@ -359,6 +359,7 @@ object HashTreeTest {
     var cnt = 0
 
     val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    println(s"writing ${taskQueue.size} vectors")
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
       "akka.actor.writer-dispatcher")
