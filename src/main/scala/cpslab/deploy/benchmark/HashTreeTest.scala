@@ -102,6 +102,13 @@ object HashTreeTest {
 
     private def processingTicket(): Unit = {
       val (mainMsgNum, lshTableMsgNum) = report()
+      if (mainMsgNum >= totalWriteCount) {
+        for (i <- 0 until totalWriteCount) {
+          if (vectorIdToVector.get(i) == null) {
+            println(s"$i is not found")
+          }
+        }
+      }
       if (ifRunReadTest && mainMsgNum >= totalWriteCount &&
         lshTableMsgNum == 10 * mainMsgNum && !readStarted) {
         println("===Read Performance ===")
@@ -837,6 +844,7 @@ object HashTreeTest {
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
+
     } else {
       val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
       val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
