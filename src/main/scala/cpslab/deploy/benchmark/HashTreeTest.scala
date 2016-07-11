@@ -811,11 +811,11 @@ object HashTreeTest {
     // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
 
 
-
+/*
 
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)
+    testAccuracy(conf)*/
 
     //initializeActorBasedHashTree(conf)
 
@@ -833,8 +833,8 @@ object HashTreeTest {
 
 
 
-    /*
 
+    ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
     } else {
@@ -849,7 +849,7 @@ object HashTreeTest {
         println("======read performance======")
         testReadThreadScalability(conf, requestPerThread, readThreadNum)
       }
-    }(*/
+    }
 
 
     //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
