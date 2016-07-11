@@ -103,10 +103,15 @@ object HashTreeTest {
     private def processingTicket(): Unit = {
       val (mainMsgNum, lshTableMsgNum) = report()
       if (mainMsgNum >= totalWriteCount) {
+        var foundNull = false
         for (i <- 0 until totalWriteCount) {
           if (vectorIdToVector.get(i) == null) {
             println(s"$i is not found")
+            foundNull = true
           }
+        }
+        if (!foundNull) {
+          println("ALL VECTOR WRITTEN SUCCESSFULLY")
         }
       }
       if (ifRunReadTest && mainMsgNum >= totalWriteCount &&
