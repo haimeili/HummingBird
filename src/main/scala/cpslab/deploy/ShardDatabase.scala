@@ -125,7 +125,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
   def initializeActorBasedHashTree(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val concurrentCollectionType = conf.getString("cpslab.lsh.concurrentCollectionType")
-    val numPartitions = conf.getInt("cpslab.lsh.numPartitions")
+    val numPartitions = conf.getInt("cpslab.mainTable.numPartitions")
     val workingDirRoot = conf.getString("cpslab.lsh.workingDirRoot")
     val ramThreshold = conf.getInt("cpslab.lsh.ramThreshold")
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
