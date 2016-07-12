@@ -1323,7 +1323,7 @@ public class PartitionedHTreeMap<K, V>
         dir = putNewRecordIdInDir(dir, slot, (newRecid << 1) | 1);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, seg, engine, +1);
+        //counter(partition, seg, engine, +1);
         return null;
       }
     }
