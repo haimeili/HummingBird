@@ -1231,13 +1231,13 @@ public class BTreeMap<K, V>
       for (int i = 0; i < recIdsToRedistribution.size(); i++) {
         long existingValRecId = recIdsToRedistribution.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
-        SparseVector v = ShardDatabase.vectorIdToVectorBTree().get(btreeVal.vectorId);
+        SparseVector v = new SparseVector(0, 9331, new int[9331], new double[9331]);
         long hash = HashTreeTest.lshEngines()[tableId].hash(v, Serializers.VectorSerializer());
         long fullHash = btreeVal.hash;
-        assert(fullHash == hash);
+        //assert(fullHash == hash);
         // int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
            //      (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-        Long nextLevelHash = calculateNextLevelHash(hash, currentLevel);
+        Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
         // Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
         /*
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
@@ -2403,12 +2403,13 @@ public class BTreeMap<K, V>
         V value = engine.get(valueRefId, valueSerializer);
         // recalculate the next level hash
         // NOTE: we need to recalculate the LSH hash to be consistent with MapDB-based impl
-        SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
-                ((LSHBTreeVal) value).vectorId);
+        //SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
+        //        ((LSHBTreeVal) value).vectorId);
+        SparseVector returnedVector = new SparseVector(0, 9331, new int[9331], new double[9331]);
         long hash = HashTreeTest.lshEngines()[tableId].
                 hash(returnedVector, Serializers.VectorSerializer());
-        assert(hash == ((LSHBTreeVal) value).hash);
-        Long newPartialHash = calculateNextLevelHash(hash, currentLevel);
+        //assert(hash == ((LSHBTreeVal) value).hash);
+        Long newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash, currentLevel);
         /*
         System.out.println("meet a intermediate-ValRef at level " + currentLevel +
                 " with nextLevelHash " + newPartialHash);*/

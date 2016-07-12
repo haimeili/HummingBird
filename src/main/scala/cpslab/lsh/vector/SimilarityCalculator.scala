@@ -41,7 +41,8 @@ private[cpslab] object SimilarityCalculator {
   }
   
   def fastCalculateSimilarity(vector1: SparseVector, vector2: SparseVector): Double = {
-    require(vector1 != null  && vector2 != null)
+    require(vector1 != null  && vector2 != null,
+      s"${if (vector1 == null) "vector 1" else "vector 2"} is null")
     require(vector1.size == vector2.size, s"vector1 size: ${vector1.size}, " +
       s"vector2 size: ${vector2.size}")
     var similarity = 0.0
