@@ -1228,10 +1228,12 @@ public class BTreeMap<K, V>
       BNode A = engine.get(nodeRecId, nodeSerializer);
       updateLeafNode(nodeRecId, A, pos, oldValueRef);
       // redistribution
+      Random r = new Random();
       for (int i = 0; i < recIdsToRedistribution.size(); i++) {
         long existingValRecId = recIdsToRedistribution.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
-        SparseVector v = new SparseVector(0, 9331, new int[9331], new double[9331]);
+        int indexSize = r.nextInt(100);
+        SparseVector v = new SparseVector(0, 9331, new int[indexSize], new double[indexSize]);
         long hash = HashTreeTest.lshEngines()[tableId].hash(v, Serializers.VectorSerializer());
         long fullHash = btreeVal.hash;
         //assert(fullHash == hash);
@@ -2396,6 +2398,7 @@ public class BTreeMap<K, V>
 
   private ValRef updateOldRef(ValRef oldRef, long valueRefId, long nodeRecId,
                               int currentLevel, int pos, long key, int vectorId) throws Exception {
+    Random r = new Random();
     if (oldRef.currentLevel == currentLevel) {
       if (oldRef.recids.isEmpty()) {
         // move to nextLevel
@@ -2405,7 +2408,8 @@ public class BTreeMap<K, V>
         // NOTE: we need to recalculate the LSH hash to be consistent with MapDB-based impl
         //SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
         //        ((LSHBTreeVal) value).vectorId);
-        SparseVector returnedVector = new SparseVector(0, 9331, new int[9331], new double[9331]);
+        int size = r.nextInt(100);
+        SparseVector returnedVector = new SparseVector(0, 9331, new int[size], new double[size]);
         long hash = HashTreeTest.lshEngines()[tableId].
                 hash(returnedVector, Serializers.VectorSerializer());
         //assert(hash == ((LSHBTreeVal) value).hash);
