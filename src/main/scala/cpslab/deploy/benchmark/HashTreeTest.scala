@@ -115,7 +115,7 @@ object HashTreeTest {
         }
       }
       if (ifRunReadTest && mainMsgNum >= totalWriteCount &&
-        lshTableMsgNum == 10 * mainMsgNum && !readStarted) {
+        lshTableMsgNum >= conf.getInt("cpslab.lsh.tableNum") * mainMsgNum && !readStarted) {
         println("===Read Performance ===")
         val system = context.system
         import system.dispatcher
