@@ -191,7 +191,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val lockScale = conf.getInt("cpslab.lsh.btree.lockScale")
     val nodeSize = conf.getInt("cpslab.lsh.btree.nodeSize")
     val db = DBMaker.memoryUnsafeDB().transactionDisable().lockScale(lockScale)make()
-    vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").
+    vectorIdToVectorBTree = db.treeMapCreate("vectorIdToVector").valuesOutsideNodesEnable().
       keySerializer(Serializers.IntSerializer).valueSerializer(Serializers.VectorSerializer).
       nodeSize(nodeSize).make[Int, SparseVector]()
     vectorDatabaseBTree = new Array[BTreeMap[Long, LSHBTreeVal]](tableNum)

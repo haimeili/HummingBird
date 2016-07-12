@@ -27,6 +27,10 @@ package cpslab.db;
 
 
 import cpslab.deploy.BTreeDatabase;
+import cpslab.deploy.ShardDatabase;
+import cpslab.deploy.benchmark.HashTreeTest;
+import cpslab.lsh.vector.SparseVector;
+import cpslab.utils.Serializers;
 
 import java.io.*;
 import java.util.*;
@@ -2395,8 +2399,12 @@ public class BTreeMap<K, V>
         // unlock(nodeLocks, current);
         V value = engine.get(valueRefId, valueSerializer);
         // recalculate the next level hash
-        Long newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash,
-                currentLevel);
+        // NOTE: we need to recalculate the LSH hash to be consistent with MapDB-based impl
+        SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
+                ((LSHBTreeVal) value).vectorId);
+        int hash = HashTreeTest.lshEngines()[tableId].
+                hash(returnedVector, Serializers.VectorSerializer());
+        Long newPartialHash = calculateNextLevelHash(hash, currentLevel);
         /*
         System.out.println("meet a intermediate-ValRef at level " + currentLevel +
                 " with nextLevelHash " + newPartialHash);*/
