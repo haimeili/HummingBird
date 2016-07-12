@@ -2402,7 +2402,7 @@ public class BTreeMap<K, V>
         // NOTE: we need to recalculate the LSH hash to be consistent with MapDB-based impl
         SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
                 ((LSHBTreeVal) value).vectorId);
-        int hash = HashTreeTest.lshEngines()[tableId].
+        long hash = HashTreeTest.lshEngines()[tableId].
                 hash(returnedVector, Serializers.VectorSerializer());
         Long newPartialHash = calculateNextLevelHash(hash, currentLevel);
         /*
