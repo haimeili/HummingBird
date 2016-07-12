@@ -63,6 +63,11 @@ object HashTreeTest {
     private def reportReadPerf(): Unit = {
       if (earliestReadStartTime != Long.MaxValue && latestReadEndTime != Long.MinValue) {
         println(s"total number of receivedActors: ${receivedActors.size}")
+        var sum = 0
+        for (x <- receivedActors) {
+          sum += x._2._1
+        }
+        println(s"total received message: $sum")
         // println(s"total throughput: $totalThroughput")
         println(s"total Throughput: ${
           totalReadCount * 1.0 /
