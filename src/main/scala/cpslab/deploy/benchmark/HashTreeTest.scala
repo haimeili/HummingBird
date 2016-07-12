@@ -542,13 +542,13 @@ object HashTreeTest {
             } else {
               //3. get from vectorDatabase
               val v = {
-                if (tableId == 0) {
+                //if (tableId == 0) {
                   ShardDatabase.vectorIdToVectorBTree.get(vector.vectorId)
-                } else {
-                  vector
-                }
+                //} else {
+                  //vector
+                //}
               }
-              val h = lshEngines(tableId).hash(v, Serializers.VectorSerializer).toLong
+              val h = lshEngines(tableId).hash(vector, Serializers.VectorSerializer).toLong
               ShardDatabase.vectorDatabaseBTree(tableId).getAll(h)
             }
           }
