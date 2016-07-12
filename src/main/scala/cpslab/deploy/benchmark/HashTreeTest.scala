@@ -554,7 +554,12 @@ object HashTreeTest {
                 //}
               }
               val h = lshEngines(tableId).hash(vector, Serializers.VectorSerializer).toLong
-              ShardDatabase.vectorDatabaseBTree(tableId).getAll(h)
+              for (i <- 0 until BTreeDatabase.btreeCompareGroupNum) {
+                val s = ShardDatabase.vectorDatabaseBTree(tableId).getAll(h)
+                if (s.size() > 0) {
+                  return
+                }
+              }
             }
           }
         }
