@@ -44,14 +44,37 @@ private[cpslab] object SimilarityCalculator {
     require(vector1 != null  && vector2 != null)
     require(vector1.size == vector2.size, s"vector1 size: ${vector1.size}, " +
       s"vector2 size: ${vector2.size}")
-    var similarity = 0.0
+   // var similarity = 0.0
+    /*
     val validBits = vector1.bitVector.clone().asInstanceOf[util.BitSet]
     validBits.and(vector2.bitVector)
     var nextSetBit = validBits.nextSetBit(0)
     while (nextSetBit != -1) {
       similarity += vector1.indexToMap(nextSetBit) * vector2.indexToMap(nextSetBit)
       nextSetBit = validBits.nextSetBit(nextSetBit + 1)
+    }*/
+    val xValues = vector1.values
+    val xIndices = vector1.indices
+    val yValues = vector2.values
+    val yIndices = vector2.indices
+    val nnzx = xIndices.size
+    val nnzy = yIndices.size
+
+    var kx = 0
+    var ky = 0
+    var sum = 0.0
+    // y catching x
+    while (kx < nnzx && ky < nnzy) {
+      val ix = xIndices(kx)
+      while (ky < nnzy && yIndices(ky) < ix) {
+        ky += 1
+      }
+      if (ky < nnzy && yIndices(ky) == ix) {
+        sum += xValues(kx) * yValues(ky)
+        ky += 1
+      }
+      kx += 1
     }
-    similarity
+    sum
   }
 }
