@@ -1231,10 +1231,12 @@ public class BTreeMap<K, V>
       for (int i = 0; i < recIdsToRedistribution.size(); i++) {
         long existingValRecId = recIdsToRedistribution.get(i);
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
+        SparseVector v = ShardDatabase.vectorIdToVectorBTree().get(vectorId);
+        long hash = HashTreeTest.lshEngines()[tableId].hash(v, Serializers.VectorSerializer());
         long fullHash = btreeVal.hash;
         // int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
            //      (currentLevel + 1)) * BTreeDatabase.btreeCompareGroupLength();
-        Long nextLevelHash = calculateNextLevelHash(fullHash, currentLevel);
+        Long nextLevelHash = calculateNextLevelHash(hash, currentLevel);
         // Long originalHash = fullHash >>> (shiftBits + BTreeDatabase.btreeCompareGroupLength());
         /*
         System.out.println(Thread.currentThread().getName() + " redistributing " + existingValRecId +
@@ -2400,8 +2402,7 @@ public class BTreeMap<K, V>
         V value = engine.get(valueRefId, valueSerializer);
         // recalculate the next level hash
         // NOTE: we need to recalculate the LSH hash to be consistent with MapDB-based impl
-        SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(
-                ((LSHBTreeVal) value).vectorId);
+        SparseVector returnedVector = ShardDatabase.vectorIdToVectorBTree().get(vectorId);
         long hash = HashTreeTest.lshEngines()[tableId].
                 hash(returnedVector, Serializers.VectorSerializer());
         Long newPartialHash = calculateNextLevelHash(hash, currentLevel);
