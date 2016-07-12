@@ -523,8 +523,13 @@ object HashTreeTest {
       val l = new ListBuffer[(SparseVector, Int)]
       for (i <- 0 until requestNumberPerThread * threadNumber) {
         val vectorId = Random.nextInt(cap * threadNumber)
-        for(tableId <- 0 until tableNum)
-          l += Tuple2(ShardDatabase.vectorIdToVectorBTree.get(vectorId), tableId)
+        for(tableId <- 0 until tableNum) {
+          if (dbType != "btree") {
+            l += Tuple2(ShardDatabase.vectorIdToVector.get(vectorId), tableId)
+          } else {
+            l += Tuple2(ShardDatabase.vectorIdToVectorBTree.get(vectorId), tableId)
+          }
+        }
       }
       l.toList
     }
