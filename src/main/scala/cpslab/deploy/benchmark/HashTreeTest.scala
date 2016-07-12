@@ -651,7 +651,6 @@ object HashTreeTest {
   def initBTreeMap(conf: Config, threadNumber: Int): Unit = {
     ShardDatabase.initializeBTree(conf)
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-    val dirNodeSize = conf.getInt("cpslab.lsh.htree.dirNodeSize")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
