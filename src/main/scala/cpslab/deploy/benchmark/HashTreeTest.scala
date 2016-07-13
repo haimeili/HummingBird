@@ -849,16 +849,16 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
 
-    /*
+    
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
     loadAccuracyTestFiles(conf)
 
-    testAccuracy(conf)*/
+    testAccuracy(conf)
 
 
 
-
+    /*
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
     if (args(1) == "async") {
       asyncTestWriteThreadScalability(conf, threadNumber)
@@ -875,7 +875,7 @@ object HashTreeTest {
         println("======read performance======")
         testReadThreadScalability(conf, requestPerThread, readThreadNum)
       }
-    }
+    }*/
 
 
     //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
