@@ -59,7 +59,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
               null, false, true, null);
       ((StoreSegment) storeSegment).serializer = LN_SERIALIZER;
     } else {
-      storeSegment = new StoreAppend(storageName,
+      storeSegment = new StoreAppend("table-" + tableId + "-" + storageName,
               Volume.RandomAccessFileVol.FACTORY, null, 1,
               0, false,
               false,
