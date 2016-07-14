@@ -31,6 +31,7 @@ object HashTreeTest {
   var lshPartitioners: Array[LocalitySensitivePartitioner[Int]] = null
   var htreeDebug = false
   var usePersistSegment = false
+  var persistWorkingDir = ""
 
   case object Ticket
   case object TicketForRead
@@ -854,6 +855,7 @@ object HashTreeTest {
 
   private def startTestStorage(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    persistWorkingDir = System.currentTimeMillis() + "/"
     usePersistSegment = conf.getBoolean("cpslab.lsh.bechmark.storage.usePersistSegment")
     // preload vector
     startTestParallel(ifAsync = false, conf: Config)
