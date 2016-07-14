@@ -670,13 +670,11 @@ object HashTreeTest {
          |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
-    val localitySensitiveHashing = new LSH(confForPartitioner)
     //initialize lsh engine
     HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
       yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)).toArray
     HashTreeTest.lshPartitioners = (for (i <- 0 until tableNum)
-      yield new LocalitySensitivePartitioner[Int](
-        confForPartitioner, i, partitionBits, localitySensitiveHashing)).toArray
+      yield new LocalitySensitivePartitioner[Int](confForPartitioner, i, partitionBits)).toArray
   }
 
   private def readSimilarVectorId(queryVector: SparseVector, tableNum: Int): HashSet[Int] = {
@@ -851,7 +849,7 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.benchmark.cap"),
       conf.getInt("cpslab.lsh.tableNum"))*/
 
-
+    
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
     loadAccuracyTestFiles(conf)
