@@ -25,7 +25,8 @@ object GCTest {
     val startTime = System.nanoTime()
     /*
     val lshStructure = Array.fill[ConcurrentHashMap[Int, ListBuffer[SparseVector]]](
-      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int, ListBuffer[SparseVector]](16, 0.75f, 196))*/
+      lsh.tableIndexGenerators.length)(new ConcurrentHashMap[Int,
+      ListBuffer[SparseVector]](16, 0.75f, 196))*/
     import ShardDatabase._
     initializePartitionedHashMap(conf)
 

@@ -826,24 +826,57 @@ object HashTreeTest {
     loadFiles(allTestFiles, testIDs, tableNum)
   }
 
+  private def startTestAccuracy(conf: Config): Unit = {
+    loadAccuracyTestFiles(conf)
+    testAccuracy(conf)
+  }
+
+  private def startTestParallel(ifAsync: Boolean, conf: Config): Unit = {
+    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+    if (ifAsync) {
+      asyncTestWriteThreadScalability(conf, threadNumber)
+    } else {
+      val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
+      val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
+      testWriteThreadScalability(conf, threadNumber)
+      val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
+      while (finishedWriteThreadCount.get() < threadNumber) {
+        Thread.sleep(10000)
+      }
+      if (ifRunRead) {
+        println("======read performance======")
+        testReadThreadScalability(conf, requestPerThread, readThreadNum)
+      }
+    }
+  }
+
+
+  private def startTestStorage(conf: Config): Unit = {
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+    // preload vector
+    startTestParallel(ifAsync = false, conf: Config)
+    // write test
+    val requestNum = conf.getInt("cpslab.lsh.benchmark.storage.requestNum")
+    val vectorCnt = conf.getInt("cpslab.lsh.benchmark.threadNum") *
+      conf.getInt("cpslab.lsh.benchmark.cap")
+    for (i <- 0 until requestNum) {
+      val vId = Random.nextInt(vectorCnt)
+      val v = vectorIdToVector.get(vId)
+      val startTime = System.nanoTime()
+      vectorIdToVector.put(v.vectorId, v)
+      for (i <- 0 until tableNum) {
+        vectorDatabase(i).put(v.vectorId, true)
+      }
+      val duration = (System.nanoTime() - startTime) / 1000000000
+      println(s"$duration")
+    }
+  }
+
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
-    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
-
-
-
     // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
-
-
-/*
-
-    loadAccuracyTestFiles(conf)
-
-    testAccuracy(conf)*/
-
     //initializeActorBasedHashTree(conf)
-
     /*ShardDatabase.initVectorDatabaseFromFS(
       conf.getString("cpslab.lsh.inputFilePath"),
       conf.getInt("cpslab.lsh.benchmark.cap"),
@@ -852,27 +885,15 @@ object HashTreeTest {
     
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
-    if (args(3) == "accuracy") {
+    val testMode = args(3)
 
-      loadAccuracyTestFiles(conf)
-
-      testAccuracy(conf)
-    } else {
-      if (args(1) == "async") {
-        asyncTestWriteThreadScalability(conf, threadNumber)
-      } else {
-        val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
-        val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
-        testWriteThreadScalability(conf, threadNumber)
-        val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
-        while (finishedWriteThreadCount.get() < threadNumber) {
-          Thread.sleep(10000)
-        }
-        if (ifRunRead) {
-          println("======read performance======")
-          testReadThreadScalability(conf, requestPerThread, readThreadNum)
-        }
-      }
+    testMode match {
+      case "accuracy" =>
+        startTestAccuracy(conf)
+      case "parallel" =>
+        startTestParallel(args(1) == "async", conf)
+      case "storage" =>
+        startTestStorage(conf)
     }
 
 
