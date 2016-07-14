@@ -1,5 +1,6 @@
 package cpslab.db;
 
+import cpslab.deploy.benchmark.HashTreeTest;
 import cpslab.lsh.LocalitySensitiveHasher;
 import scala.collection.mutable.StringBuilder;
 
@@ -15,7 +16,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   final int tableId;
 
-  ConcurrentHashMap<String, StoreSegment> storageSpaces = new ConcurrentHashMap<>();
+  ConcurrentHashMap<String, Store> storageSpaces = new ConcurrentHashMap<>();
 
   protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
 
@@ -50,11 +51,24 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   private void initPartition(int partitionId, int segId) {
     //add root record for each partition
     String storageName = buildStorageName(partitionId, segId);
-    StoreSegment storeSegment = new StoreSegment(
-            storageName, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
-            null, false, true, null);
-    storeSegment.serializer = LN_SERIALIZER;
-    storeSegment.init();
+    boolean persistSegment = HashTreeTest.usePersistSegment();
+    Store storeSegment;
+    if (!persistSegment) {
+      storeSegment = new StoreSegment(
+              storageName, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
+              null, false, true, null);
+      ((StoreSegment) storeSegment).serializer = LN_SERIALIZER;
+      storeSegment.init();
+    } else {
+      storeSegment = new StoreAppend(storageName, Volume.RandomAccessFileVol.FACTORY, null, 1,
+              0, false,
+              false,
+              null,
+              false,
+              false,
+              true,
+              null);
+    }
     if (storageSpaces.containsKey(storageName)) {
       storageSpaces.get(storageName).close();
     }
