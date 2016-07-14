@@ -856,6 +856,7 @@ object HashTreeTest {
   private def startTestStorage(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     persistWorkingDir = System.currentTimeMillis() + "/"
+    new File(persistWorkingDir).mkdir();
     usePersistSegment = conf.getBoolean("cpslab.lsh.bechmark.storage.usePersistSegment")
     // preload vector
     startTestParallel(ifAsync = false, conf: Config)
