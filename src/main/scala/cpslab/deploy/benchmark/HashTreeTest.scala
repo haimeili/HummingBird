@@ -864,6 +864,7 @@ object HashTreeTest {
     val requestNum = conf.getInt("cpslab.lsh.benchmark.storage.requestNum")
     val vectorCnt = conf.getInt("cpslab.lsh.benchmark.threadNumber") *
       conf.getInt("cpslab.lsh.benchmark.cap")
+    var sum = 0.0
     for (i <- 0 until requestNum) {
       val vId = Random.nextInt(vectorCnt)
       val v = vectorIdToVector.get(vId)
@@ -873,8 +874,9 @@ object HashTreeTest {
         vectorDatabase(i).put(v.vectorId, true)
       }
       val duration = (System.nanoTime() - startTime).toDouble / 1000000000
-      println(s"$duration")
+      sum += duration
     }
+    println("average latency: " + sum)
   }
 
   def main(args: Array[String]): Unit = {
