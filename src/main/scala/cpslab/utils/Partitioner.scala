@@ -14,10 +14,10 @@ class HashPartitioner[K](numPartitions: Int) extends Partitioner[K](numPartition
   }
 }
 
-class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, partitionBits: Int)
-  extends Partitioner[K](1 << partitionBits) {
-
-  val localitySensitiveHashing = new LSH(conf)
+class LocalitySensitivePartitioner[K](conf: Config,
+                                      tableId: Int,
+                                      partitionBits: Int,
+                                      lshEngine: LSH) extends Partitioner[K](1 << partitionBits) {
 
   override def getPartition(hashCode: K): Int = {
     val hashValueInInteger = hashCode.asInstanceOf[Int].hashCode()
@@ -32,6 +32,6 @@ class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, partitionBits:
     val values = vector.filter(_ != 0).map(_.toDouble)
     val v = new SparseVector(0, 32, index, values)
     //re locality-sensitive hashing
-    localitySensitiveHashing.calculateIndex(v, tableId)(0) >>> (32 - partitionBits)
+    lshEngine.calculateIndex(v, tableId)(0) >>> (32 - partitionBits)
   }
 }

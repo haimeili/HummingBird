@@ -134,6 +134,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
          |cpslab.lsh.vectorDim=32
          |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
+    val localitySensitiveHashingForParitioning = new LSH(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -144,7 +145,8 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
             //new HashPartitioner[Int](numPartitions),
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
+            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits,
+              localitySensitiveHashingForParitioning),
             true,
             1,
             Serializers.scalaIntSerializer,
@@ -218,6 +220,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
          |cpslab.lsh.vectorDim=32
          |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
+    val localitySensitiveHashingForParitioning = new LSH(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -226,7 +229,8 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
+            new LocalitySensitivePartitioner[Int](
+              confForPartitioner, tableId, partitionBits, localitySensitiveHashingForParitioning),
             true,
             1,
             Serializers.scalaIntSerializer,
@@ -279,11 +283,15 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     // LSHTable configurations
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
 
+
+
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
          |cpslab.lsh.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
+
+    val localitySensitiveHashingForParitioning = new LSH(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
         case "Doraemon" =>
@@ -292,7 +300,8 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
             "lsh",
             workingDirRoot + "-" + tableId,
             "partitionedTree-" + tableId,
-            new LocalitySensitivePartitioner[Int](confForPartitioner, tableId, partitionBits),
+            new LocalitySensitivePartitioner[Int](
+              confForPartitioner, tableId, partitionBits, localitySensitiveHashingForParitioning),
             true,
             1,
             Serializers.scalaIntSerializer,
