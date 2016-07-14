@@ -58,9 +58,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
               storageName, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
               null, false, true, null);
       ((StoreSegment) storeSegment).serializer = LN_SERIALIZER;
-      storeSegment.init();
     } else {
-      storeSegment = new StoreAppend(storageName, Volume.RandomAccessFileVol.FACTORY, null, 1,
+      storeSegment = new StoreAppend(storageName,
+              Volume.RandomAccessFileVol.FACTORY, null, 1,
               0, false,
               false,
               null,
@@ -69,6 +69,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
               true,
               null);
     }
+    storeSegment.init();
+
     if (storageSpaces.containsKey(storageName)) {
       storageSpaces.get(storageName).close();
     }
