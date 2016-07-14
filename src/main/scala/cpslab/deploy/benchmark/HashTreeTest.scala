@@ -857,7 +857,7 @@ object HashTreeTest {
     startTestParallel(ifAsync = false, conf: Config)
     // write test
     val requestNum = conf.getInt("cpslab.lsh.benchmark.storage.requestNum")
-    val vectorCnt = conf.getInt("cpslab.lsh.benchmark.threadNum") *
+    val vectorCnt = conf.getInt("cpslab.lsh.benchmark.threadNumber") *
       conf.getInt("cpslab.lsh.benchmark.cap")
     for (i <- 0 until requestNum) {
       val vId = Random.nextInt(vectorCnt)
