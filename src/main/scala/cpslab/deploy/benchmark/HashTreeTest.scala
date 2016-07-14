@@ -867,7 +867,7 @@ object HashTreeTest {
       for (i <- 0 until tableNum) {
         vectorDatabase(i).put(v.vectorId, true)
       }
-      val duration = (System.nanoTime() - startTime) / 1000000000
+      val duration = (System.nanoTime() - startTime).toDouble / 1000000000
       println(s"$duration")
     }
   }
