@@ -852,30 +852,28 @@ object HashTreeTest {
     
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
-    loadAccuracyTestFiles(conf)
+    if (args(3) == "accuracy") {
 
-    testAccuracy(conf)
+      loadAccuracyTestFiles(conf)
 
-
-
-    /*
-    ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
-    if (args(1) == "async") {
-      asyncTestWriteThreadScalability(conf, threadNumber)
-
+      testAccuracy(conf)
     } else {
-      val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
-      val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
-      testWriteThreadScalability(conf, threadNumber)
-      val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
-      while (finishedWriteThreadCount.get() < threadNumber) {
-        Thread.sleep(10000)
+      if (args(1) == "async") {
+        asyncTestWriteThreadScalability(conf, threadNumber)
+      } else {
+        val requestPerThread = conf.getInt("cpslab.lsh.benchmark.syncReadCap")
+        val readThreadNum = conf.getInt("cpslab.lsh.benchmark.readingThreadNum")
+        testWriteThreadScalability(conf, threadNumber)
+        val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
+        while (finishedWriteThreadCount.get() < threadNumber) {
+          Thread.sleep(10000)
+        }
+        if (ifRunRead) {
+          println("======read performance======")
+          testReadThreadScalability(conf, requestPerThread, readThreadNum)
+        }
       }
-      if (ifRunRead) {
-        println("======read performance======")
-        testReadThreadScalability(conf, requestPerThread, readThreadNum)
-      }
-    }*/
+    }
 
 
     //ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
