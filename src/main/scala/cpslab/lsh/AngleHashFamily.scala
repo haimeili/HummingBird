@@ -38,6 +38,7 @@ private[lsh] class AngleHashFamily(
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[AngleParameterSet]] = {
     val hashFamily = initHashFamily
+    println("hash family size: " + hashFamily.length)
     val generatedHashChains = new Array[LSHTableHashChain[AngleParameterSet]](tableNum)
     for (tableId <- 0 until tableNum) {
       val hashFunctionChain = (0 until chainLength).map(_ =>
