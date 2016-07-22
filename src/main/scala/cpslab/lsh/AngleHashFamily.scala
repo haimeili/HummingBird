@@ -40,11 +40,14 @@ private[lsh] class AngleHashFamily(
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[AngleParameterSet]] = {
     val hashFamily = initHashFamily
-    val uniformRandomizer = new Random(1)
     val generatedHashChains = new Array[LSHTableHashChain[AngleParameterSet]](tableNum)
     for (tableId <- 0 until tableNum) {
       val hashFunctionChain = (0 until chainLength).map(_ =>
-        AngleParameterSet(getNewUnitVector)).toList
+        if (LSH.generateByPulling) {
+          hashFamily(Random.nextInt(familySize))
+        } else {
+          AngleParameterSet(getNewUnitVector)
+        }).toList
       generatedHashChains(tableId) = new AngleHashChain(chainLength, hashFunctionChain)
     }
     generatedHashChains.toList
