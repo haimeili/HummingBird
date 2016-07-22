@@ -19,6 +19,8 @@ class LocalitySensitivePartitioner[K](conf: Config, tableId: Int, partitionBits:
 
   val localitySensitiveHashing = new LSH(conf)
 
+  println("===initialized Locality Sensitive Partitioner =====")
+
   override def getPartition(hashCode: K): Int = {
     val hashValueInInteger = hashCode.asInstanceOf[Int].hashCode()
     //val partitionId = objHashValue >>> (32 - numBits)
