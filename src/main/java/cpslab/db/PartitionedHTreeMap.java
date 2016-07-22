@@ -224,13 +224,9 @@ public class PartitionedHTreeMap<K, V>
       if (c.length == BITMAP_SIZE) {
         return;
       }
-      /*
       out2.packLong((((long) c[BITMAP_SIZE]) << 1) | 1L);
       for (int i = BITMAP_SIZE + 1; i < c.length; i++) {
         out2.packLong(c[i]);
-      }*/
-      for (int i = BITMAP_SIZE; i < c.length; i++) {
-        out2.writeInt(c[i]);
       }
     }
 
@@ -279,21 +275,16 @@ public class PartitionedHTreeMap<K, V>
         return new int[BITMAP_SIZE];
       }
 
-      //long firstVal = in2.unpackLong();
+      long firstVal = in2.unpackLong();
 
       //return int[]
       int[] ret = new int[BITMAP_SIZE + len];
       for (int i = 0; i < BITMAP_SIZE; i++) {
         ret[i] = bitmaps[i];
       }
-      len += BITMAP_SIZE;
-      /*
       ret[BITMAP_SIZE] = (int) (firstVal >>> 1);
       len += BITMAP_SIZE;
-      in2.unpackIntArray(ret, BITMAP_SIZE + 1, len);*/
-      for (int i = BITMAP_SIZE; i < len; i++) {
-        ret[i] = in2.readInt();
-      }
+      in2.unpackIntArray(ret, BITMAP_SIZE + 1, len);
       return ret;
     }
 
