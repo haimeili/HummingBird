@@ -132,7 +132,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
-         |cpslab.lsh.chainLength=$partitionBits
+         |cpslab.lshTable.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
@@ -282,7 +282,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
-         |cpslab.lsh.chainLength=$partitionBits
+         |cpslab.lshTable.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
       concurrentCollectionType match {
