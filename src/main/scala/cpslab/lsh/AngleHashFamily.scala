@@ -44,7 +44,7 @@ private[lsh] class AngleHashFamily(
     val generatedHashChains = new Array[LSHTableHashChain[AngleParameterSet]](tableNum)
     for (tableId <- 0 until tableNum) {
       val hashFunctionChain = (0 until chainLength).map(_ =>
-        hashFamily(uniformRandomizer.nextInt(familySize))).toList
+        AngleParameterSet(getNewUnitVector)).toList
       generatedHashChains(tableId) = new AngleHashChain(chainLength, hashFunctionChain)
     }
     generatedHashChains.toList
