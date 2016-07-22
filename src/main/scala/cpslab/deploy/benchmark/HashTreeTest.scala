@@ -882,6 +882,7 @@ object HashTreeTest {
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
+    println("=====initialized LSHEngine=====")
     // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
     //initializeActorBasedHashTree(conf)
     /*ShardDatabase.initVectorDatabaseFromFS(
