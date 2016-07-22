@@ -330,7 +330,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
       actors.put(partitionId, new Array[ActorRef](actorNum))
       for (segmentId <- 0 until actorNum) {
         actors(partitionId)(segmentId) = ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
-          Props(new WriterActor(partitionId)))
+          Props(new WriterActor(partitionId)).withDispatcher("akka.actor.writer-dispatcher"),
+          name = s"lshwriter-$partitionId-$segmentId")
       }
     }
   }
