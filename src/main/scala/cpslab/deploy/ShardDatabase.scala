@@ -278,10 +278,12 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
 
     // LSHTable configurations
     val partitionBits = conf.getInt("cpslab.lsh.partitionBits")
-
+    val ifFromFile = conf.getString("cpslab.lsh.partitionBitsGenerateMethod")
     val confForPartitioner = ConfigFactory.parseString(
       s"""
          |cpslab.lsh.vectorDim=32
+         |cpslab.lsh.generateMethod=$ifFromFile
+         |cpslab.lsh.familyFilePath=partitionFunc.txt
          |cpslab.lshTable.chainLength=$partitionBits
       """.stripMargin).withFallback(conf)
     def initializeVectorDatabase(tableId: Int): PartitionedHTreeMap[Int, Boolean] =
