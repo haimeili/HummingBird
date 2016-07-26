@@ -729,11 +729,10 @@ object HashTreeTest {
       var efficiencySum = new ListBuffer[Double]
       val tableNum = conf.getInt("cpslab.lsh.tableNum")
       val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
-      val testAllRequest = conf.getBoolean("cpslab.lsh.benchmark.accuracy.testAllRequests")
-      val totalCnt = if (testAllRequest) testIDs.size else 50
+      val totalCnt = conf.getInt("cpslab.lsh.benchmark.accuracy.totalCnt")
       for (testCnt <- 0 until totalCnt) {
         val order = {
-          if (ifFixRequests || testAllRequest) {
+          if (ifFixRequests) {
             testCnt
           } else {
             Random.nextInt(testIDs.size)
