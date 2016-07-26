@@ -729,8 +729,15 @@ object HashTreeTest {
       val totalCnt = 50
       var efficiencySum = new ListBuffer[Double]
       val tableNum = conf.getInt("cpslab.lsh.tableNum")
+      val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
       for (testCnt <- 0 until totalCnt) {
-        val order = Random.nextInt(testIDs.size)
+        val order = {
+          if (ifFixRequests) {
+            testCnt
+          } else {
+            Random.nextInt(testIDs.size)
+          }
+        }
         val queryVector = vectorIdToVector.get(testIDs(order))
         println("query vector ID:" + queryVector.vectorId)
         val mostK = conf.getInt("cpslab.lsh.k")
