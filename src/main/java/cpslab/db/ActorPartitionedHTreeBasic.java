@@ -16,6 +16,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   final int tableId;
 
+  public int redistributionCount = 0;
+
   ConcurrentHashMap<String, Store> storageSpaces = new ConcurrentHashMap<>();
 
   protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
@@ -317,6 +319,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       //there is no such a null value
       //check if linked list has overflow and needs to be expanded to new dir level
       if (bucketConflictCost >= BUCKET_OVERFLOW && level >= 1) {
+        redistributionCount += 1;
         Object newDirNode = new int[BITMAP_SIZE];
         {
           //Generate the new linkedNode

@@ -837,6 +837,8 @@ object HashTreeTest {
 
   private def startTestAccuracy(conf: Config): Unit = {
     loadAccuracyTestFiles(conf)
+    println("redistribution count:" +
+      vectorDatabase(0).asInstanceOf[ActorPartitionedHTreeBasic[Int, Boolean]].redistributionCount)
     testAccuracy(conf)
   }
 
