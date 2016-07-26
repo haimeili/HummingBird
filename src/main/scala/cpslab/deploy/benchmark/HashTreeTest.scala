@@ -730,15 +730,30 @@ object HashTreeTest {
       val tableNum = conf.getInt("cpslab.lsh.tableNum")
       val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
       val totalCnt = conf.getInt("cpslab.lsh.benchmark.accuracy.totalCnt")
+      val readFromTrainingSet = conf.getBoolean("cpslab.lsh.benchmark.accuracy.readFromTrainingSet")
       for (testCnt <- 0 until totalCnt) {
         val order = {
           if (ifFixRequests) {
             testCnt
           } else {
-            Random.nextInt(testIDs.size)
+            if (!readFromTrainingSet) {
+              Random.nextInt(testIDs.size)
+            } else {
+              Random.nextInt(testIDs.size + trainingIDs.size)
+            }
           }
         }
-        val queryVector = vectorIdToVector.get(testIDs(order))
+        val queryVector = {
+          if (!readFromTrainingSet) {
+            vectorIdToVector.get(testIDs(order))
+          } else {
+            if (order > trainingIDs.size - 1) {
+              vectorIdToVector.get(testIDs(order - trainingIDs.size))
+            } else {
+              vectorIdToVector.get(trainingIDs(order))
+            }
+          }
+        }
         println("query vector ID:" + queryVector.vectorId)
         val mostK = conf.getInt("cpslab.lsh.k")
 
