@@ -796,11 +796,12 @@ object HashTreeTest {
               sum += math.acos(sortedDistances(i)._2) / math.acos(sortedGroundTruth(i)._2)
             }
           }
-          sum / mostK
-        }
-        if (ratio < 1.0) {
-          println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
-          System.exit(1)
+          val r = sum / mostK
+          if (r < 1.0) {
+            println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
+            System.exit(1)
+          }
+          r
         }
       }
       //println(ratio / totalCnt)
