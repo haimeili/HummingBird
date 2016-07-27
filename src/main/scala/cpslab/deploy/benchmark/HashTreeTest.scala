@@ -811,6 +811,10 @@ object HashTreeTest {
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
       ratiosInstances += ratio / totalCnt
+      if (ratiosInstances(exp) == Double.NaN) {
+        println(s"FAULT: ratio $ratiosInstances, totalCnt $totalCnt, Ratio $ratio")
+        System.exit(1)
+      }
       effSumInstances += efficiencySum.sum
       //analyze efficiency distribution
       efficiencyDist += percentileDist(efficiencySum)
