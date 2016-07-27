@@ -798,7 +798,7 @@ object HashTreeTest {
           }
           val r = sum / mostK
           if (r == Double.NaN) {
-            println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
+            println(s"FAULT: ratio $r ${queryVector.vectorId}")
             System.exit(1)
           }
           r
