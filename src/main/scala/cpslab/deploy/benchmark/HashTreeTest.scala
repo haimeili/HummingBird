@@ -798,6 +798,10 @@ object HashTreeTest {
           }
           sum / mostK
         }
+        if (ratio < 1.0) {
+          println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
+          System.exit(1)
+        }
       }
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
