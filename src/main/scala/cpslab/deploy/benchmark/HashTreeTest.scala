@@ -797,13 +797,13 @@ object HashTreeTest {
             }
           }
           val r = sum / mostK
-          if (r == Double.NaN) {
+          if (r.isNaN) {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
             System.exit(1)
           }
           r
         }
-        if (ratio == Double.NaN) {
+        if (ratio.isNaN) {
           println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
           System.exit(1)
         }
@@ -811,7 +811,7 @@ object HashTreeTest {
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
       ratiosInstances += ratio / totalCnt
-      if (ratiosInstances(exp) == Double.NaN) {
+      if (ratiosInstances(exp).isNaN) {
         println(s"FAULT: ratio $ratiosInstances, totalCnt $totalCnt, Ratio $ratio")
         System.exit(1)
       }
