@@ -296,8 +296,10 @@ object HashTreeTest {
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
 
+    System.gc()
+
     val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
-    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    //ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
       "akka.actor.writer-dispatcher")
     val st = System.nanoTime()
