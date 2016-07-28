@@ -367,7 +367,7 @@ object HashTreeTest {
 
     var cnt = 0
 
-    val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    var taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
     println(s"writing ${taskQueue.size} vectors")
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatchers.lookup(
@@ -393,6 +393,7 @@ object HashTreeTest {
         val duration = System.nanoTime() - st
         println("total write throughput: " +
           cap * threadNumber / (duration.toDouble / 1000000000))
+        taskQueue = List[SparseVector]()
         finishedWriteThreadCount.set(threadNumber)
       case Failure(failure) =>
         throw failure
