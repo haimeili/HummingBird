@@ -524,7 +524,8 @@ object HashTreeTest {
     // against the complicate akka (bring too much overhead)
 
     ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
-    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.dispatcher
+    implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.
+      dispatchers.lookup("akka.actor.default-dispatcher")
 
     val interestVectorIds = {
       val l = new ListBuffer[(SparseVector, Int)]
