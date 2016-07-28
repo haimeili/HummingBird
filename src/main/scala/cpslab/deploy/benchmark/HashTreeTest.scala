@@ -526,7 +526,8 @@ object HashTreeTest {
     // pure thread/future is too clean as a baseline
     // against the complicate akka (bring too much overhead)
 
-    ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
+    System.gc()
+    //ActorBasedPartitionedHTreeMap.actorSystem = ActorSystem("AK", conf)
     implicit val executionContext = ActorBasedPartitionedHTreeMap.actorSystem.
       dispatchers.lookup("akka.actor.default-dispatcher")
 
