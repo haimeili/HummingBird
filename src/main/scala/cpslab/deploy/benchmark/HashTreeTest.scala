@@ -951,7 +951,7 @@ object HashTreeTest {
           println(s"Thread: ${Thread.currentThread().getName} " +
             s"averageTime: ${(overAllEndTime - overAllStartTime)/1000000000} seconds, " +
             s"max: ${latencyRecords.max / 1000000000} seconds," +
-            s" min: ${latencyRecords.max / 1000000000} seconds")
+            s" min: ${latencyRecords.min / 1000000000} seconds")
       }}).start()
     }
   }
