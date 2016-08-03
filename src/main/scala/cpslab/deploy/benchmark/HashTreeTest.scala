@@ -927,6 +927,8 @@ object HashTreeTest {
     val reqCnt = conf.getInt("cpslab.lsh.benchmark.cap")
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
 
+    ShardDatabase.initializePartitionedHashMap(conf)
+
     startWriteWorkload(conf, threadNumber)
 
     while (finishedWriteThreadCount.get() < threadNumber) {
