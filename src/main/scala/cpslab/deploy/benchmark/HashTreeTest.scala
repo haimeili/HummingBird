@@ -899,7 +899,7 @@ object HashTreeTest {
   private def startTestStorage(conf: Config): Unit = {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     persistWorkingDir = System.currentTimeMillis() + "/"
-    new File(persistWorkingDir).mkdir();
+    new File(persistWorkingDir).mkdir()
     usePersistSegment = conf.getBoolean("cpslab.lsh.bechmark.storage.usePersistSegment")
     // preload vector
     startTestParallel(ifAsync = false, conf: Config)
@@ -920,6 +920,38 @@ object HashTreeTest {
       sum += duration
     }
     println("average latency: " + sum)
+  }
+
+  private def startReadTest(conf: Config): Unit = {
+    val threadNumber = conf.getInt("cpslab.lsh.benchmark.threadNumber")
+    val reqCnt = conf.getInt("cpslab.lsh.benchmark.cap")
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
+
+    startWriteWorkload(conf, threadNumber)
+
+    while (finishedWriteThreadCount.get() < threadNumber) {
+      Thread.sleep(10000)
+    }
+
+    for (i <- 0 until threadNumber) {
+      new Thread(new Runnable {
+        val latencyRecords = new ListBuffer[Long]
+        override def run(): Unit = {
+          val overAllStartTime = System.nanoTime()
+          for (reqId <- 0 until reqCnt) {
+            val startTime = System.nanoTime()
+            for (tableId <- 0 until tableNum) {
+              vectorDatabase(tableId).getSimilar(Random.nextInt(threadNumber * reqCnt))
+            }
+            latencyRecords += System.nanoTime() - startTime
+          }
+          val overAllEndTime = System.nanoTime()
+          println(s"Thread: ${Thread.currentThread().getName} " +
+            s"averageTime: ${(overAllEndTime - overAllStartTime)/1000000000} seconds, " +
+            s"max: ${latencyRecords.max / 1000000000} seconds," +
+            s" min: ${latencyRecords.max / 1000000000} seconds")
+      }}).start()
+    }
   }
 
   def main(args: Array[String]): Unit = {
@@ -945,6 +977,8 @@ object HashTreeTest {
         startTestParallel(args(1) == "async", conf)
       case "storage" =>
         startTestStorage(conf)
+      case "read" =>
+        startReadTest(conf)
     }
 
 
