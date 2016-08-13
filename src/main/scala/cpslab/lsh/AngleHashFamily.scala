@@ -11,12 +11,10 @@ private[lsh] class AngleHashFamily(
     vectorDim: Int,
     chainLength: Int) extends LSHHashFamily[AngleParameterSet] {
 
-  val rand = new Random(0)
-
   private def getNewUnitVector: SparseVector = {
     val values = {
-      val arr = (for (vectorDim <- 0 until vectorDim) yield rand.nextDouble()).toArray
-      arr.map(value => if (rand.nextInt(2) > 0) value else -1 * value)
+      val arr = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
+      arr.map(value => if (Random.nextInt(2) > 0) value else -1 * value)
     }
     val indices = values.zipWithIndex.filter{case (value, index) => value != 0}.map(_._2)
     //normailization
@@ -40,11 +38,17 @@ private[lsh] class AngleHashFamily(
    */
   override def pick(tableNum: Int): List[LSHTableHashChain[AngleParameterSet]] = {
     val hashFamily = initHashFamily
-    val uniformRandomizer = new Random(1)
+    println("hash family size: " + hashFamily.length)
     val generatedHashChains = new Array[LSHTableHashChain[AngleParameterSet]](tableNum)
     for (tableId <- 0 until tableNum) {
       val hashFunctionChain = (0 until chainLength).map(_ =>
-        hashFamily(uniformRandomizer.nextInt(familySize))).toList
+        if (LSH.generateByPulling) {
+          val nextID = Random.nextInt(familySize)
+          println(s"$nextID")
+          hashFamily(nextID)
+        } else {
+          AngleParameterSet(getNewUnitVector)
+        }).toList
       generatedHashChains(tableId) = new AngleHashChain(chainLength, hashFunctionChain)
     }
     generatedHashChains.toList
@@ -94,8 +98,9 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
         SimilarityCalculator.fastCalculateSimilarity(chainedFunctions(hashFunctionId).a,
         vector))
       result = result << 1 | signResult
+      //result = signResult << (chainSize - hashFunctionId - 1) | result
     }
-    result
+    result << (32 - chainSize)
   }
 }
 

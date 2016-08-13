@@ -31,20 +31,20 @@ public class PartitionedHTreeMap<K, V>
 
   protected static final Logger LOG = Logger.getLogger(HTreeMap.class.getName());
 
-  public static int BUCKET_OVERFLOW = 4;
-  protected static int BUCKET_LENGTH = 28;
+  public int BUCKET_OVERFLOW = 4;
+  public int BUCKET_LENGTH = 28;
 
-  protected static int DIRECTORY_NODE_SIZE = 0;
-  protected static int NUM_BITS_PER_COMPARISON = 0;
-  protected static int BITS_COMPARISON_MASK = 0;
-
-  protected static int BITMAP_SIZE = 0;
-  protected static int MAX_TREE_LEVEL = 0;
+  protected int DIRECTORY_NODE_SIZE = 0;
+  protected int NUM_BITS_PER_COMPARISON = 0;
+  protected int BITS_COMPARISON_MASK = 0;
+  protected int BITMAP_SIZE = 0;
+  protected int MAX_TREE_LEVEL = 0;
+  protected int TOTAL_HASH_LENGTH = 0;
 
   protected static final int DIV8 = 3;
   protected static final int MOD8 = 0x7;
 
-  static int SEG = 0;
+  public int SEG = 0;
   /**
    * is this a Map or Set?  if false, entries do not have values, only keys are allowed
    */
@@ -68,6 +68,11 @@ public class PartitionedHTreeMap<K, V>
   protected final Fun.Function1<V, K> valueCreator;
 
   protected final long ramThreshold;
+
+  // controlling the simulation of default MapDB
+  protected boolean simulateDefaultMapDB = false;
+  protected ReentrantReadWriteLock initStorageLock = new ReentrantReadWriteLock();
+  protected boolean defaultMapDBInitialized = false;
 
   /**
    * Indicates if this collection collection was not made by DB by user.
@@ -94,7 +99,7 @@ public class PartitionedHTreeMap<K, V>
           new ConcurrentHashMap<Integer, ReentrantReadWriteLock[]>();
 
   //partitioner
-  protected final Partitioner<K> partitioner;
+  public Partitioner<K> partitioner;
   private final String hasherName;
   protected final Hasher hasher;
 
@@ -184,7 +189,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
 
-  protected static final Serializer<Object> DIR_SERIALIZER = new Serializer<Object>() {
+  protected final Serializer<Object> DIR_SERIALIZER = new Serializer<Object>() {
     @Override
     public void serialize(DataOutput out, Object value) throws IOException {
       DataIO.DataOutputByteArray out2 = (DataIO.DataOutputByteArray) out;
@@ -219,7 +224,6 @@ public class PartitionedHTreeMap<K, V>
       if (c.length == BITMAP_SIZE) {
         return;
       }
-
       out2.packLong((((long) c[BITMAP_SIZE]) << 1) | 1L);
       for (int i = BITMAP_SIZE + 1; i < c.length; i++) {
         out2.packLong(c[i]);
@@ -290,6 +294,24 @@ public class PartitionedHTreeMap<K, V>
     }
   };
 
+  public PartitionedHTreeMap(
+          int tableId,
+          String hasherName,
+          String workingDirectory,
+          String name,
+          Partitioner<K> partitioner,
+          boolean closeEngine,
+          int hashSalt,
+          Serializer<K> keySerializer,
+          Serializer<V> valueSerializer,
+          Fun.Function1<V, K> valueCreator,
+          ExecutorService executor,
+          boolean closeExecutor,
+          long ramThreshold) {
+    this(tableId, hasherName, workingDirectory, name, partitioner, closeEngine, hashSalt,
+      keySerializer, valueSerializer, valueCreator, executor, closeExecutor, ramThreshold, false);
+  }
+
   /**
    * Opens PartitionedHTreeMap
    */
@@ -306,7 +328,8 @@ public class PartitionedHTreeMap<K, V>
           Fun.Function1<V, K> valueCreator,
           ExecutorService executor,
           boolean closeExecutor,
-          long ramThreshold) {
+          long ramThreshold,
+          boolean simulateDefaultMapDB) {
 
     if (keySerializer == null) {
       throw new NullPointerException();
@@ -325,6 +348,7 @@ public class PartitionedHTreeMap<K, V>
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
     this.valueCreator = valueCreator;
+    this.simulateDefaultMapDB = simulateDefaultMapDB;
 
     this.executor = executor;
 
@@ -345,20 +369,25 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  public static void updateBucketLength(int bucketLength) {
+  public void updateBucketLength(int bucketLength) {
     BUCKET_LENGTH = bucketLength;
     SEG = (int) Math.pow(2, 32 - BUCKET_LENGTH);
   }
 
-  public static void updateDirectoryNodeSize(int newNodeSize) {
+  public void updateDirectoryNodeSize(int newNodeSize, int totalHashLength) {
     DIRECTORY_NODE_SIZE = newNodeSize;
     NUM_BITS_PER_COMPARISON = (int) (Math.log(DIRECTORY_NODE_SIZE) / Math.log(2));
+    System.out.println("NUM_BITS_PER_COMPARISON: " + NUM_BITS_PER_COMPARISON);
     BITS_COMPARISON_MASK = 1;
     for (int i = 0; i < NUM_BITS_PER_COMPARISON; i++) {
       BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
     }
-    MAX_TREE_LEVEL = BUCKET_LENGTH / NUM_BITS_PER_COMPARISON - 1;
+    TOTAL_HASH_LENGTH = totalHashLength;
+    MAX_TREE_LEVEL = (TOTAL_HASH_LENGTH - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
+    System.out.println("TOTAL_HASH_LENGTH:" + TOTAL_HASH_LENGTH);
+    System.out.println("MAX_TREE_LEVEL: " + MAX_TREE_LEVEL);
     BITMAP_SIZE = newNodeSize / 32;
+    System.out.println("BITMAP_SIZE: " + BITMAP_SIZE);
     if (BITMAP_SIZE < 1) {
       System.out.println("Fault: the minimum allowed directory node size is 32");
       System.exit(1);
@@ -608,7 +637,7 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
-  private LinkedList<K> searchWithSimilarity(
+  protected LinkedList<K> searchWithSimilarity(
           final Object key,
           Engine engine,
           long recId,
@@ -617,6 +646,7 @@ public class PartitionedHTreeMap<K, V>
     for (int level = MAX_TREE_LEVEL; level >= 0; level--) {
       Object dir = engine.get(recId, DIR_SERIALIZER);
       if (dir == null) {
+        System.out.println("cannot find dir for " + key + " with hash value " + h);
         return null;
       }
 
@@ -628,6 +658,11 @@ public class PartitionedHTreeMap<K, V>
       if (recId == 0) {
         //Nan: no such node
         //search from persisted storage for the directory
+        System.out.println("met a rec with 0, level: " + level + " hash: " + h);
+        int[] dir1 = (int[]) dir;
+        for (int i = 0; i < dir1.length; i++) {
+          System.out.println(dir1[i]);
+        }
         return null;
       }
       //Nan: last bite indicates if referenced record is LinkedNode
@@ -641,7 +676,7 @@ public class PartitionedHTreeMap<K, V>
         while (true) {
           LinkedNode<K, V> ln = engine.get(workingRecId, LN_SERIALIZER);
           if (ln == null) {
-            return null;
+            return ret;
           }
           if (ln.key != key) {
             ret.add(ln.key);
@@ -704,7 +739,7 @@ public class PartitionedHTreeMap<K, V>
     return null;
   }
 
-  private LinkedList<K> fetchFromPersistedStorageWithSimilarity(
+  protected LinkedList<K> fetchFromPersistedStorageWithSimilarity(
           final Object key,
           int partitionId,
           long rootRecId,
@@ -749,7 +784,7 @@ public class PartitionedHTreeMap<K, V>
     return ret;
   }
 
-  private LinkedList<K> getInnerWithSimilarity(
+  protected LinkedList<K> getInnerWithSimilarity(
           final Object key,
           int seg,
           int h,
@@ -822,7 +857,7 @@ public class PartitionedHTreeMap<K, V>
   }
 
 
-  protected static int dirOffsetFromSlot(Object dir, int slot) {
+  protected int dirOffsetFromSlot(Object dir, int slot) {
     if (dir instanceof int[])
       return dirOffsetFromSlot((int[]) dir, slot);
     else
@@ -834,10 +869,11 @@ public class PartitionedHTreeMap<K, V>
    * converts hash slot into actual offset in dir array, using bitmap
    *
    * @param dir  dir is the index in dir node, the first 4 * 32 bits is the bitmap
-   * @param slot slot is 7-bits of the hash value of the key, indicating the slot in this level
+   * @param slot slot is NUM_BITS_PER_COMPARISON-bits of the hash value of the key,
+   *             indicating the slot in this level
    * @return negative -offset if the slot hasn't been occupied, positive offset if the slot is set
    */
-  protected static final int dirOffsetFromSlot(int[] dir, int slot) {
+  protected final int dirOffsetFromSlot(int[] dir, int slot) {
     if (CC.ASSERT && slot > DIRECTORY_NODE_SIZE - 1)
       throw new DBException.DataCorruption("slot " + slot +  " too high");
     //Nan's comments below
@@ -914,7 +950,7 @@ public class PartitionedHTreeMap<K, V>
    * @param newRecid the new record id
    * @return updated dir node reference
    */
-  protected static final Object putNewRecordIdInDir(Object dir, int slot, long newRecid) {
+  protected final Object putNewRecordIdInDir(Object dir, int slot, long newRecid) {
     if (dir instanceof int[]) {
       int[] updatedDir = (int[]) dir;
       int offset = dirOffsetFromSlot(updatedDir, slot);
@@ -976,7 +1012,7 @@ public class PartitionedHTreeMap<K, V>
     return dir_;
   }
 
-  protected static final Object dirRemove(Object dir, final int slot) {
+  protected final Object dirRemove(Object dir, final int slot) {
     int offset = dirOffsetFromSlot(dir, slot);
     if (CC.ASSERT && offset <= 0) {
       throw new DBException.DataCorruption("offset too low");
@@ -1011,57 +1047,111 @@ public class PartitionedHTreeMap<K, V>
     }
   }
 
-  private void initPartition(int partitionId) {
-    //add root record for each partition
+  private StoreSegment initPartitionInner(int partitionId, int lockScale) {
     StoreSegment storeSegment = new StoreSegment(
-            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
+            "partition-" + partitionId, Volume.UNSAFE_VOL_FACTORY, null, lockScale, 0, false, false,
             null, false, true, null);
     storeSegment.serializer = LN_SERIALIZER;
     storeSegment.init();
-    if (engines.containsKey(partitionId)) {
-      engines.get(partitionId).close();
+    return storeSegment;
+  }
+
+  private void initPartition(int partitionId) {
+    //add root record for each partition
+    // obey with the default setup of mapdb where each store has the lockscale of 1
+    if (!simulateDefaultMapDB) {
+      StoreSegment store = initPartitionInner(partitionId, 1);
+      if (engines.containsKey(partitionId)) {
+        engines.get(partitionId).close();
+      }
+      engines.put(partitionId, store);
+      Long[] segIds = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
+        //partitionRootRec.put(partitionId, partitionRoot);
+        segIds[i] = partitionRoot;
+      }
+      partitionRootRec.put(partitionId, segIds);
+      //initialize counterRecId
+      Long[] counterRecIdArray = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long counterRecId = store.put(0L, Serializer.LONG);
+        counterRecIdArray[i] = counterRecId;
+      }
+      counterRecids.put(partitionId, counterRecIdArray);
+    } else {
+      // to simulate the default mapdb setup
+      // all partition shares the same store with the lockscale of 16
+      StoreSegment store = initPartitionInner(partitionId, 16);
+      Long[] segIds = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long partitionRoot = store.put(new int[BITMAP_SIZE], DIR_SERIALIZER);
+        //partitionRootRec.put(partitionId, partitionRoot);
+        segIds[i] = partitionRoot;
+      }
+      //initialize counterRecId
+      Long[] counterRecIdArray = new Long[SEG];
+      for (int i = 0; i < SEG; i++) {
+        long counterRecId = store.put(0L, Serializer.LONG);
+        counterRecIdArray[i] = counterRecId;
+      }
+      for (int pId = 0; pId < partitioner.numPartitions; pId++) {
+        engines.put(pId, store);
+        partitionRootRec.put(pId, segIds);
+        counterRecids.put(pId, counterRecIdArray);
+      }
     }
-    engines.put(partitionId, storeSegment);
-    Long[] segIds = new Long[SEG];
-    for (int i = 0; i < SEG; i++) {
-      long partitionRoot = engines.get(partitionId).put(new int[BITMAP_SIZE], DIR_SERIALIZER);
-      //partitionRootRec.put(partitionId, partitionRoot);
-      segIds[i] = partitionRoot;
-    }
-    partitionRootRec.put(partitionId, segIds);
-    //initialize counterRecId
-    Long [] counterRecIdArray = new Long[SEG];
-    for (int i = 0; i < SEG; i++) {
-      long counterRecId = storeSegment.put(0L, Serializer.LONG);
-      counterRecIdArray[i] = counterRecId;
-    }
-    counterRecids.put(partitionId, counterRecIdArray);
   }
 
   protected void initPartitionIfNecessary(int partitionId) {
-    Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
-    try {
-      structureLock.lock();
-      if (!partitionRamLock.containsKey(partitionId) ||
-              !partitionPersistLock.containsKey(partitionId)) {
-        initPartition(partitionId);
-        ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
-        ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
-        for (int i = 0; i < SEG; i++) {
-          ramLockArray[i] = new ReentrantReadWriteLock();
-          persistLockArray[i] = new ReentrantReadWriteLock();
+    if (!this.simulateDefaultMapDB) {
+      Lock structureLock = structureLocks.get(Math.abs(partitionId % structureLockScale)).writeLock();
+      try {
+        structureLock.lock();
+        if (!partitionRamLock.containsKey(partitionId) ||
+                !partitionPersistLock.containsKey(partitionId)) {
+          initPartition(partitionId);
+          ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
+          ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
+          for (int i = 0; i < SEG; i++) {
+            ramLockArray[i] = new ReentrantReadWriteLock();
+            persistLockArray[i] = new ReentrantReadWriteLock();
+          }
+          partitionRamLock.put(partitionId, ramLockArray);
+          partitionPersistLock.put(partitionId, persistLockArray);
         }
-        partitionRamLock.put(partitionId, ramLockArray);
-        partitionPersistLock.put(partitionId, persistLockArray);
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        structureLock.unlock();
       }
-    } catch (Exception e){
-      e.printStackTrace();
-    } finally {
-      structureLock.unlock();
+    } else {
+      // simulate default mapdb
+      try {
+        initStorageLock.writeLock().lock();
+        if (!defaultMapDBInitialized) {
+          initPartition(partitionId);
+          ReentrantReadWriteLock[] ramLockArray = new ReentrantReadWriteLock[SEG];
+          ReentrantReadWriteLock[] persistLockArray = new ReentrantReadWriteLock[SEG];
+          for (int i = 0; i < SEG; i++) {
+            ramLockArray[i] = new ReentrantReadWriteLock();
+            persistLockArray[i] = new ReentrantReadWriteLock();
+          }
+          for (int i = 0; i < partitioner.numPartitions; i++) {
+            partitionRamLock.put(i, ramLockArray);
+            partitionPersistLock.put(i, persistLockArray);
+          }
+          defaultMapDBInitialized = true;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        initStorageLock.writeLock().unlock();
+      }
     }
   }
 
-  protected int hash(final K key) {
+  public int hash(final K key) {
     if (hasher instanceof LocalitySensitiveHasher) {
       // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
       // vector instead of the key value
@@ -1101,7 +1191,7 @@ public class PartitionedHTreeMap<K, V>
       partitionRamLock.get(partition)[seg].writeLock().unlock();
     }
 
-    return ret;
+    return value;
   }
 
   /**
@@ -1154,7 +1244,6 @@ public class PartitionedHTreeMap<K, V>
             ln = new LinkedNode<K, V>(ln.next, ln.key, value);
             if (CC.ASSERT && ln.next == recid)
               throw new DBException.DataCorruption("cyclic reference in linked list");
-
             engine.update(recid, ln, LN_SERIALIZER);
             return oldVal;
           }
@@ -1233,7 +1322,7 @@ public class PartitionedHTreeMap<K, V>
         dir = putNewRecordIdInDir(dir, slot, (newRecid << 1) | 1);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, seg, engine, +1);
+        //counter(partition, seg, engine, +1);
         return null;
       }
     }

@@ -462,7 +462,9 @@ public final class Pump {
             Object value = valueExtractor.run(iterNext);
             if(valuesStoredOutsideNodes) {
                 long recid = engine.put((V) value, valueSerializer);
-                value = new BTreeMap.ValRef(recid);
+                List<Long> l = new LinkedList<Long>();
+                l.add(recid);
+                value = new BTreeMap.ValRef(l);
             }
 
             leafKeys.add(key);

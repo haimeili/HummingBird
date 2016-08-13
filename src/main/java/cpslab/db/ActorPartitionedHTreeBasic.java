@@ -1,9 +1,11 @@
 package cpslab.db;
 
+import cpslab.deploy.benchmark.HashTreeTest;
 import cpslab.lsh.LocalitySensitiveHasher;
 import scala.collection.mutable.StringBuilder;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +16,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
 
   final int tableId;
 
-  ConcurrentHashMap<String, StoreSegment> storageSpaces = new ConcurrentHashMap<>();
+  public int redistributionCount = 0;
+
+  ConcurrentHashMap<String, Store> storageSpaces = new ConcurrentHashMap<>();
 
   protected HashMap<String, ReentrantReadWriteLock> structureLocks = new HashMap<>();
 
@@ -49,11 +53,27 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   private void initPartition(int partitionId, int segId) {
     //add root record for each partition
     String storageName = buildStorageName(partitionId, segId);
-    StoreSegment storeSegment = new StoreSegment(
-            storageName, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
-            null, false, true, null);
-    storeSegment.serializer = LN_SERIALIZER;
+    boolean persistSegment = HashTreeTest.usePersistSegment();
+    Store storeSegment;
+    if (!persistSegment) {
+      storeSegment = new StoreSegment(
+              storageName, Volume.UNSAFE_VOL_FACTORY, null, 32, 0, false, false,
+              null, false, true, null);
+      ((StoreSegment) storeSegment).serializer = LN_SERIALIZER;
+    } else {
+      storeSegment = new StoreAppend(
+              HashTreeTest.persistWorkingDir() + "table-" + tableId + "-" + storageName,
+              Volume.RandomAccessFileVol.FACTORY, null, 1,
+              0, false,
+              false,
+              null,
+              false,
+              false,
+              true,
+              null);
+    }
     storeSegment.init();
+
     if (storageSpaces.containsKey(storageName)) {
       storageSpaces.get(storageName).close();
     }
@@ -77,10 +97,11 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     counterRecids.put(partitionId, counterRecIdArray);
   }
 
-  protected void initPartitionIfNecessary(int partitionId, int segId) {
+  protected String initPartitionIfNecessary(int partitionId, int segId) {
     String storageName = buildStorageName(partitionId, segId);
-    Lock structureLock = structureLocks.get(storageName).writeLock();
+    Lock structureLock = null;
     try {
+      structureLock = structureLocks.get(storageName).writeLock();
       structureLock.lock();
       if (!partitionRamLock.containsKey(storageName) ||
               !partitionPersistLock.containsKey(storageName)) {
@@ -93,8 +114,13 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     } catch (Exception e){
       e.printStackTrace();
     } finally {
-      structureLock.unlock();
+      if (structureLock == null) {
+        System.out.println("cannot find lock for " + storageName);
+      } else {
+        structureLock.unlock();
+      }
     }
+    return storageName;
   }
 
   private PartitionedHTreeMap.LinkedNode<K, V> getInner(Object key, int seg, int h, int partition) {
@@ -115,15 +141,18 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   @Override
   public V get(final Object o) {
     if (o == null) return null;
-    final int h = hash((K) o);
-    final int seg = h >>> BUCKET_LENGTH;
+    int h = hash((K) o);
+    final int seg;// = h >>> BUCKET_LENGTH;
     final int partition1 = partitioner.getPartition((K) o);
     int partition = 0;
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       //if MainTable
       partition = Math.abs(partition1);
+      seg = h % SEG;
     } else {
       partition = partition1;
+      seg = h >>> BUCKET_LENGTH;
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
     }
     String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
@@ -158,16 +187,79 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   }
 
   @Override
-  protected V putInner(K key, V value, int h, int partition) {
-    int seg = h>>> BUCKET_LENGTH;
-    long dirRecid = partitionRootRec.get(partition)[seg];
-    String storageName = buildStorageName(partition, seg);
-    Engine engine = storageSpaces.get(storageName);
-    if (engine == null) {
-      System.out.println("FAULT: cannot find engine for " + storageName);
-      System.exit(1);
+  public V put(final K key, final V value) {
+    if (key == null)
+      throw new IllegalArgumentException("null key");
+
+    if (value == null)
+      throw new IllegalArgumentException("null value");
+
+    V ret;
+    final int h = hash(key);
+    final int seg;// = h >>> BUCKET_LENGTH;
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    if (!(hasher instanceof LocalitySensitiveHasher)) {
+      seg = h % SEG;
+    } else {
+      seg = h >>> BUCKET_LENGTH;
+    }
+    initPartitionIfNecessary(partition, seg);
+    try {
+      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().lock();
+      ret = putInner(key, value, h, partition);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return null;
+    } finally {
+      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().unlock();
+    }
+    return value;
+  }
+
+  public LinkedList<K> getSimilar(
+          final Object key) {
+    //TODO: Finish getSimilar
+    int h = hash((K) key);
+    final int seg = h >>> BUCKET_LENGTH;
+    final int partition = partitioner.getPartition(
+            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+
+    LinkedList<K> lns;
+    try {
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
+      lns = getInnerWithSimilarity(key, seg, h, partition);
+    } catch (NullPointerException npe) {
+      npe.printStackTrace();
+      return null;
     }
 
+    if (lns == null)
+      return null;
+    return lns;
+  }
+
+  protected LinkedList<K> getInnerWithSimilarity(
+          final Object key,
+          int seg,
+          int h,
+          int partition) {
+    try {
+      long recId = partitionRootRec.get(partition)[seg];
+      Engine engine = storageSpaces.get(buildStorageName(partition, seg));
+      if (((Store) engine).getCurrSize() >= ramThreshold) {
+        persist(partition);
+      }
+      return searchWithSimilarity(key, engine, recId, h);
+    } catch (NullPointerException npe) {
+      npe.printStackTrace();
+      return null;
+    }
+  }
+
+  protected V storeVector(K key, V value, int h, long rootRecid, int partition, int seg,
+                          Engine engine) {
+    long dirRecid = rootRecid;
     int level = MAX_TREE_LEVEL;
     while (true) {
       Object dir = engine.get(dirRecid, DIR_SERIALIZER);
@@ -213,6 +305,11 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
           if (CC.ASSERT && ln != null && ln.next == recid)
             throw new DBException.DataCorruption("cyclic reference in linked list");
           bucketConflictCost++;
+          /*
+          if (!(hasher instanceof LocalitySensitiveHasher) && ln != null) {
+            System.out.println("expected key: " + key + ", hash code:" + h + ", bucketConflictCost:" +
+                    bucketConflictCost + ", found key: " + ln.key);
+          }*/
           if (CC.ASSERT && bucketConflictCost > 1024 * 1024)
             throw new DBException.DataCorruption("linked list too large");
         }
@@ -222,6 +319,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       //there is no such a null value
       //check if linked list has overflow and needs to be expanded to new dir level
       if (bucketConflictCost >= BUCKET_OVERFLOW && level >= 1) {
+        redistributionCount += 1;
         Object newDirNode = new int[BITMAP_SIZE];
         {
           //Generate the new linkedNode
@@ -246,7 +344,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         while (nodeRecid != 0) {
           PartitionedHTreeMap.LinkedNode<K, V> n = engine.get(nodeRecid, LN_SERIALIZER);
           final long nextRecid = n.next;
-          final int pos = (hash(n.key) >>> (NUM_BITS_PER_COMPARISON * (level - 1))) &
+          final int h1 = hash(n.key) >>> (32 - TOTAL_HASH_LENGTH);
+          final int pos = (h1 >>> (NUM_BITS_PER_COMPARISON * (level - 1))) &
                   BITS_COMPARISON_MASK;
           final long recid2 = dirGetSlot(newDirNode, pos);
           n = new PartitionedHTreeMap.LinkedNode<K, V>(recid2 >>> 1, n.key, n.value);
@@ -265,7 +364,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         dir = putNewRecordIdInDir(dir, parentPos, (nextDirRecid << 1) | 0);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, seg, engine, +1);
+        // counter(partition, seg, engine, +1);
 
         return null;
       } else {
@@ -284,16 +383,35 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
         dir = putNewRecordIdInDir(dir, slot, (newRecid << 1) | 1);
         engine.update(dirRecid, dir, DIR_SERIALIZER);
         //update counter
-        counter(partition, seg, engine, +1);
+        // counter(partition, seg, engine, +1);
         return null;
       }
     }
   }
 
   @Override
+  protected V putInner(K key, V value, int h, int partition) {
+    int seg;
+    if (!(hasher instanceof LocalitySensitiveHasher)) {
+      seg = h % SEG;
+    } else {
+      seg = h >>> BUCKET_LENGTH;
+      h = h >>> (32 - TOTAL_HASH_LENGTH);
+    }
+    long dirRecid = partitionRootRec.get(partition)[seg];
+    String storageName = buildStorageName(partition, seg);
+    Engine engine = storageSpaces.get(storageName);
+    if (engine == null) {
+      System.out.println("FAULT: cannot find engine for " + storageName);
+      System.exit(1);
+    }
+    return storeVector(key, value, h, dirRecid, partition, seg, engine);
+  }
+
+  @Override
   public void initStructureLocks() {
     int partitionNum = partitioner.numPartitions;
-    int segNum = PartitionedHTreeMap.SEG;
+    int segNum = this.SEG;
     for (int i = 0; i < partitionNum; i++) {
       for (int j = 0; j < segNum; j++) {
         structureLocks.put(buildStorageName(i, j), new ReentrantReadWriteLock());
