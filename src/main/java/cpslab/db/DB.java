@@ -1331,13 +1331,15 @@ public class DB implements Closeable {
         return treeMap(name,(BTreeKeySerializer)null,null);
     }
 
-    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, Serializer<K> keySerializer,
+                                                    Serializer<V> valueSerializer) {
         if(keySerializer==null)
             keySerializer = getDefaultSerializer();
-        return treeMap(name,keySerializer.getBTreeKeySerializer(null),valueSerializer);
+        return treeMap(name, keySerializer.getBTreeKeySerializer(null), valueSerializer);
     }
 
-    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer, Serializer<V> valueSerializer){
+    synchronized public <K,V> BTreeMap<K,V> treeMap(String name, BTreeKeySerializer keySerializer,
+                                                    Serializer<V> valueSerializer){
         checkNotClosed();
         BTreeMap<K,V> ret = (BTreeMap<K,V>) getFromWeakCollection(name);
         if(ret!=null) return ret;
@@ -1352,7 +1354,9 @@ public class DB implements Closeable {
                 return namedPut(name,
                         new DB(new Engine.ReadOnlyWrapper(e)).treeMap("a"));
             }
-            return treeMapCreate(name).make();
+            System.out.println("create non-type btreemap");
+            return treeMapCreate(name).keySerializer(keySerializer).valueSerializer(valueSerializer)
+                    .make();
 
         }
         checkType(type, "TreeMap");
@@ -1390,7 +1394,10 @@ public class DB implements Closeable {
                 (Serializer<V>)valSer2,
                 catGet(name+".numberOfNodeMetas",0)
                 );
+        System.out.println(ret.maxNodeSize + "," + ret.rootRecidRef + "," +
+                ret.keySerializer.getClass().getName() + "," + ret.valueSerializer.getClass().getName());
         //$DELAY$
+        catalog.put(name + ".type", "TreeMap");
         namedPut(name, ret);
         return ret;
     }

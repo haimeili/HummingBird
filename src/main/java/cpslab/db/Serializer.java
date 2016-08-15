@@ -1708,7 +1708,7 @@ public abstract class Serializer<A> {
     }
 
     @SuppressWarnings("unchecked")
-	public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
+	  public void valueArraySerialize(DataOutput out, Object vals) throws IOException {
         Object[] vals2 = (Object[]) vals;
         for(Object o:vals2){
             serialize(out, (A) o);
@@ -1724,7 +1724,7 @@ public abstract class Serializer<A> {
     }
 
     @SuppressWarnings("unchecked")
-	public A valueArrayGet(Object vals, int pos){
+	  public A valueArrayGet(Object vals, int pos){
         return (A) ((Object[])vals)[pos];
     }
 

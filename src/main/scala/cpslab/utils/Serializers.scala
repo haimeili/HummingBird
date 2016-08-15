@@ -2,10 +2,21 @@ package cpslab.utils
 
 import java.io.{DataInput, DataOutput}
 
-import cpslab.db.Serializer
+import cpslab.db.{LSHBTreeVal, Serializer}
 import cpslab.lsh.vector.SparseVector
 
 object Serializers {
+
+  val scalaLongSerializer = new Serializer[Long] {
+    override def serialize(out: DataOutput, value: Long): Unit = {
+      out.writeLong(value)
+    }
+
+    override def deserialize(in: DataInput, available: Int): Long = {
+      in.readLong()
+    }
+  }
+
   val scalaIntSerializer = new Serializer[Int] {
 
     override def serialize(out: DataOutput, value: Int): Unit = {
@@ -14,6 +25,21 @@ object Serializers {
 
     override def deserialize(in: DataInput, available: Int): Int = {
       in.readInt()
+    }
+  }
+
+  val vectorIDHashPairSerializer = new Serializer[LSHBTreeVal] {
+    override def serialize(out: DataOutput, obj: LSHBTreeVal): Unit = {
+      val vectorId = obj.vectorId
+      val hash = obj.hash
+      out.writeInt(vectorId)
+      out.writeLong(hash)
+    }
+
+    override def deserialize(in: DataInput, available: Int): LSHBTreeVal = {
+      val vectorId = in.readInt()
+      val hash = in.readLong()
+      new LSHBTreeVal(vectorId, hash)
     }
   }
 
@@ -43,4 +69,5 @@ object Serializers {
 
   def IntSerializer = scalaIntSerializer
   def VectorSerializer = vectorSerializer
+  def VectorIDHashSerializer = vectorIDHashPairSerializer
 }

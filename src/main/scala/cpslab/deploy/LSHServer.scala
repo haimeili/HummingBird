@@ -64,7 +64,7 @@ private[cpslab] object LSHServer {
       name = "clientRequestHandler")
 
     //initialize table
-    ShardDatabase.initializeMapDBHashMap(conf)
+    ShardDatabase.initializePartitionedHashMap(conf)
     ShardDatabase.initVectorDatabaseFromFS(
       lsh,
       system,

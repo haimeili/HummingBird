@@ -405,7 +405,7 @@ public class StoreAppend extends Store {
       int instruction = vol.getUnsignedByte(offset);
 
       if (instruction != I_UPDATE && instruction != I_INSERT)
-        throw new DBException.DataCorruption("wrong instruction " + instruction);
+        throw new DBException.DataCorruption("wrong instruction " + instruction + " at offset " + offset);
 
       long recid2 = vol.getPackedLong(offset + 1);
 
