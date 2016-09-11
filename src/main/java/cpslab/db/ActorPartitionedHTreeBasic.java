@@ -205,14 +205,15 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       seg = h >>> BUCKET_LENGTH;
     }
     initPartitionIfNecessary(partition, seg);
+    String storageName = buildStorageName(partition, seg);
     try {
-      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().lock();
+      partitionRamLock.get(storageName).writeLock().lock();
       ret = putInner(key, value, h, partition);
     } catch (Exception e) {
       e.printStackTrace();
       return null;
     } finally {
-      partitionRamLock.get(buildStorageName(partition, seg)).writeLock().unlock();
+      partitionRamLock.get(storageName).writeLock().unlock();
     }
     return value;
   }

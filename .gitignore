@@ -8,3 +8,5 @@ snapshot
 logs
 pid
 *.log
+
+.DS_Store
