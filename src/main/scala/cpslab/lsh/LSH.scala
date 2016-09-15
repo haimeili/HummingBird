@@ -23,6 +23,7 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
   private def initHashChains[T <: LSHFunctionParameterSet](): List[LSHTableHashChain[_]] = {
     val familySize = conf.getInt("cpslab.lsh.familySize")
     val vectorDim = conf.getInt("cpslab.lsh.vectorDim")
+    println(s"vectorDim: $vectorDim")
     val chainLength = conf.getInt("cpslab.lshTable.chainLength")
     val initializedChains = lshFamilyName match {
       case "pStable" =>
