@@ -869,7 +869,9 @@ object HashTreeTest {
     val allTrainingFiles = Utils.buildFileListUnderDirectory(trainingPath)
     val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
     loadFiles(allTrainingFiles, trainingIDs, tableNum)
+    println("loaded training files")
     loadFiles(allTestFiles, testIDs, tableNum)
+    println("loaded test files")
   }
 
   private def startTestAccuracy(conf: Config): Unit = {
