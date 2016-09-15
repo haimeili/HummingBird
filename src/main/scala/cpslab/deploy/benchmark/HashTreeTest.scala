@@ -854,6 +854,9 @@ object HashTreeTest {
         vectorDatabase(i).put(id, true)
       }
     }
+    for (i <- 0 until updateExistingID.length) {
+      assert(vectorIdToVector.get(updateExistingID(i)) != null)
+    }
   }
 
   def loadAccuracyTestFiles(conf: Config): Unit = {
