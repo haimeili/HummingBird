@@ -102,8 +102,8 @@ object HashTreeTest {
         }
         println(s"total message number: $mainTableMsgCount, $lshTableMsgCount")
         println(s"conflict count:" +
-          s" ${vectorDatabase(0).asInstanceOf[ActorBasedPartitionedHTreeMap].redistributionCount}" +
-        s"${vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap].redistributionCount}")
+          s" ${vectorDatabase(0).asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].redistributionCount}" +
+        s"${vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, SparseVector]].redistributionCount}")
         (mainTableMsgCount, lshTableMsgCount)
       } else {
         (0, 0)
