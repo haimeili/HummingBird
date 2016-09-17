@@ -219,7 +219,7 @@ object HashTreeTest {
             var cnt = 0
             val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
             for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-              if (cnt > cap) {
+              if (cnt >= cap) {
                 println(s"all requests sent in thread ${Thread.currentThread().getName}")
                 ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.incrementAndGet()
                 return
@@ -398,11 +398,11 @@ object HashTreeTest {
           cap * threadNumber / (duration.toDouble / 1000000000))
         taskQueue = List[SparseVector]()
         finishedWriteThreadCount.set(threadNumber)
-        println(println(s"conflict count:" +
+        println(s"conflict count:" +
           s" ${vectorDatabase(0).asInstanceOf[ActorPartitionedHTreeBasic[Int, Boolean]].
             redistributionCount}" + " " +
           s"${vectorIdToVector.asInstanceOf[ActorPartitionedHTreeBasic[Int, SparseVector]].
-            redistributionCount}"))
+            redistributionCount}")
       case Failure(failure) =>
         throw failure
     }
