@@ -400,7 +400,7 @@ object HashTreeTest {
         finishedWriteThreadCount.set(threadNumber)
         println(println(s"conflict count:" +
           s" ${vectorDatabase(0).asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].
-            redistributionCount}" +
+            redistributionCount}" + " " + 
           s"${vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, SparseVector]].
             redistributionCount}"))
       case Failure(failure) =>
