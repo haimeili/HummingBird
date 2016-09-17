@@ -103,7 +103,7 @@ object HashTreeTest {
         println(s"total message number: $mainTableMsgCount, $lshTableMsgCount")
         println(s"conflict count:" +
           s" ${vectorDatabase(0).asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].
-            redistributionCount}" +
+            redistributionCount}" + " " +
         s"${vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, SparseVector]].
           redistributionCount}")
         (mainTableMsgCount, lshTableMsgCount)
@@ -399,9 +399,9 @@ object HashTreeTest {
         taskQueue = List[SparseVector]()
         finishedWriteThreadCount.set(threadNumber)
         println(println(s"conflict count:" +
-          s" ${vectorDatabase(0).asInstanceOf[ActorBasedPartitionedHTreeMap[Int, Boolean]].
-            redistributionCount}" + " " + 
-          s"${vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[Int, SparseVector]].
+          s" ${vectorDatabase(0).asInstanceOf[ActorPartitionedHTreeBasic[Int, Boolean]].
+            redistributionCount}" + " " +
+          s"${vectorIdToVector.asInstanceOf[ActorPartitionedHTreeBasic[Int, SparseVector]].
             redistributionCount}"))
       case Failure(failure) =>
         throw failure
