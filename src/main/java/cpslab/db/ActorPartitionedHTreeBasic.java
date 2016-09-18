@@ -320,7 +320,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       //there is no such a null value
       //check if linked list has overflow and needs to be expanded to new dir level
       if (bucketConflictCost >= BUCKET_OVERFLOW && level >= 1) {
-        redistributionCount += 1;
+        // redistributionCount += 1;
         Object newDirNode = new int[BITMAP_SIZE];
         {
           //Generate the new linkedNode
