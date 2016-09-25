@@ -255,7 +255,7 @@ object HashTreeTest {
       println(vector.vectorId)
       val h = vectorIdToVector.hash(vector.vectorId)
       vectorIdToVector.partitioner.getPartition(vector.vectorId)
-      listBuffer += ValueAndHash(vector, h)
+      // listBuffer += ValueAndHash(vector, h)
     }
     val endTime = System.nanoTime()
     println(endTime - startTime)
