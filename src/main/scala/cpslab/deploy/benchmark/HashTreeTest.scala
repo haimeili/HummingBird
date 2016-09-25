@@ -277,11 +277,11 @@ object HashTreeTest {
     var cnt = 0
     val taskQueue = new ListBuffer[SparseVector]
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-      val (id, size, indices, values) = Vectors.fromString(line)
+      val (_, size, indices, values) = Vectors.fromString(line)
       val squareSum = math.sqrt(values.foldLeft(0.0) {
         case (sum, weight) => sum + weight * weight
       })
-      val vector = new SparseVector(id, size, indices,
+      val vector = new SparseVector(cnt, size, indices,
         values.map(_ / squareSum))
       taskQueue += vector
       cnt += 1
