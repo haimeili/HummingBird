@@ -409,7 +409,7 @@ object HashTreeTest {
             Future.sequence(fs)
         }
     }
-    Future.sequence(mainFs).onComplete {
+    Future.sequence(mainFs.toList).onComplete {
       case Success(result)  =>
         // do nothing
         val duration = System.nanoTime() - st
