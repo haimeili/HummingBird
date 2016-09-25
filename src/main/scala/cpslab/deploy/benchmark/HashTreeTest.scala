@@ -246,16 +246,16 @@ object HashTreeTest {
 
     var cnt = 0
 
-    // val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
-    // println(s"finished loading ${taskQueue.length} vectors")
+    val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    println(s"finished loading ${taskQueue.length} vectors")
     val listBuffer = new ListBuffer[ValueAndHash]
     val startTime = System.nanoTime()
-    for (i <- 0 until 500000) {
-      val vector = i
+    for (i <- taskQueue.indices) {
+      val vector = taskQueue(i)
       // println(vector.vectorId)
       val h = vectorIdToVector.hash(i)
       vectorIdToVector.partitioner.getPartition(i)
-      // listBuffer += ValueAndHash(vector, h)
+      listBuffer += ValueAndHash(vector, h)
     }
     val endTime = System.nanoTime()
     println(endTime - startTime)
