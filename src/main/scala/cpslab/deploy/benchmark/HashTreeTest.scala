@@ -253,8 +253,8 @@ object HashTreeTest {
     for (i <- taskQueue.indices) {
       val vector = taskQueue(i)
       // println(vector.vectorId)
-      val h = vectorIdToVector.hash(i)
-      vectorIdToVector.partitioner.getPartition(i)
+      val h = vectorIdToVector.hash(vector.vectorId)
+      vectorIdToVector.partitioner.getPartition(vector.vectorId)
       listBuffer += ValueAndHash(vector, h)
     }
     val endTime = System.nanoTime()
