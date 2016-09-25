@@ -124,11 +124,13 @@ object HashTreeTest {
         }
         if (!foundNull) {
           println("ALL VECTOR WRITTEN SUCCESSFULLY")
-          for (i <- 0 until totalWriteCount) {
-            testIDs += i
+          if (testMode == "parallel_accuracy") {
+            for (i <- 0 until totalWriteCount) {
+              testIDs += i
+            }
+            testAccuracy(conf)
+            sys.exit(0)
           }
-          testAccuracy(conf)
-          sys.exit(0)
         }
       }
       if (ifRunReadTest && mainMsgNum >= totalWriteCount &&
@@ -274,7 +276,13 @@ object HashTreeTest {
     var cnt = 0
     val taskQueue = new ListBuffer[SparseVector]
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
-      val (_, size, indices, values) = Vectors.fromString(line)
+      val (_, size, indices, values) = {
+        if (testMode == "parallel_accuracy") {
+          Vectors.fromString(line)
+        } else {
+          Vectors.fromString1(line)
+        }
+      }
       val squareSum = math.sqrt(values.foldLeft(0.0) {
         case (sum, weight) => sum + weight * weight
       })
@@ -994,6 +1002,8 @@ object HashTreeTest {
     }
   }
 
+  var testMode: String = null
+
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
     LSHServer.lshEngine = new LSH(conf)
@@ -1008,12 +1018,14 @@ object HashTreeTest {
     
     ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
-    val testMode = args(3)
+    testMode = args(3)
 
     testMode match {
       case "accuracy" =>
         startTestAccuracy(conf)
       case "parallel" =>
+        startTestParallel(args(1) == "async", conf)
+      case "parallel_accuracy" =>
         startTestParallel(args(1) == "async", conf)
       case "storage" =>
         startTestStorage(conf)
