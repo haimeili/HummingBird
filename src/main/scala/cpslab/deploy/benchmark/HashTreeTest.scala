@@ -125,9 +125,6 @@ object HashTreeTest {
         if (!foundNull) {
           println("ALL VECTOR WRITTEN SUCCESSFULLY")
           for (i <- 0 until totalWriteCount) {
-            trainingIDs += i
-          }
-          for (i <- 0 until totalWriteCount) {
             testIDs += i
           }
           testAccuracy(conf)
