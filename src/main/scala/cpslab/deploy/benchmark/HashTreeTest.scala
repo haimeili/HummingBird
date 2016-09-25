@@ -84,7 +84,7 @@ object HashTreeTest {
         // println(s"total throughput: $totalThroughput")
         println(s"total Throughput: ${
           totalWriteCount * 1.0 /
-            ((latestEndTime - earliestStartTime) / 1000000000)
+            ((latestEndTime - HashTreeTest.startTime) / 1000000000)
         }")
         val mainTableMsgCount = {
           var r = 0
@@ -187,7 +187,7 @@ object HashTreeTest {
     }
   }
 
-
+  var startTime = 0L
   def asyncTestWriteThreadScalability (
     conf: Config, threadNumber: Int): Unit = {
     val actorNumPerPartition = conf.getInt("cpslab.lsh.benchmark.actorNum")
@@ -248,17 +248,16 @@ object HashTreeTest {
 
     val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
     println(s"finished loading ${taskQueue.length} vectors")
-    val listBuffer = new ListBuffer[ValueAndHash]
-    val startTime = System.nanoTime()
+    ActorBasedPartitionedHTreeMap.stoppedFeedingThreads.set(threadNumber)
+    ActorBasedPartitionedHTreeMap.actorSystem.actorOf(
+      props = Props(new MonitorActor(conf, cap, threadNumber, cap * threadNumber,
+        readCap * readThreadNum, ifRunRead)),
+      name = "monitor")
+    startTime = System.nanoTime()
     for (i <- taskQueue.indices) {
       val vector = taskQueue(i)
-      // println(vector.vectorId)
-      val h = vectorIdToVector.hash(vector.vectorId)
-      vectorIdToVector.partitioner.getPartition(vector.vectorId)
-      listBuffer += ValueAndHash(vector, h)
+      vectorIdToVector.put(vector.vectorId, vector)
     }
-    val endTime = System.nanoTime()
-    println(endTime - startTime)
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
   }
 
