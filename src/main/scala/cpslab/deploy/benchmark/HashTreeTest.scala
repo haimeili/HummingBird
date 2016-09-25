@@ -266,7 +266,7 @@ object HashTreeTest {
   val trainingIDs = new ListBuffer[Int]
   val testIDs = new ListBuffer[Int]
 
-  def fillTaskQueue(allFiles: Seq[String], totalAmount: Int): List[SparseVector] = {
+  def fillTaskQueue(allFiles: Seq[String], totalAmount: Int): Array[SparseVector] = {
     var cnt = 0
     val taskQueue = new ListBuffer[SparseVector]
     for (file <- allFiles; line <- Source.fromFile(file).getLines()) {
@@ -279,10 +279,10 @@ object HashTreeTest {
       taskQueue += vector
       cnt += 1
       if (cnt >= totalAmount) {
-        return taskQueue.toList
+        return taskQueue.toArray
       }
     }
-    List[SparseVector]()
+    new Array[SparseVector](0)
   }
 
   def testWriteThreadScalabilityWithMapDB(conf: Config,
