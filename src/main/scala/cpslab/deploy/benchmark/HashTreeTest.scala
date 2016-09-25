@@ -211,6 +211,7 @@ object HashTreeTest {
     val replica = conf.getInt("cpslab.lsh.benchmark.replica")
     val ifRunRead = conf.getBoolean("cpslab.lsh.benchmark.ifRunReadTest")
     ActorBasedPartitionedHTreeMap.tableNum = tableNum
+    /*
     def traverseAllFiles(): Unit = {
       for (i <- 0 until threadNumber) {
         new Thread(new Runnable {
@@ -240,6 +241,21 @@ object HashTreeTest {
         readCap * readThreadNum, ifRunRead)),
       name = "monitor")
     traverseAllFiles()
+    */
+    val allFiles = Random.shuffle(Utils.buildFileListUnderDirectory(filePath))
+
+    var cnt = 0
+
+    val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
+    val listBuffer = new ListBuffer[Any]
+    val startTime = System.nanoTime()
+    for (i <- taskQueue.indices) {
+      val h = vectorIdToVector.hash(taskQueue(i).vectorId)
+      vectorIdToVector.partitioner.getPartition(taskQueue(i).vectorId)
+      listBuffer += ValueAndHash(taskQueue(i), h)
+    }
+    val endTime = System.nanoTime()
+    println(endTime - startTime)
     ActorBasedPartitionedHTreeMap.actorSystem.awaitTermination()
   }
 
