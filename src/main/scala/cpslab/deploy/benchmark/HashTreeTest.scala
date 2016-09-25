@@ -248,7 +248,7 @@ object HashTreeTest {
 
     val taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
     println(s"finished loading ${taskQueue.length} vectors")
-    val listBuffer = new ListBuffer[Any]
+    val listBuffer = new ListBuffer[ValueAndHash]
     val startTime = System.nanoTime()
     for (i <- taskQueue.indices) {
       val vector = taskQueue(i)
