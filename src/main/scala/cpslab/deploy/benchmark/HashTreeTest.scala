@@ -250,7 +250,7 @@ object HashTreeTest {
     println(s"finished loading ${taskQueue.length} vectors")
     val listBuffer = new ListBuffer[ValueAndHash]
     val startTime = System.nanoTime()
-    for (i <- taskQueue.indices) {
+    for (i <- 0 until 10000) {
       val vector = taskQueue(i)
       // println(vector.vectorId)
       val h = vectorIdToVector.hash(vector.vectorId)
