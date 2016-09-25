@@ -367,7 +367,7 @@ object HashTreeTest {
           }
         }
     }
-    Future.sequence(mainFs).onComplete {
+    Future.sequence(mainFs.toList).onComplete {
       case Success(result)  =>
         // do nothing
         val duration = System.nanoTime() - st
@@ -415,7 +415,7 @@ object HashTreeTest {
         val duration = System.nanoTime() - st
         println("total write throughput: " +
           cap * threadNumber / (duration.toDouble / 1000000000))
-        taskQueue = List[SparseVector]()
+        taskQueue = new Array[SparseVector](0)
         finishedWriteThreadCount.set(threadNumber)
         println(s"conflict count:" +
           s" ${vectorDatabase(0).asInstanceOf[ActorPartitionedHTreeBasic[Int, Boolean]].
