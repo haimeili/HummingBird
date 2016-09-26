@@ -822,6 +822,7 @@ object HashTreeTest {
         //step 2: calculate the distance of the ground truth
         val groundTruth = new ListBuffer[(Int, Double)]
         val itr = (trainingIDs ++ testIDs).iterator
+        var cnt = 0
         while (itr.hasNext) {
           val vId = itr.next()
           val vector = vectorIdToVector.get(vId)
@@ -829,7 +830,9 @@ object HashTreeTest {
             groundTruth +=
               vector.vectorId -> SimilarityCalculator.fastCalculateSimilarity(queryVector, vector)
           }
+          cnt += 1
         }
+        println(s"found groudtruth from $cnt ${groundTruth.length} instances")
         val sortedGroundTruth = groundTruth.sortWith {
           case (d1, d2) => d1._2 > d2._2
         }.take(mostK)
