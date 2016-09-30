@@ -411,7 +411,7 @@ object HashTreeTest {
       vector =>
         Future {
           vectorIdToVector.put(vector.vectorId, vector)
-        }.map {
+        }.flatMap {
           returnedVector =>
             val fs = (0 until tableNum).map(tableId => {
               Future {
@@ -419,7 +419,6 @@ object HashTreeTest {
               }
             })
             Future.sequence(fs)
-            returnedVector.vectorId
         }
     }
     Future.sequence(mainFs.toList).onComplete {
@@ -428,16 +427,6 @@ object HashTreeTest {
         val duration = System.nanoTime() - st
         println("total write throughput: " +
           cap * threadNumber / (duration.toDouble / 1000000000))
-        println(s"result length ${result.length} and ${
-          var foundAll = true
-          val array = result.toArray
-          for (i <- result.indices) {
-            if (array(i) != i) {
-              foundAll = false
-            }
-          }
-          foundAll
-        }")
         taskQueue = new Array[SparseVector](0)
         finishedWriteThreadCount.set(threadNumber)
         println(s"conflict count:" +
