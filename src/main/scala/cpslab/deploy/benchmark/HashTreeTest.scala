@@ -832,13 +832,13 @@ object HashTreeTest {
           }
           cnt += 1
         }
-        println(s"found groudtruth from $cnt ${groundTruth.length} instances")
         val sortedGroundTruth = groundTruth.sortWith {
           case (d1, d2) => d1._2 > d2._2
         }.take(mostK)
         println(sortedGroundTruth.toList)
         ratio += {
           var sum = 0.0
+          var cntingSum = 0
           for (i <- sortedGroundTruth.indices) {
             val res = {
               if (sortedDistances.length < i + 1) {
@@ -849,7 +849,9 @@ object HashTreeTest {
             }
             require(res >= math.acos(sortedGroundTruth(i)._2))
             sum += res / math.acos(sortedGroundTruth(i)._2)
+            cntingSum += 1
           }
+          require(cntingSum == mostK)
           val r = sum / mostK
           if (r.isNaN) {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
