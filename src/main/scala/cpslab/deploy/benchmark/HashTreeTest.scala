@@ -432,10 +432,12 @@ object HashTreeTest {
         println("total write throughput: " +
           cap * threadNumber / (duration.toDouble / 1000000000))
         println(s"result length ${result.length} and ${
-          var foundAll = false
+          var foundAll = true
           val array = result.toArray
           for (i <- result.indices) {
-            foundAll = (array(i) == i)
+            if (array(i) != i) {
+              foundAll = false
+            }
           }
           foundAll
         }")
