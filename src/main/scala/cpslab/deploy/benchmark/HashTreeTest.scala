@@ -413,7 +413,7 @@ object HashTreeTest {
           vectorIdToVector.put(vector.vectorId, vector)
         }.map {
           returnedVector =>
-            vectorDatabase(tableId).put(returnedVector.vectorId, true)
+            vectorDatabase(0).put(returnedVector.vectorId, true)
             /*
             val fs = (0 until tableNum).map(tableId => {
               Future {
