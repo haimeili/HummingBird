@@ -840,11 +840,15 @@ object HashTreeTest {
         ratio += {
           var sum = 0.0
           for (i <- sortedGroundTruth.indices) {
-            if (sortedDistances.length < i + 1) {
-              sum += math.acos(0) / math.acos(sortedGroundTruth(i)._2)
-            } else {
-              sum += math.acos(sortedDistances(i)._2) / math.acos(sortedGroundTruth(i)._2)
+            val res = {
+              if (sortedDistances.length < i + 1) {
+                math.acos(0)
+              } else {
+                math.acos(sortedDistances(i)._2)
+              }
             }
+            require(res >= math.acos(sortedGroundTruth(i)._2))
+            sum += res / math.acos(sortedGroundTruth(i)._2)
           }
           val r = sum / mostK
           if (r.isNaN) {
