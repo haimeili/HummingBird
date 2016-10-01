@@ -778,6 +778,7 @@ object HashTreeTest {
       val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
       val totalCnt = conf.getInt("cpslab.lsh.benchmark.accuracy.totalCnt")
       val readFromTrainingSet = conf.getBoolean("cpslab.lsh.benchmark.accuracy.readFromTrainingSet")
+      var nanCount = 0
       for (testCnt <- 0 until totalCnt) {
         val order = {
           if (ifFixRequests) {
@@ -855,9 +856,12 @@ object HashTreeTest {
           val r = sum / mostK
           if (r.isNaN) {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
-            System.exit(1)
+          //   System.exit(1)
+            nanCount += 1
+            0
+          } else {
+            r
           }
-          r
         }
         if (ratio.isNaN) {
           println(s"FAULT: ratio $ratio ${queryVector.vectorId}")
@@ -866,7 +870,7 @@ object HashTreeTest {
       }
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
-      ratiosInstances += ratio / totalCnt
+      ratiosInstances += ratio / (totalCnt - nanCount)
       if (ratiosInstances(exp).isNaN) {
         println(s"FAULT: ratio $ratiosInstances, totalCnt $totalCnt, Ratio $ratio")
         System.exit(1)
