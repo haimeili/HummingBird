@@ -857,7 +857,7 @@ object HashTreeTest {
           if (r.isNaN) {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
           //   System.exit(1)
-            nanCount(experimentalInstances) += 1
+            nanCount(exp) += 1
             0
           } else {
             r
@@ -870,7 +870,7 @@ object HashTreeTest {
       }
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
-      ratiosInstances += ratio / (totalCnt - nanCount(experimentalInstances))
+      ratiosInstances += ratio / (totalCnt - nanCount(exp))
       if (ratiosInstances(exp).isNaN) {
         println(s"FAULT: ratio $ratiosInstances, totalCnt $totalCnt, Ratio $ratio")
         System.exit(1)
