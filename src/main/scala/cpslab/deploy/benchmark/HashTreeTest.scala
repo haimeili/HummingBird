@@ -844,11 +844,11 @@ object HashTreeTest {
               if (sortedDistances.length < i + 1) {
                 math.acos(0)
               } else {
-                math.acos(sortedDistances(i)._2)
+                math.acos(math.min(sortedDistances(i)._2, 1))
               }
             }
-            require(res >= math.acos(sortedGroundTruth(i)._2))
-            sum += res / math.acos(sortedGroundTruth(i)._2)
+            require(res >= math.acos(math.min(sortedGroundTruth(i)._2, 1)))
+            sum += res / math.acos(math.min(sortedGroundTruth(i)._2, 1))
             cntingSum += 1
           }
           require(cntingSum == mostK)
