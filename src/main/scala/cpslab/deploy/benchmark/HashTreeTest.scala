@@ -870,7 +870,7 @@ object HashTreeTest {
       }
       //println(ratio / totalCnt)
       //println("efficiency:" + efficiencySum.sum)
-      ratiosInstances += ratio / (totalCnt - nanCount)
+      ratiosInstances += ratio / (totalCnt - nanCount(experimentalInstances))
       if (ratiosInstances(exp).isNaN) {
         println(s"FAULT: ratio $ratiosInstances, totalCnt $totalCnt, Ratio $ratio")
         System.exit(1)
