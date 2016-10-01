@@ -770,6 +770,7 @@ object HashTreeTest {
     val effSumInstances = new ListBuffer[Double]
     val experimentalInstances = conf.getInt("cpslab.expInstance")
     val overHitInstances = new Array[Int](experimentalInstances)
+    val nanCount = new Array[Int](experimentalInstances)
     val efficiencyDist = new ListBuffer[(Double, Double, Double, Double, Double)]
     for (exp <- 0 until experimentalInstances) {
       var ratio = 0.0
@@ -778,7 +779,6 @@ object HashTreeTest {
       val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
       val totalCnt = conf.getInt("cpslab.lsh.benchmark.accuracy.totalCnt")
       val readFromTrainingSet = conf.getBoolean("cpslab.lsh.benchmark.accuracy.readFromTrainingSet")
-      var nanCount = 0
       for (testCnt <- 0 until totalCnt) {
         val order = {
           if (ifFixRequests) {
@@ -857,7 +857,7 @@ object HashTreeTest {
           if (r.isNaN) {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
           //   System.exit(1)
-            nanCount += 1
+            nanCount(experimentalInstances) += 1
             0
           } else {
             r
@@ -890,6 +890,7 @@ object HashTreeTest {
       effSumOutputStr.append("\t")
     }
     println("ratios:" + ratioOutputStr.toString())
+    println("NAN Count: " + nanCount.toList)
     println("efficiency:" + effSumOutputStr.toString())
     println("hitNum:" + overHitInstances.toList.toString())
     println("efficiencyDist:" + efficiencyDist.toList)
