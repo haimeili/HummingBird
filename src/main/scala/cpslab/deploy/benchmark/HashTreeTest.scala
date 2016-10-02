@@ -779,6 +779,7 @@ object HashTreeTest {
       val ifFixRequests = conf.getBoolean("cpslab.lsh.benchmark.accuracy.fixRequests")
       val totalCnt = conf.getInt("cpslab.lsh.benchmark.accuracy.totalCnt")
       val readFromTrainingSet = conf.getBoolean("cpslab.lsh.benchmark.accuracy.readFromTrainingSet")
+      val rArray = new Array[Double](totalCnt)
       for (testCnt <- 0 until totalCnt) {
         val order = {
           if (ifFixRequests) {
@@ -858,8 +859,10 @@ object HashTreeTest {
             println(s"FAULT: ratio $r ${queryVector.vectorId}")
           //   System.exit(1)
             nanCount(exp) += 1
+            rArray(testCnt) = 0
             0
           } else {
+            rArray(testCnt) = r
             r
           }
         }
@@ -878,6 +881,7 @@ object HashTreeTest {
       effSumInstances += efficiencySum.sum
       //analyze efficiency distribution
       efficiencyDist += percentileDist(efficiencySum)
+      println("ratio array: " + rArray.toList)
     }
     assert(ratiosInstances.length == experimentalInstances)
     assert(effSumInstances.length == experimentalInstances)
