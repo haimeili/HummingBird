@@ -13,8 +13,9 @@ private[lsh] class AngleHashFamily(
 
   private def getNewUnitVector: SparseVector = {
     val values = {
-      val arr = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
-      arr.map(value => if (Random.nextInt(2) > 0) value else -1 * value)
+      // val arr = (for (vectorDim <- 0 until vectorDim) yield Random.nextDouble()).toArray
+      // arr.map(value => if (Random.nextInt(2) > 0) value else -1 * value)
+      (for (vectorDim <- 0 until vectorDim) yield -1 + 2 * Random.nextDouble()).toArray
     }
     val indices = values.zipWithIndex.filter{case (value, index) => value != 0}.map(_._2)
     //normailization
