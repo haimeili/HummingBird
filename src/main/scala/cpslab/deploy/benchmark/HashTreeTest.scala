@@ -84,7 +84,7 @@ object HashTreeTest {
         // println(s"total throughput: $totalThroughput")
         println(s"total Throughput: ${
           totalWriteCount * 1.0 /
-            ((latestEndTime - HashTreeTest.startTime) / 1000000000)
+            ((latestEndTime - HashTreeTest.startTime) * 1.0 / 1000000000)
         }")
         val mainTableMsgCount = {
           var r = 0
