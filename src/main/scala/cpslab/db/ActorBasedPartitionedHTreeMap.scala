@@ -105,7 +105,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
   private class WriterActor(partitionId: Int) extends Actor {
 
-    context.setReceiveTimeout(60000 milliseconds)
+    context.setReceiveTimeout(30000 milliseconds)
 
     var latestEndTime = Long.MinValue
     var mainTableMsgCnt = 0
