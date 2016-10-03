@@ -291,7 +291,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple6(1, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
+            Tuple6(1L, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
               batchMainTableMsgCnt, batchLSHTableMsgCnt)
           for ((actorName, lshBuffer) <- lshTableMsgBuffer) {
             if (lshBuffer.nonEmpty) {
