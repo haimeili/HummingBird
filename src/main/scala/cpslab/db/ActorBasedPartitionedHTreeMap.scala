@@ -107,7 +107,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     context.setReceiveTimeout(60000 milliseconds)
 
-    var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
     var mainTableMsgCnt = 0
     var lshTableMsgCnt = 0
@@ -245,7 +244,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private def processingValueAndHash(vector: SparseVector, h: Int): Unit = {
-      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
       if (shareActor) {
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
           partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
@@ -259,7 +257,6 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     private def processingKeyAndHash(tableId: Int, vectorId: Int, h: Int): Unit = {
       lshTableMsgCnt += 1
-      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
       if (shareActor) {
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
           putExecuteByActor(partitionId, h, vectorId.asInstanceOf[K], true.asInstanceOf[V])
@@ -271,17 +268,14 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     override def receive: Receive = {
       case b @ BatchValueAndHash(batch: List[(SparseVector, Int)]) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         batchMainTableMsgCnt += 1
         processingBatchValueAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ BatchKeyAndHash(batch: List[KeyAndHash]) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         batchLSHTableMsgCnt += 1
         processingBatchKeyAndHash(b)
         latestEndTime = math.max(latestEndTime, System.nanoTime())
       case b @ DumpedBatchValueAndHash(batch: List[(SparseVector, Int)]) =>
-        earliestStartTime = math.min(earliestStartTime, System.nanoTime())
         if (batch.nonEmpty) {
           batchMainTableMsgCnt += 1
         }
@@ -293,11 +287,11 @@ class ActorBasedPartitionedHTreeMap[K, V](
       case KeyAndHash(tableId: Int, vectorId: Int, h: Int) =>
         processingKeyAndHash(tableId, vectorId, h)
       case ReceiveTimeout =>
-        if (earliestStartTime != Long.MaxValue || latestEndTime != Long.MinValue) {
+        if (latestEndTime != Long.MinValue) {
           // context.actorSelection("akka://AK/user/monitor") ! PerformanceReport(totalMsgs * 1.0 /
             // ((latestEndTime - earliestStartTime) * 1.0 / 1000000000))
           context.actorSelection("akka://AK/user/monitor") !
-            Tuple6(earliestStartTime, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
+            Tuple6(1, latestEndTime, mainTableMsgCnt, lshTableMsgCnt,
               batchMainTableMsgCnt, batchLSHTableMsgCnt)
           for ((actorName, lshBuffer) <- lshTableMsgBuffer) {
             if (lshBuffer.nonEmpty) {
