@@ -107,6 +107,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
 
     context.setReceiveTimeout(30000 milliseconds)
 
+    var earliestStartTime = Long.MaxValue
     var latestEndTime = Long.MinValue
     var mainTableMsgCnt = 0
     var lshTableMsgCnt = 0
@@ -244,6 +245,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private def processingValueAndHash(vector: SparseVector, h: Int): Unit = {
+      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
       if (shareActor) {
         vectorIdToVector.asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].putExecuteByActor(
           partitionId, h, vector.vectorId.asInstanceOf[K], vector.asInstanceOf[V])
@@ -256,6 +258,7 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     private def processingKeyAndHash(tableId: Int, vectorId: Int, h: Int): Unit = {
+      earliestStartTime = math.min(earliestStartTime, System.nanoTime())
       lshTableMsgCnt += 1
       if (shareActor) {
         vectorDatabase(tableId).asInstanceOf[ActorBasedPartitionedHTreeMap[K, V]].
