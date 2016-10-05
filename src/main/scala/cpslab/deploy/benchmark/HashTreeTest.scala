@@ -905,21 +905,19 @@ object HashTreeTest {
     for (file <- files; line <- Source.fromFile(file).getLines()) {
       val (id, size, indices, values) = Vectors.fromString(line)
       updateExistingID += id
-      if (!buildList) {
         val squareSum = math.sqrt(values.foldLeft(0.0) {
         case (sum, weight) => sum + weight * weight })
         val vector = new SparseVector(id, size, indices,
         values.map(_ / squareSum))
         vectorIdToVector.put(id, vector)
+      if (!buildList) {
         for (i <- 0 until tableNum) {
           vectorDatabase(i).put(id, true)
         }
       }
     }
-    if (!buildList) {
-      for (i <- 0 until updateExistingID.length) {
-        assert(vectorIdToVector.get(updateExistingID(i)) != null)
-      }
+    for (i <- 0 until updateExistingID.length) {
+      assert(vectorIdToVector.get(updateExistingID(i)) != null)
     }
   }
 
