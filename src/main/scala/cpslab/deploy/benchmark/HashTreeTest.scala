@@ -938,7 +938,8 @@ object HashTreeTest {
     val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
     loadFiles(allTrainingFiles, trainingIDs, tableNum)
     println(s"loaded training files + ${trainingIDs.length}")
-    loadFiles(allTestFiles, testIDs, tableNum, buildList = true)
+    loadFiles(allTestFiles, testIDs, tableNum,
+      buildList = !conf.getBoolean("cpslab.lsh.benchmark.accuracy.readFromTrainingSet"))
     println(s"loaded test files + ${testIDs.length}")
   }
 
