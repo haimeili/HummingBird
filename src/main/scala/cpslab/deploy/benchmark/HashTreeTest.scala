@@ -823,7 +823,13 @@ object HashTreeTest {
         println(sortedDistances.toList)
         //step 2: calculate the distance of the ground truth
         val groundTruth = new ListBuffer[(Int, Double)]
-        val itr = (trainingIDs ++ testIDs).iterator
+        val itr = {
+          if (readFromTrainingSet) {
+            (trainingIDs ++ testIDs).iterator
+          } else {
+            trainingIDs.iterator
+          }
+        }
         var cnt = 0
         while (itr.hasNext) {
           val vId = itr.next()
@@ -905,11 +911,11 @@ object HashTreeTest {
     for (file <- files; line <- Source.fromFile(file).getLines()) {
       val (id, size, indices, values) = Vectors.fromString(line)
       updateExistingID += id
-        val squareSum = math.sqrt(values.foldLeft(0.0) {
-        case (sum, weight) => sum + weight * weight })
-        val vector = new SparseVector(id, size, indices,
-        values.map(_ / squareSum))
-        vectorIdToVector.put(id, vector)
+      val squareSum = math.sqrt(values.foldLeft(0.0) {
+        case (sum, weight) => sum + weight * weight
+      })
+      val vector = new SparseVector(id, size, indices, values.map(_ / squareSum))
+      vectorIdToVector.put(id, vector)
       if (!buildList) {
         for (i <- 0 until tableNum) {
           vectorDatabase(i).put(id, true)
