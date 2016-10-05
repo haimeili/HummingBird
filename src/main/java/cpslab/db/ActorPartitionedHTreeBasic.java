@@ -249,6 +249,9 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     try {
       long recId = partitionRootRec.get(partition)[seg];
       Engine engine = storageSpaces.get(buildStorageName(partition, seg));
+      if (engine == null) {
+        System.out.println("cannot find engine for " + buildStorageName(partition, seg));
+      }
       if (((Store) engine).getCurrSize() >= ramThreshold) {
         persist(partition);
       }
