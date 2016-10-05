@@ -663,7 +663,7 @@ public class PartitionedHTreeMap<K, V>
         for (int i = 0; i < dir1.length; i++) {
           System.out.println(dir1[i]);
         }
-        return null;
+        return ret;
       }
       //Nan: last bite indicates if referenced record is LinkedNode
       //if the bit is set to 1, then it is the linkednode, which stores the real key value pairs
