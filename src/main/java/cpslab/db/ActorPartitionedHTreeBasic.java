@@ -221,6 +221,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   public LinkedList<K> getSimilar(
           final Object key) {
     //TODO: Finish getSimilar
+    System.out.println("called overrided getSimilar");
     int h = hash((K) key);
     final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
