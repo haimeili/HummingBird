@@ -900,21 +900,26 @@ object HashTreeTest {
     println("efficiencyDist:" + efficiencyDist.toList)
   }
 
-  def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int], tableNum: Int): Unit = {
+  def loadFiles(files: Seq[String], updateExistingID: ListBuffer[Int], tableNum: Int,
+                buildList: Boolean = false): Unit = {
     for (file <- files; line <- Source.fromFile(file).getLines()) {
       val (id, size, indices, values) = Vectors.fromString(line)
       updateExistingID += id
-      val squareSum = math.sqrt(values.foldLeft(0.0) {
+      if (!buildList) {
+        val squareSum = math.sqrt(values.foldLeft(0.0) {
         case (sum, weight) => sum + weight * weight })
-      val vector = new SparseVector(id, size, indices,
+        val vector = new SparseVector(id, size, indices,
         values.map(_ / squareSum))
-      vectorIdToVector.put(id, vector)
-      for (i <- 0 until tableNum) {
-        vectorDatabase(i).put(id, true)
+        vectorIdToVector.put(id, vector)
+        for (i <- 0 until tableNum) {
+          vectorDatabase(i).put(id, true)
+        }
       }
     }
-    for (i <- 0 until updateExistingID.length) {
-      assert(vectorIdToVector.get(updateExistingID(i)) != null)
+    if (!buildList) {
+      for (i <- 0 until updateExistingID.length) {
+        assert(vectorIdToVector.get(updateExistingID(i)) != null)
+      }
     }
   }
 
@@ -929,7 +934,7 @@ object HashTreeTest {
     val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
     loadFiles(allTrainingFiles, trainingIDs, tableNum)
     println(s"loaded training files + ${trainingIDs.length}")
-    loadFiles(allTestFiles, testIDs, tableNum)
+    loadFiles(allTestFiles, testIDs, tableNum, buildList = true)
     println(s"loaded test files + ${testIDs.length}")
   }
 
