@@ -384,6 +384,7 @@ public class PartitionedHTreeMap<K, V>
     }
     TOTAL_HASH_LENGTH = totalHashLength;
     MAX_TREE_LEVEL = (TOTAL_HASH_LENGTH - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
+    System.out.println("BITS_COMPARISON_MASK:" + BITS_COMPARISON_MASK);
     System.out.println("TOTAL_HASH_LENGTH:" + TOTAL_HASH_LENGTH);
     System.out.println("MAX_TREE_LEVEL: " + MAX_TREE_LEVEL);
     BITMAP_SIZE = newNodeSize / 32;
