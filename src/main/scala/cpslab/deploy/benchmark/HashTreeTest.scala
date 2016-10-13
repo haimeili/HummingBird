@@ -804,6 +804,7 @@ object HashTreeTest {
           }
         }
         println("query vector ID:" + queryVector.vectorId)
+        println("query vector: " + queryVector.toArray.toList)
         val mostK = conf.getInt("cpslab.lsh.k")
 
         val startTime = System.nanoTime()
@@ -821,6 +822,7 @@ object HashTreeTest {
           overHitInstances(exp) += 1
         }
         println(sortedDistances.toList)
+        println("first vector:" + vectorIdToVector.get(sortedDistances(0)._1).toArray.toList)
         //step 2: calculate the distance of the ground truth
         val groundTruth = new ListBuffer[(Int, Double)]
         val itr = {
