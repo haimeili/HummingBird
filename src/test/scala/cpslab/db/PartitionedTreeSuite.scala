@@ -13,8 +13,8 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     LSHServer.lshEngine = new LSH(TestSettings.testBaseConf)
-    PartitionedHTreeMap.updateBucketLength(28)
-    PartitionedHTreeMap.updateDirectoryNodeSize(128)
+    // PartitionedHTreeMap.updateBucketLength(28)
+    // PartitionedHTreeMap.updateDirectoryNodeSize(128)
     initLSHTables()
   }
 
@@ -34,6 +34,7 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
         Executors.newCachedThreadPool(),
         true,
         Int.MaxValue)
+    ShardDatabase.vectorIdToVector.updateBucketLength(28)
     ShardDatabase.vectorDatabase = new Array[PartitionedHTreeMap[Int, Boolean]](1)
     ShardDatabase.vectorDatabase(0) = new PartitionedHTreeMap(
       0,
@@ -49,6 +50,7 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
       Executors.newCachedThreadPool(),
       true,
       Int.MaxValue)
+    ShardDatabase.vectorDatabase(0).updateDirectoryNodeSize(128, 32)
   }
 
   test("write the vector correctly") {
@@ -79,15 +81,11 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("write the vector and get similar correctly (64-length directory node)") {
-    PartitionedHTreeMap.updateBucketLength(30)
-    PartitionedHTreeMap.updateDirectoryNodeSize(64)
     initLSHTables()
     testWriteAndGetSimilar()
   }
 
   test("write the vector and get similar correctly (32-length directory node)") {
-    PartitionedHTreeMap.updateBucketLength(30)
-    PartitionedHTreeMap.updateDirectoryNodeSize(32)
     initLSHTables()
     testWriteAndGetSimilar()
   }

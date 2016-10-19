@@ -61,7 +61,7 @@ public class PartitionedHTreeMap<K, V>
   protected final Serializer<K> keySerializer;
   protected final Serializer<V> valueSerializer;
 
-  private final ConcurrentHashMap<Integer, Engine> engines = new ConcurrentHashMap<>();
+  public final ConcurrentHashMap<Integer, Engine> engines = new ConcurrentHashMap<>();
   protected final ConcurrentHashMap<Integer, Engine> snapshots = new ConcurrentHashMap<>();
   protected final boolean closeEngine;
 

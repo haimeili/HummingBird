@@ -1,8 +1,8 @@
 package cpslab.db;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.Assert.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -20,8 +20,8 @@ public class PartitionedHTreeMapTest {
   public static void onlyOnce() {
     try {
       tempDirFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()));
-      PartitionedHTreeMap.updateDirectoryNodeSize(128);
-      PartitionedHTreeMap.updateBucketLength(28);
+      //PartitionedHTreeMap.updateDirectoryNodeSize(128, 32);
+      // PartitionedHTreeMap.updateBucketLength(28);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -29,24 +29,39 @@ public class PartitionedHTreeMapTest {
 
   @Test
   public void testDirSerializer() throws IOException {
-
+    PartitionedHTreeMap m = new PartitionedHTreeMap(
+            0,
+            "default",
+            tempDirFile.toString(),
+            "test_simple_put",
+            partitioner,
+            false,
+            2,
+            Serializer.INTEGER,
+            Serializer.INTEGER,
+            null,
+            null,
+            false,
+            Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
 
     Object dir = new int[4];
 
     for (int slot = 1; slot < 127; slot += 1 + slot / 5) {
-      dir = PartitionedHTreeMap.putNewRecordIdInDir(dir, slot, slot * 1111);
+      dir = m.putNewRecordIdInDir(dir, slot, slot * 1111);
     }
 
     DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-    PartitionedHTreeMap.DIR_SERIALIZER.serialize(out, dir);
+    m.DIR_SERIALIZER.serialize(out, dir);
 
     DataIO.DataInputByteBuffer in = swap(out);
 
-    int[] dir2 = (int[]) PartitionedHTreeMap.DIR_SERIALIZER.deserialize(in, -1);
+    int[] dir2 = (int[]) m.DIR_SERIALIZER.deserialize(in, -1);
     org.junit.Assert.assertArrayEquals((int[]) dir, dir2);
 
     for (int slot = 1; slot < 127; slot += 1 + slot / 5) {
-      int offset = PartitionedHTreeMap.dirOffsetFromSlot(dir2, slot);
+      int offset = m.dirOffsetFromSlot(dir2, slot);
       org.junit.Assert.assertEquals(slot * 1111, PartitionedHTreeMap.dirGet(dir2, offset));
     }
   }
@@ -77,6 +92,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
 
     m.LN_SERIALIZER.serialize(out, n);
 
@@ -107,6 +124,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
 
     m.put(111, 222);
     m.put(333, 444);
@@ -136,7 +155,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
-
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     for (int i = 0; i < 20; i++) {
       m.put(i, (long) (i + 100));
     }
@@ -166,12 +186,14 @@ public class PartitionedHTreeMapTest {
             false,
             Long.MAX_VALUE) {
       @Override
-      protected int hash(Object key) {
+      public int hash(Object key) {
         return 0;
       }
     };
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
 
-    for (int i = 0; i < PartitionedHTreeMap.BUCKET_OVERFLOW; i++) {
+    for (int i = 0; i < m.BUCKET_OVERFLOW; i++) {
       m.put(i, i);
     }
 
@@ -179,7 +201,7 @@ public class PartitionedHTreeMapTest {
 
     //segment should not be expanded
     int[] l = (int[]) engine.get(((Long[]) m.partitionRootRec.get(0))[0],
-            PartitionedHTreeMap.DIR_SERIALIZER);
+            m.DIR_SERIALIZER);
     org.junit.Assert.assertEquals(4 + 1, l.length);
     long recid = l[4];
     org.junit.Assert.assertEquals(1, recid & 1);  //last bite indicates leaf
@@ -190,7 +212,7 @@ public class PartitionedHTreeMapTest {
 
     recid = recid >>> 1;
 
-    for (int i = PartitionedHTreeMap.BUCKET_OVERFLOW - 1; i >= 0; i--) {
+    for (int i = m.BUCKET_OVERFLOW - 1; i >= 0; i--) {
       org.junit.Assert.assertTrue(recid != 0);
       PartitionedHTreeMap.LinkedNode n =
               (PartitionedHTreeMap.LinkedNode) engine.get(recid, m.LN_SERIALIZER);
@@ -200,11 +222,11 @@ public class PartitionedHTreeMapTest {
     }
 
     //adding one more item should trigger dir expansion to next level
-    m.put(PartitionedHTreeMap.BUCKET_OVERFLOW, PartitionedHTreeMap.BUCKET_OVERFLOW);
+    m.put(m.BUCKET_OVERFLOW, m.BUCKET_OVERFLOW);
 
     recid = ((Long[]) m.partitionRootRec.get(0))[0];
 
-    l = (int[]) engine.get(recid, PartitionedHTreeMap.DIR_SERIALIZER);
+    l = (int[]) engine.get(recid, m.DIR_SERIALIZER);
     org.junit.Assert.assertEquals(4 + 1, l.length);
     recid = l[4];
     org.junit.Assert.assertEquals(0, recid & 1);  //last bite indicates leaf
@@ -216,7 +238,7 @@ public class PartitionedHTreeMapTest {
 
     recid = recid >>> 1;
 
-    l = (int[]) engine.get(recid, PartitionedHTreeMap.DIR_SERIALIZER);
+    l = (int[]) engine.get(recid, m.DIR_SERIALIZER);
 
     org.junit.Assert.assertEquals(4 + 1, l.length);
     recid = l[4];
@@ -230,7 +252,7 @@ public class PartitionedHTreeMapTest {
     recid = recid >>> 1;
 
 
-    for (int i = 0; i <= PartitionedHTreeMap.BUCKET_OVERFLOW; i++) {
+    for (int i = 0; i <= m.BUCKET_OVERFLOW; i++) {
       org.junit.Assert.assertTrue(recid != 0);
       PartitionedHTreeMap.LinkedNode n =
               (PartitionedHTreeMap.LinkedNode) engine.get(recid, m.LN_SERIALIZER);
@@ -259,11 +281,13 @@ public class PartitionedHTreeMapTest {
             false,
             Long.MAX_VALUE) {
       @Override
-      protected int hash(Object key) {
+      public int hash(Object key) {
         return 0;
       }
     };
 
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     for (int i = 0; i < 20; i++) {
       m.put(i, i + 100);
     }
@@ -300,6 +324,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     for (int i = 0; i < 100; i++) {
       m.put(i, i);
     }
@@ -308,7 +334,7 @@ public class PartitionedHTreeMapTest {
     org.junit.Assert.assertEquals(0, m.size());
   }
 
-  @Test //(timeout = 10000)
+  @Ignore //(timeout = 10000)
   public void testIteration() {
     PartitionedHTreeMap m = new PartitionedHTreeMap(
             0,
@@ -324,12 +350,14 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE) {
+
       @Override
-      protected int hash(Object key) {
+      public int hash(Object key) {
         return (Integer) key;
       }
     };
-
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
 
     final int max = 140;
     final int inc = 111111;
@@ -371,7 +399,7 @@ public class PartitionedHTreeMapTest {
       for (Long segRecId: segRecIds) {
         int[] segment = (int[]) ((Engine) m.engines.get(0)).get(
                 segRecId,
-                PartitionedHTreeMap.DIR_SERIALIZER);
+                m.DIR_SERIALIZER);
         if (segment != null && segment.length > 4) {
           countSegments++;
         }
@@ -417,6 +445,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     m.put("aa", "bb");
     Iterator iter = m.keySet(0).iterator();
     org.junit.Assert.assertTrue(iter.hasNext());
@@ -434,7 +464,7 @@ public class PartitionedHTreeMapTest {
       }
     };
 
-    PartitionedHTreeMap m = new PartitionedHTreeMap(
+    PartitionedHTreeMap m = new PartitionedHTreeMap<int[], Object>(
             0,
             "default",
             tempDirFile.toString(),
@@ -447,11 +477,21 @@ public class PartitionedHTreeMapTest {
             null,
             null,
             false,
-            Long.MAX_VALUE);
+            Long.MAX_VALUE) {
 
+      @Override
+      public int hash(final int[] key) {
+        return key[0];
+      }
+    };
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
+
+    //1e5
     for (int i = 0; i < 1e5; i++) {
       m.put(new int[]{i, i, i}, i);
     }
+
     for (Integer i = 0; i < 1e5; i++) {
       org.junit.Assert.assertEquals(i, m.get(new int[]{i, i, i}));
     }
@@ -461,7 +501,7 @@ public class PartitionedHTreeMapTest {
   public void test_iterate_and_remove() {
     final int max = (int) 1e5;
 
-    Set m = new PartitionedHTreeMap(
+    PartitionedHTreeMap m1 = new PartitionedHTreeMap(
             0,
             "default",
             tempDirFile.toString(),
@@ -474,8 +514,11 @@ public class PartitionedHTreeMapTest {
             null,
             null,
             false,
-            Long.MAX_VALUE).keySet(0);
+            Long.MAX_VALUE);
+    m1.updateBucketLength(28);
+    m1.updateDirectoryNodeSize(128, 32);
 
+    Set m = m1.keySet(0);
 
     for (int i = 0; i < max; i++) {
       m.add(i);
@@ -526,6 +569,8 @@ public class PartitionedHTreeMapTest {
             null,
             false,
             Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     m.put("s2", 1);
     Integer v1 = (Integer) m.get("s1");
     org.junit.Assert.assertEquals(Integer.valueOf(Integer.MIN_VALUE), v1);
@@ -568,6 +613,27 @@ public class PartitionedHTreeMapTest {
 
   @Test
   public void slot_to_offset_int() {
+    PartitionedHTreeMap m = new PartitionedHTreeMap(
+            0,
+            "default",
+            tempDirFile.toString(),
+            "PartitionedHTreeMap",
+            partitioner,
+            false,
+            2,
+            Serializer.STRING,
+            null,
+            new Fun.Function1<Integer, String>() {
+              @Override
+              public Integer run(String s) {
+                return Integer.MIN_VALUE;
+              }
+            },
+            null,
+            false,
+            Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     Random r = new Random();
     for (int i = 0; i < 1000; i++) {
       //fill array with random bites
@@ -590,7 +656,7 @@ public class PartitionedHTreeMapTest {
       for (int slot = 0; slot < 128; slot++) {
         int current = b.get(slot);
 
-        int coffset = PartitionedHTreeMap.dirOffsetFromSlot(l, slot);
+        int coffset = m.dirOffsetFromSlot(l, slot);
 
         if (current == 0)
           coffset = -coffset;
@@ -603,7 +669,27 @@ public class PartitionedHTreeMapTest {
 
   @Test
   public void dir_put_long() {
-
+    final PartitionedHTreeMap m = new PartitionedHTreeMap(
+            0,
+            "default",
+            tempDirFile.toString(),
+            "PartitionedHTreeMap",
+            partitioner,
+            false,
+            2,
+            Serializer.STRING,
+            null,
+            new Fun.Function1<Integer, String>() {
+              @Override
+              public Integer run(String s) {
+                return Integer.MIN_VALUE;
+              }
+            },
+            null,
+            false,
+            Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     for (int a = 0; a < 100; a++) {
       long[] reference = new long[127];
       Object dir = new int[4];
@@ -615,16 +701,16 @@ public class PartitionedHTreeMapTest {
         if (i % 3 == 0 && reference[slot] != 0) {
           //delete every 10th element
           reference[slot] = 0;
-          dir = PartitionedHTreeMap.dirRemove(dir, slot);
+          dir = m.dirRemove(dir, slot);
         } else {
           reference[slot] = val;
-          dir = PartitionedHTreeMap.putNewRecordIdInDir(dir, slot, val);
+          dir = m.putNewRecordIdInDir(dir, slot, val);
         }
 
         //compare dir and reference
         long[] dir2 = new long[127];
         for (int j = 0; j < 127; j++) {
-          int offset = PartitionedHTreeMap.dirOffsetFromSlot(dir, j);
+          int offset = m.dirOffsetFromSlot(dir, j);
           if (offset > 0)
             dir2[j] = PartitionedHTreeMap.dirGet(dir, offset);
         }
@@ -632,15 +718,39 @@ public class PartitionedHTreeMapTest {
         org.junit.Assert.assertArrayEquals(reference, dir2);
 
         if (dir instanceof int[])
-          org.junit.Assert.assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, PartitionedHTreeMap.DIR_SERIALIZER));
+          org.junit.Assert.assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir,
+                  m.DIR_SERIALIZER));
         else
-          org.junit.Assert.assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, PartitionedHTreeMap.DIR_SERIALIZER));
+          org.junit.Assert.assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir,
+                  m.DIR_SERIALIZER));
       }
     }
   }
 
   @Test
   public void dir_put_int() {
+    final PartitionedHTreeMap m = new PartitionedHTreeMap(
+            0,
+            "default",
+            tempDirFile.toString(),
+            "PartitionedHTreeMap",
+            partitioner,
+            false,
+            2,
+            Serializer.STRING,
+            null,
+            new Fun.Function1<Integer, String>() {
+              @Override
+              public Integer run(String s) {
+                return Integer.MIN_VALUE;
+              }
+            },
+            null,
+            false,
+            Long.MAX_VALUE);
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
+
     for (int a = 0; a < 100; a++) {
       long[] reference = new long[127];
       Object dir = new int[4];
@@ -652,16 +762,16 @@ public class PartitionedHTreeMapTest {
         if (i % 3 == 0 && reference[slot] != 0) {
           //delete every 10th element
           reference[slot] = 0;
-          dir = PartitionedHTreeMap.dirRemove(dir, slot);
+          dir = m.dirRemove(dir, slot);
         } else {
           reference[slot] = val;
-          dir = PartitionedHTreeMap.putNewRecordIdInDir(dir, slot, val);
+          dir = m.putNewRecordIdInDir(dir, slot, val);
         }
 
         //compare dir and reference
         long[] dir2 = new long[127];
         for (int j = 0; j < 127; j++) {
-          int offset = PartitionedHTreeMap.dirOffsetFromSlot(dir, j);
+          int offset = m.dirOffsetFromSlot(dir, j);
           if (offset > 0)
             dir2[j] = PartitionedHTreeMap.dirGet(dir, offset);
         }
@@ -669,9 +779,11 @@ public class PartitionedHTreeMapTest {
         org.junit.Assert.assertArrayEquals(reference, dir2);
 
         if (dir instanceof int[])
-          org.junit.Assert.assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir, PartitionedHTreeMap.DIR_SERIALIZER));
+          org.junit.Assert.assertArrayEquals((int[]) dir, (int[]) UtilsTest.clone(dir,
+                  m.DIR_SERIALIZER));
         else
-          org.junit.Assert.assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir, PartitionedHTreeMap.DIR_SERIALIZER));
+          org.junit.Assert.assertArrayEquals((long[]) dir, (long[]) UtilsTest.clone(dir,
+                  m.DIR_SERIALIZER));
       }
     }
   }

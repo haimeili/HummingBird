@@ -27,8 +27,6 @@ public class DirectoryNodeSuite {
 
   @Test
   public void test_simple_put_with_128() {
-    PartitionedHTreeMap.updateBucketLength(28);
-    PartitionedHTreeMap.updateDirectoryNodeSize(128);
     PartitionedHTreeMap m = new PartitionedHTreeMap(
             0,
             "default",
@@ -43,7 +41,8 @@ public class DirectoryNodeSuite {
             null,
             false,
             Long.MAX_VALUE);
-
+    m.updateBucketLength(28);
+    m.updateDirectoryNodeSize(128, 32);
     m.put(111, 222);
     m.put(333, 444);
     org.junit.Assert.assertTrue(m.containsKey(111));
@@ -58,8 +57,6 @@ public class DirectoryNodeSuite {
 
   @Test
   public void test_simple_put_with_64() {
-    PartitionedHTreeMap.updateBucketLength(30);
-    PartitionedHTreeMap.updateDirectoryNodeSize(64);
     PartitionedHTreeMap m = new PartitionedHTreeMap(
             0,
             "default",
@@ -74,7 +71,8 @@ public class DirectoryNodeSuite {
             null,
             false,
             Long.MAX_VALUE);
-
+    m.updateBucketLength(30);
+    m.updateDirectoryNodeSize(64, 32);
     m.put(111, 222);
     m.put(333, 444);
     org.junit.Assert.assertTrue(m.containsKey(111));
@@ -89,8 +87,6 @@ public class DirectoryNodeSuite {
 
   @Test
   public void test_simple_put_with_32() {
-    PartitionedHTreeMap.updateBucketLength(30);
-    PartitionedHTreeMap.updateDirectoryNodeSize(32);
     PartitionedHTreeMap m = new PartitionedHTreeMap(
             0,
             "default",
@@ -105,7 +101,8 @@ public class DirectoryNodeSuite {
             null,
             false,
             Long.MAX_VALUE);
-
+    m.updateBucketLength(30);
+    m.updateDirectoryNodeSize(32, 32);
     m.put(111, 222);
     m.put(333, 444);
     org.junit.Assert.assertTrue(m.containsKey(111));
