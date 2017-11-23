@@ -803,7 +803,10 @@ public class BTreeMap<K, V>
     protected final boolean hasValues;
     protected final boolean valsOutsideNodes;
     protected final BTreeKeySerializer keySerializer;
+    /*
     protected final Serializer<Object> valueSerializer;
+     */
+    protected final Serializer<ValRef> valueSerializer;
     protected final int numberOfNodeMetas;
 
     public NodeSerializer(boolean valsOutsideNodes, BTreeKeySerializer keySerializer, Serializer valueSerializer, int numberOfNodeMetas) {
@@ -812,9 +815,14 @@ public class BTreeMap<K, V>
       this.hasValues = valueSerializer != null;
       this.valsOutsideNodes = valsOutsideNodes;
       this.keySerializer = keySerializer;
+      /*
       this.valueSerializer = hasValues ?
               (valsOutsideNodes ? new ValRefSerializer() : valueSerializer) :
               BOOLEAN;
+       */
+      this.valueSerializer = hasValues ?
+              (valsOutsideNodes ? new ValRefSerializer() : valueSerializer) :
+              null;
       this.numberOfNodeMetas = numberOfNodeMetas;
     }
 

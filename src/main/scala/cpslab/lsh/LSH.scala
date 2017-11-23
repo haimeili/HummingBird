@@ -15,7 +15,9 @@ import cpslab.lsh.vector.SparseVector
 private[cpslab] class LSH(conf: Config) extends Serializable {
 
   private val lshFamilyName: String = conf.getString("cpslab.lsh.name")
+  /*
   LSH.generateByPulling = conf.getBoolean("cpslab.lsh.generateByPulling")
+   */
   //TODO: to implement two-level partition mechanism in PLSH, we have to expose this variable to
   // external side; we can actually fix it with Dependency Injection, etc.?
   private[cpslab] val tableIndexGenerators: List[LSHTableHashChain[_]] = initHashChains()
@@ -24,7 +26,7 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
     val familySize = conf.getInt("cpslab.lsh.familySize")
     val vectorDim = conf.getInt("cpslab.lsh.vectorDim")
     println(s"vectorDim: $vectorDim")
-    val chainLength = conf.getInt("cpslab.lshTable.chainLength")
+    val chainLength = conf.getInt("cpslab.lsh.chainLength")
     val initializedChains = lshFamilyName match {
       case "pStable" =>
         val mu = conf.getDouble("cpslab.lsh.family.pstable.mu")
