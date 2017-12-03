@@ -328,6 +328,7 @@ private[cpslab] object ShardDatabase extends DataSetLoader {
       vectorDatabase(tableId) = initializeVectorDatabase(tableId)
       setupTable("lshTable", conf, vectorDatabase(tableId))
     }
+
     vectorIdToVector = initializeIdToVectorMap()
     setupTable("mainTable", conf, vectorIdToVector)
     for (tableId <- 0 until tableNum) {

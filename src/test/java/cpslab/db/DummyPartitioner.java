@@ -1,5 +1,7 @@
 package cpslab.db;
 
+import org.junit.Ignore;
+
 class DummyPartitioner extends Partitioner<Object> {
 
   public DummyPartitioner(int numPartitions) {

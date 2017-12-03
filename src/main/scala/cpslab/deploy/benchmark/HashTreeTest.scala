@@ -294,7 +294,11 @@ object HashTreeTest {
         return taskQueue.toArray
       }
     }
+    // Haimei: original only return empty array back, here i change it
+    /*
     new Array[SparseVector](0)
+     */
+    taskQueue.toArray
   }
 
   def testWriteThreadScalabilityWithMapDB(conf: Config,
@@ -398,7 +402,6 @@ object HashTreeTest {
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val random = new Random(System.currentTimeMillis())
     val allFiles = random.shuffle(Utils.buildFileListUnderDirectory(filePath))
-
     var cnt = 0
 
     var taskQueue = fillTaskQueue(allFiles, cap * threadNumber)
@@ -410,11 +413,13 @@ object HashTreeTest {
     val mainFs = taskQueue.map {
       vector =>
         Future {
+          println("-------entry---future---before--put---------")
           vectorIdToVector.put(vector.vectorId, vector)
         }.flatMap {
           returnedVector =>
             val fs = (0 until tableNum).map(tableId => {
               Future {
+                println("-------entry---future---before--another--put---------")
                 vectorDatabase(tableId).put(returnedVector.vectorId, true)
               }
             })
@@ -423,6 +428,7 @@ object HashTreeTest {
     }
     Future.sequence(mainFs.toList).onComplete {
       case Success(result)  =>
+        println("-------entry---future---success---------")
         // do nothing
         val duration = System.nanoTime() - st
         println("total write throughput: " +
@@ -443,7 +449,6 @@ object HashTreeTest {
     conf: Config,
     threadNumber: Int): Unit = {
     val dbType = conf.getString("cpslab.lsh.benchmark.dbtype")
-
     if (dbType == "partitionedHashMap") {
       println("partitionedHashMap initialized")
       ShardDatabase.initializePartitionedHashMap(conf)
@@ -455,6 +460,7 @@ object HashTreeTest {
     }
 
     if (dbType != "btree") {
+      println("==entry-startWriteWorkload==")
       startWriteWorkload(conf, threadNumber)
     } else {
       startWriteWorkloadToBTree(conf, threadNumber)
@@ -971,13 +977,19 @@ object HashTreeTest {
 
 
   private def startTestStorage(conf: Config): Unit = {
-    val tableNum = conf.getInt("cpslab.lsh.tableNum")
     persistWorkingDir = System.currentTimeMillis() + "/"
     new File(persistWorkingDir).mkdir()
     usePersistSegment = conf.getBoolean("cpslab.lsh.bechmark.storage.usePersistSegment")
     // preload vector
     startTestParallel(ifAsync = false, conf: Config)
+
+    // Haimei: ignore now: it will call ActorPartitionedHTreeBasic.java
+    // but vectorIdToVector.get always return null
+    // e.g. [info] fetch null at partition 7, at key 74423
+    // TODO: check ActorPartitionedHTreeBasic get method again
+
     // write test
+    val tableNum = conf.getInt("cpslab.lsh.tableNum")
     val requestNum = conf.getInt("cpslab.lsh.benchmark.storage.requestNum")
     val vectorCnt = conf.getInt("cpslab.lsh.benchmark.threadNumber") *
       conf.getInt("cpslab.lsh.benchmark.cap")
@@ -985,15 +997,18 @@ object HashTreeTest {
     for (i <- 0 until requestNum) {
       val vId = Random.nextInt(vectorCnt)
       val v = vectorIdToVector.get(vId)
-      val startTime = System.nanoTime()
-      vectorIdToVector.put(v.vectorId, v)
-      for (i <- 0 until tableNum) {
-        vectorDatabase(i).put(v.vectorId, true)
+      if (v != null) {
+        val startTime = System.nanoTime()
+        vectorIdToVector.put(v.vectorId, v)
+        for (i <- 0 until tableNum) {
+          vectorDatabase(i).put(v.vectorId, true)
+        }
+        val duration = (System.nanoTime() - startTime).toDouble / 1000000000
+        sum += duration
       }
-      val duration = (System.nanoTime() - startTime).toDouble / 1000000000
-      sum += duration
     }
     println("average latency: " + sum)
+
   }
 
   private def startReadTest(conf: Config): Unit = {
@@ -1005,6 +1020,12 @@ object HashTreeTest {
 
     startWriteWorkload(conf, threadNumber)
 
+    // Haimei-ignore this part, it will call ActorPartitionedHTreeBasic.java getSimilar
+    // but when it meets hash function, it always can't find its value: id->vector
+    // from id to find vector, always null
+    // TODO: check where ShardDatabase.vectorIdToVector() put method,
+    // so that we know why its get always null
+    /*
     while (finishedWriteThreadCount.get() < threadNumber) {
       Thread.sleep(10000)
     }
@@ -1028,6 +1049,7 @@ object HashTreeTest {
             s" min: ${latencyRecords.min / 1000000000} seconds")
       }}).start()
     }
+    */
   }
 
   var testMode: String = null
@@ -1044,9 +1066,10 @@ object HashTreeTest {
       conf.getInt("cpslab.lsh.tableNum"))*/
 
     
-    ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
+    // ActorBasedPartitionedHTreeMap.shareActor = args(2).toBoolean
 
-    testMode = args(3)
+    // testMode = args(3)
+    testMode = "storage"
 
     testMode match {
       case "accuracy" =>

@@ -379,9 +379,9 @@ public class PartitionedHTreeMap<K, V>
     NUM_BITS_PER_COMPARISON = (int) (Math.log(DIRECTORY_NODE_SIZE) / Math.log(2));
     System.out.println("NUM_BITS_PER_COMPARISON: " + NUM_BITS_PER_COMPARISON);
     BITS_COMPARISON_MASK = 1;
-    for (int i = 0; i < NUM_BITS_PER_COMPARISON; i++) {
-      BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
-    }
+
+    BITS_COMPARISON_MASK = (int) Math.pow(2, NUM_BITS_PER_COMPARISON) - 1;
+
     TOTAL_HASH_LENGTH = totalHashLength;
     MAX_TREE_LEVEL = (TOTAL_HASH_LENGTH - (32 - BUCKET_LENGTH)) / NUM_BITS_PER_COMPARISON - 1;
     System.out.println("BITS_COMPARISON_MASK:" + BITS_COMPARISON_MASK);
@@ -1170,11 +1170,13 @@ public class PartitionedHTreeMap<K, V>
 
   @Override
   public V put(final K key, final V value) {
-    if (key == null)
+    if (key == null) {
       throw new IllegalArgumentException("null key");
+    }
 
-    if (value == null)
+    if (value == null) {
       throw new IllegalArgumentException("null value");
+    }
 
     V ret;
     final int h = hash(key);
@@ -1215,8 +1217,9 @@ public class PartitionedHTreeMap<K, V>
       //Nan: every NUM_BITS_PER_COMPARISON bits present the slot ID of the record
       final int slot = (h >>> (NUM_BITS_PER_COMPARISON * level)) & BITS_COMPARISON_MASK;
 
-      if (CC.ASSERT && (slot > DIRECTORY_NODE_SIZE - 1))
+      if (CC.ASSERT && (slot > DIRECTORY_NODE_SIZE - 1)) {
         throw new DBException.DataCorruption("slot too high");
+      }
       if (dir == null) {
         //create new dir
         dir = new int[BITMAP_SIZE]; //Nan: 16 bytes, 128 bits

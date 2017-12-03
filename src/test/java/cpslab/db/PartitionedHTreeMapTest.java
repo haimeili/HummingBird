@@ -22,6 +22,8 @@ public class PartitionedHTreeMapTest {
       tempDirFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()));
       //PartitionedHTreeMap.updateDirectoryNodeSize(128, 32);
       // PartitionedHTreeMap.updateBucketLength(28);
+      System.out.println("----------------------------------------");
+      System.out.println(tempDirFile.toString());
     } catch (Exception e) {
       e.printStackTrace();
     }

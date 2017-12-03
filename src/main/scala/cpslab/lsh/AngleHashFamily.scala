@@ -94,6 +94,8 @@ private[lsh] class AngleHashChain(chainSize: Int, chainedFunctions: List[AnglePa
    */
   override def compute(vector: SparseVector): Int = {
     var result = 0
+    println("------anglehashfamily----compute-----before---for-----")
+    println(chainSize)
     for (hashFunctionId <- 0 until chainSize) {
       val signResult = sign(
         SimilarityCalculator.fastCalculateSimilarity(chainedFunctions(hashFunctionId).a,

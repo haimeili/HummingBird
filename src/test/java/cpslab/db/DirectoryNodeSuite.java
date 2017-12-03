@@ -4,6 +4,7 @@ import cpslab.lsh.vector.SparseVector;
 import cpslab.utils.HashPartitioner;
 import cpslab.utils.Serializers;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.file.Files;

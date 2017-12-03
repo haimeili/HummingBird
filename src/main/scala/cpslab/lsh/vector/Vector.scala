@@ -155,11 +155,18 @@ object Vectors {
     if (stringArray.length != 3) {
       throw new Exception(s"cannot parse $inputString")
     }
-    val size = stringArray(0).replace("(", "").toInt
     val indices = stringArray(1).replace("]", "").split(",").map(_.toInt)
+
+    // Haimei: vectorfile e.g. (1,3,[0,1,2],[1.0,2.0,3.0])
+    // old parser didn't parse it well, so I change it according to file real content
+    /*
+    val size = stringArray(0).replace("(", "").toInt
     val Array(valuesStr, idStr) = stringArray(2).split("\\]\\),")
     val values = valuesStr.split(",").map(_.toDouble)
     val id = idStr.replace(")", "").toInt
+    */
+    val Array(id, size) = stringArray(0).replace("(", "").split(",").map(_.toInt)
+    val values = stringArray(2).replace("])", "").split(",").map(_.toDouble)
     (id, size, indices, values)
   }
 

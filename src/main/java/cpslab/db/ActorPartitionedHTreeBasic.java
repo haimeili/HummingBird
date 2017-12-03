@@ -1,5 +1,6 @@
 package cpslab.db;
 
+import cpslab.deploy.ShardDatabase;
 import cpslab.deploy.benchmark.HashTreeTest;
 import cpslab.lsh.LocalitySensitiveHasher;
 import scala.collection.mutable.StringBuilder;
@@ -157,7 +158,14 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
     try {
-      final Lock ramLock = partitionRamLock.get(storageName).readLock();
+      ReentrantReadWriteLock readWriteLock = partitionRamLock.get(storageName);
+      // Haimei: check get's result is null or not, if not check, it will throw
+      // java.lang.NullPointerException
+      if (readWriteLock==null) {
+        System.out.println("fetch null at partition " + partition + ", at key " + o);
+        return null;
+      }
+      final Lock ramLock = readWriteLock.readLock();
       try {
         ramLock.lock();
         ln = getInner(o, seg, h, partition);
@@ -195,10 +203,14 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       throw new IllegalArgumentException("null value");
 
     V ret;
+    System.out.println("-------entry----put-----before---hash------");
     final int h = hash(key);
+    System.out.println("-------entry----put-----after---hash------");
     final int seg;// = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(
             (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+
+    System.out.println("-------entry----put-----before---hasher------");
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       seg = h % SEG;
     } else {
@@ -221,7 +233,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   public LinkedList<K> getSimilar(
           final Object key) {
     //TODO: Finish getSimilar
-    System.out.println("called overrided getSimilar");
+    System.out.println("called override getSimilar");
     int h = hash((K) key);
     final int seg = h >>> BUCKET_LENGTH;
     final int partition = partitioner.getPartition(

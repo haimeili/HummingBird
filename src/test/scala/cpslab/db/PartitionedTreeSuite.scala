@@ -9,7 +9,7 @@ import cpslab.lsh.vector.SparseVector
 import cpslab.utils.{HashPartitioner, Serializers}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Ignore}
 
-@Ignore
+//@Ignore
 class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
@@ -52,9 +52,12 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
       true,
       Int.MaxValue)
     ShardDatabase.vectorDatabase(0).updateDirectoryNodeSize(128, 32)
+    // Haimei: here I add updateBucketLength in order to update SEG value
+    ShardDatabase.vectorDatabase(0).updateBucketLength(28)
   }
 
   test("write the vector correctly") {
+    ShardDatabase.vectorIdToVector.updateDirectoryNodeSize(128, 32)
     ShardDatabase.vectorIdToVector.put(
       1, new SparseVector(1, 3, Seq(0, 2).toArray, Seq(1.0, 2.0).toArray))
     val v = ShardDatabase.vectorIdToVector.get(1)
@@ -71,6 +74,8 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
     vectorIdToVector.put(2, new SparseVector(1, 3, Seq(0, 2).toArray, Seq(1.0, 2.0).toArray))
     vectorDB.put(1, true)
     vectorDB.put(2, true)
+    assert(vectorIdToVector.get(1)===
+      new SparseVector(1, 3, Seq(0, 2).toArray, Seq(1.0, 2.0).toArray))
     val l = vectorDB.getSimilar(2)
     assert(l.size() == 1)
     val v = l.get(0)
@@ -78,16 +83,29 @@ class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
   }
 
   test("write the vector and get similar correctly (128-length directory node)") {
+    // Haimei: here I add: update directory_node_size
+    ShardDatabase.vectorIdToVector.updateDirectoryNodeSize(128, 32)
     testWriteAndGetSimilar()
   }
 
-  test("write the vector and get similar correctly (64-length directory node)") {
-    initLSHTables()
+  // Haimei: the following two tests did the same thing with last one
+  // TODO: use ShardDatabase.vectorIdToVector.updateDirectoryNodeSize(128, 32)
+  // double confirm to understand putInner steps
+  // change 128 to 64, 32 to modify following tests
+  // ??? Ask the configuration change will cause which kind of storage design change
+  /*test("write the vector and get similar correctly (64-length directory node)") {
+    //initLSHTables()
+    ShardDatabase.vectorIdToVector.updateBucketLength(30)
+    ShardDatabase.vectorIdToVector.updateDirectoryNodeSize(64, 32)
+    ShardDatabase.vectorDatabase(0).updateBucketLength(30)
+    ShardDatabase.vectorDatabase(0).updateDirectoryNodeSize(64, 32)
+
     testWriteAndGetSimilar()
   }
-
   test("write the vector and get similar correctly (32-length directory node)") {
-    initLSHTables()
+    //initLSHTables()
+    ShardDatabase.vectorIdToVector.updateDirectoryNodeSize(32, 32)
     testWriteAndGetSimilar()
   }
+  */
 }

@@ -83,6 +83,11 @@ private[cpslab] class LSH(conf: Config) extends Serializable {
       (for (i <- tableIndexGenerators.indices)
         yield tableIndexGenerators(i).compute(vector)).toArray
     } else {
+      println("----------------tableId----------------")
+      println(tableId)
+      println(vector.toString)
+      // Haimei: ??? I don't understand here
+      // compute->AngleHashFamily.compute->SimilarityCalculator.fastCalculateSimilarity
       Array.fill(1)(tableIndexGenerators(tableId).compute(vector))
     }
   }

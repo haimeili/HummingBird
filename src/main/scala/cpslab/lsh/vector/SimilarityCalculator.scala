@@ -41,11 +41,16 @@ private[cpslab] object SimilarityCalculator {
   }
   
   def fastCalculateSimilarity(vector1: SparseVector, vector2: SparseVector): Double = {
+
+    println("------step1-------fastCalculateSimilarity-------")
     require(vector1 != null  && vector2 != null,
       s"${if (vector1 == null) "vector 1" else "vector 2"} is null")
+    println("------step2-------fastCalculateSimilarity-------")
     require(vector1.size == vector2.size, s"vector1 size: ${vector1.size}, " +
       s"vector2 size: ${vector2.size}")
     var similarity = 0.0
+
+    println("------step3-------fastCalculateSimilarity-------")
 
     val validBits = vector1.bitVector.clone().asInstanceOf[util.BitSet]
     validBits.and(vector2.bitVector)
