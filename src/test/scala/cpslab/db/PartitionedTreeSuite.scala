@@ -2,18 +2,14 @@ package cpslab.db
 
 import java.util.concurrent.Executors
 
-import cpslab.TestSettings
-import cpslab.deploy.{LSHServer, ShardDatabase}
-import cpslab.lsh.LSH
+import cpslab.deploy.ShardDatabase
 import cpslab.lsh.vector.SparseVector
 import cpslab.utils.{HashPartitioner, Serializers}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Ignore}
-
-//@Ignore
+@Ignore
 class PartitionedTreeSuite extends FunSuite with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
-    LSHServer.lshEngine = new LSH(TestSettings.testBaseConf)
     // PartitionedHTreeMap.updateBucketLength(28)
     // PartitionedHTreeMap.updateDirectoryNodeSize(128)
     initLSHTables()

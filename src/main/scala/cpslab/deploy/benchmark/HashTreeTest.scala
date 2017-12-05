@@ -19,16 +19,12 @@ import akka.actor.{Cancellable, Actor, ActorSystem, Props}
 import com.typesafe.config.{Config, ConfigFactory}
 import cpslab.db._
 import cpslab.deploy.ShardDatabase._
-import cpslab.deploy.{BTreeDatabase, LSHServer, ShardDatabase, Utils}
+import cpslab.deploy.{BTreeDatabase, ShardDatabase, Utils}
 import cpslab.lsh.vector.{SimilarityCalculator, SparseVector, Vectors}
-import cpslab.lsh.{LSH, LocalitySensitiveHasher}
-import cpslab.utils.{LocalitySensitivePartitioner, HashPartitioner, Serializers}
+import cpslab.utils.{HashPartitioner, Serializers}
 
 object HashTreeTest {
 
-  //initialize lsh engine
-  var lshEngines: Array[LocalitySensitiveHasher] = null
-  var lshPartitioners: Array[LocalitySensitivePartitioner[Int]] = null
   var htreeDebug = false
   var usePersistSegment = false
   var persistWorkingDir = ""
@@ -343,7 +339,7 @@ object HashTreeTest {
     val st = System.nanoTime()
     val mainFs = taskQueue.map {
       vector =>
-        val f1 = Future {
+        Future {
           val vId = {
             if (debug) {
               Random.nextInt(debugVectorMax)
@@ -353,34 +349,6 @@ object HashTreeTest {
           }
           vectorIdToVectorBTree.putWithDebugging(vId, vector, appendDebug)
           vector
-        }
-        if (debug) {
-          f1
-        } else {
-          f1.flatMap {
-            returnedVector =>
-              val fs = (0 until tableNum).map(tableId => {
-                Future {
-                  val lshCalculator = HashTreeTest.lshEngines(tableId)
-                  if (lshCalculator == null) {
-                    println(s"FAULT: lshcalculator for table $tableId is null")
-                  }
-                  // to be equivalent to the MapDB.hash()
-                  val v = vectorIdToVectorBTree.get(returnedVector.vectorId)
-                  if (v == null) {
-                    println(s"found ${returnedVector.vectorId} as null")
-                  }
-                  val h = lshCalculator.hash(returnedVector, Serializers.VectorSerializer)
-                  val h1 = lshPartitioners(tableId).getPartition(h)
-                  val lh = h & 0xffffffffL
-                  //get the first group
-                  val key = calculateFirstLevelHashForBTree(lh)
-                  vectorDatabaseBTree(tableId).append(key,
-                    new LSHBTreeVal(returnedVector.vectorId, lh), 0)
-                }
-              })
-              Future.sequence(fs)
-          }
         }
     }
     Future.sequence(mainFs.toList).onComplete {
@@ -613,11 +581,12 @@ object HashTreeTest {
                   //vector
                 //}
               }
+              /*
               val h = lshEngines(tableId).hash(vector, Serializers.VectorSerializer).toLong
               for (i <- 0 until BTreeDatabase.btreeCompareGroupNum) {
                 ShardDatabase.vectorDatabaseBTree(tableId).getAll(h >>>
                   (i * BTreeDatabase.btreeCompareGroupLength))
-              }
+              }*/
             }
           }
         }
@@ -726,10 +695,11 @@ object HashTreeTest {
       """.stripMargin).withFallback(conf)
     val tableNum = conf.getInt("cpslab.lsh.tableNum")
     //initialize lsh engine
-    HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
+    /* HashTreeTest.lshEngines = (for (i <- 0 until tableNum)
       yield new LocalitySensitiveHasher(LSHServer.getLSHEngine, i)).toArray
     HashTreeTest.lshPartitioners = (for (i <- 0 until tableNum)
       yield new LocalitySensitivePartitioner[Int](confForPartitioner, i, partitionBits)).toArray
+    */
   }
 
   private def readSimilarVectorId(queryVector: SparseVector, tableNum: Int): HashSet[Int] = {
@@ -1056,7 +1026,7 @@ object HashTreeTest {
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseFile(new File(args(0)))
-    LSHServer.lshEngine = new LSH(conf)
+    // LSHServer.lshEngine = new LSH(conf)
     println("=====initialized LSHEngine=====")
     // val allTestFiles = Utils.buildFileListUnderDirectory(testPath)
     //initializeActorBasedHashTree(conf)

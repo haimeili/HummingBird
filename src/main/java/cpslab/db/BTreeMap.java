@@ -1242,7 +1242,7 @@ public class BTreeMap<K, V>
         LSHBTreeVal btreeVal = (LSHBTreeVal) engine.get(existingValRecId, valueSerializer);
         int indexSize = r.nextInt(100);
         SparseVector v = new SparseVector(0, 9331, new int[indexSize], new double[indexSize]);
-        long hash = HashTreeTest.lshEngines()[tableId].hash(v, Serializers.VectorSerializer());
+        // long hash = HashTreeTest.lshEngines()[tableId].hash(v, Serializers.VectorSerializer());
         long fullHash = btreeVal.hash;
         //assert(fullHash == hash);
         // int shiftBits = (BTreeDatabase.btreeCompareGroupNum() - 1 -
@@ -2418,8 +2418,7 @@ public class BTreeMap<K, V>
         //        ((LSHBTreeVal) value).vectorId);
         int size = r.nextInt(100);
         SparseVector returnedVector = new SparseVector(0, 9331, new int[size], new double[size]);
-        long hash = HashTreeTest.lshEngines()[tableId].
-                hash(returnedVector, Serializers.VectorSerializer());
+        //long hash = HashTreeTest.lshEngines()[tableId].hash(returnedVector, Serializers.VectorSerializer());
         //assert(hash == ((LSHBTreeVal) value).hash);
         Long newPartialHash = calculateNextLevelHash(((LSHBTreeVal) value).hash, currentLevel);
         /*

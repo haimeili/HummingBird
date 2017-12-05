@@ -2,13 +2,8 @@ package cpslab.db;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
-import cpslab.deploy.LSHServer;
-import cpslab.deploy.ShardDatabase;
 import cpslab.lsh.DefaultHasher;
 import cpslab.lsh.Hasher;
-import cpslab.lsh.LocalitySensitiveHasher;
-import cpslab.lsh.vector.SparseVector;
-import cpslab.utils.Serializers;
 
 import java.io.*;
 import java.util.*;
@@ -326,8 +321,6 @@ public class PartitionedHTreeMapOnHeap <K, V>
 
   private Hasher initializeHasher(String hasherName) {
     switch (hasherName) {
-      case "lsh":
-        return new LocalitySensitiveHasher(LSHServer.getLSHEngine(), tableId);
       default:
         return new DefaultHasher(hashSalt);
     }
@@ -426,8 +419,7 @@ public class PartitionedHTreeMapOnHeap <K, V>
     //TODO: Finish getSimilar
     final int h = hash((K) key);
     final int seg = h >>> 28;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    final int partition = partitioner.getPartition((K) (key));
 
     LinkedList<K> lns;
     final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
@@ -908,19 +900,8 @@ public class PartitionedHTreeMapOnHeap <K, V>
   }
 
   protected int hash(final K key) {
-    if (hasher instanceof LocalitySensitiveHasher) {
-      // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
-      // vector instead of the key value
-      SparseVector v = ShardDatabase.vectorIdToVectorOnheap().get(key);
-      if (v == null) {
-        System.out.println("fetch vector " + key + ", but got NULL");
-        System.exit(1);
-      }
-      return hasher.hash(v, Serializers.VectorSerializer());
-    } else {
-      // the hasher is the default hasher which calculates the hash based on the key directly
-      return hasher.hash(key, keySerializer);
-    }
+    // the hasher is the default hasher which calculates the hash based on the key directly
+    return hasher.hash(key, keySerializer);
   }
 
   @Override
@@ -934,8 +915,7 @@ public class PartitionedHTreeMapOnHeap <K, V>
     V ret;
     final int h = hash(key);
     final int seg = h >>> 28;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    final int partition = partitioner.getPartition((K) (key));
     initPartitionIfNecessary(partition);
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();

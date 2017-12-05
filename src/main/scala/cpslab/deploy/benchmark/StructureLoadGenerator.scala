@@ -9,7 +9,6 @@ import scala.concurrent._
 import scala.util.Random
 
 import com.typesafe.config.ConfigFactory
-import cpslab.lsh.LSH
 import cpslab.lsh.vector.SparseVector
 
 object StructureLoadGenerator {
@@ -17,48 +16,6 @@ object StructureLoadGenerator {
   var queryNumber = 0
   val vectors = new ListBuffer[SparseVector]
   val performanceMeasurement = new ListBuffer[Long]
-
-  def runWriteLoadOnLSH(lsh: LSH)(implicit executionContext: ExecutionContext): Unit = {
-    val lshIndex = new LSHIndex(lsh)
-    val finishedCount = new AtomicInteger(0)
-    for (vector <- vectors) {
-      executionContext.execute(new Runnable {
-        override def run(): Unit = {
-          val startTime = System.nanoTime()
-          lshIndex.insert(vector)
-          val performance = System.nanoTime() - startTime
-          performanceMeasurement += performance
-          if (finishedCount.incrementAndGet() == vectors.length) {
-            //get average time cost
-            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
-            println("write time cost with lsh " + avr)
-            performanceMeasurement.clear()
-            runReadLoadOnLSH(lshIndex)
-          }
-        }
-      })
-    }
-  }
-
-  def runReadLoadOnLSH(lshIndex: LSHIndex)(implicit executionContext: ExecutionContext): Unit = {
-    val finishedCount = new AtomicInteger(0)
-    for (vector <- vectors.take(queryNumber)) {
-      executionContext.execute(new Runnable {
-        override def run(): Unit = {
-          val startTime = System.nanoTime()
-          lshIndex.query(vector)
-          val performance = System.nanoTime() - startTime
-          performanceMeasurement += performance
-          if (finishedCount.incrementAndGet() == queryNumber) {
-            val avr = performanceMeasurement.sum * 1.0 / performanceMeasurement.size
-            println("read time cost with lsh " + avr)
-            sys.exit(0)
-          }
-        }
-      }
-      )
-    }
-  }
 
   def runWriteLoadOnIndex(dim: Int)(implicit executionContext: ExecutionContext): Unit = {
     val invertedIndex = new InvertedIndex(dim)
@@ -108,7 +65,7 @@ object StructureLoadGenerator {
       sys.exit(1)
     }
     val conf = ConfigFactory.parseFile(new File(args(1)))
-    val lsh = new LSH(conf)
+
     val vectorCount = conf.getInt("vectorCount")
     val vectorDim = conf.getInt("dim")
     val zeroProbability = conf.getDouble("probability")
@@ -128,9 +85,7 @@ object StructureLoadGenerator {
     if (args(0) == "index") {
       runWriteLoadOnIndex(vectorDim)
     }
-    if (args(0) == "lsh") {
-      runWriteLoadOnLSH(lsh)
-    }
+
     new Thread(new Runnable {
       override def run(): Unit = {
         while (true) {

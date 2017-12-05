@@ -2,7 +2,6 @@ package cpslab.db;
 
 import cpslab.deploy.ShardDatabase;
 import cpslab.deploy.benchmark.HashTreeTest;
-import cpslab.lsh.LocalitySensitiveHasher;
 import scala.collection.mutable.StringBuilder;
 
 import java.util.HashMap;
@@ -146,7 +145,12 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     final int seg;// = h >>> BUCKET_LENGTH;
     final int partition1 = partitioner.getPartition((K) o);
     int partition = 0;
-    if (!(hasher instanceof LocalitySensitiveHasher)) {
+
+    //if MainTable
+    partition = Math.abs(partition1);
+    seg = h % SEG;
+
+    /*if (!(hasher instanceof LocalitySensitiveHasher)) {
       //if MainTable
       partition = Math.abs(partition1);
       seg = h % SEG;
@@ -154,7 +158,8 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
       partition = partition1;
       seg = h >>> BUCKET_LENGTH;
       h = h >>> (32 - TOTAL_HASH_LENGTH);
-    }
+    }*/
+
     String storageName = buildStorageName(partition, seg);
     PartitionedHTreeMap.LinkedNode<K, V> ln;
     try {
@@ -207,15 +212,16 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     final int h = hash(key);
     System.out.println("-------entry----put-----after---hash------");
     final int seg;// = h >>> BUCKET_LENGTH;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    final int partition = partitioner.getPartition((K) (key));
 
     System.out.println("-------entry----put-----before---hasher------");
+    seg = h % SEG;
+    /*
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       seg = h % SEG;
     } else {
       seg = h >>> BUCKET_LENGTH;
-    }
+    }*/
     initPartitionIfNecessary(partition, seg);
     String storageName = buildStorageName(partition, seg);
     try {
@@ -236,8 +242,7 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
     System.out.println("called override getSimilar");
     int h = hash((K) key);
     final int seg = h >>> BUCKET_LENGTH;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    final int partition = partitioner.getPartition((K) (key));
 
     LinkedList<K> lns;
     try {
@@ -411,12 +416,14 @@ public class ActorPartitionedHTreeBasic<K, V> extends PartitionedHTreeMap<K, V> 
   @Override
   protected V putInner(K key, V value, int h, int partition) {
     int seg;
+    seg = h % SEG;
+    /*
     if (!(hasher instanceof LocalitySensitiveHasher)) {
       seg = h % SEG;
     } else {
       seg = h >>> BUCKET_LENGTH;
       h = h >>> (32 - TOTAL_HASH_LENGTH);
-    }
+    }*/
     long dirRecid = partitionRootRec.get(partition)[seg];
     String storageName = buildStorageName(partition, seg);
     Engine engine = storageSpaces.get(storageName);

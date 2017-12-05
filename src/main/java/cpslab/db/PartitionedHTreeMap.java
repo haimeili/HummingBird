@@ -2,11 +2,9 @@ package cpslab.db;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnels;
-import cpslab.deploy.LSHServer;
 import cpslab.deploy.ShardDatabase;
 import cpslab.lsh.DefaultHasher;
 import cpslab.lsh.Hasher;
-import cpslab.lsh.LocalitySensitiveHasher;
 import cpslab.lsh.vector.SparseVector;
 import cpslab.utils.Serializers;
 
@@ -132,7 +130,7 @@ public class PartitionedHTreeMap<K, V>
 
   protected final Serializer<LinkedNode<K, V>> LN_SERIALIZER = new Serializer<LinkedNode<K, V>>() {
 
-    /** used to check that every 64000 th element has consistent has befor and after (de)serialization*/
+    /** used to check that every 64000 th element has consistent has before and after (de)serialization*/
     int serCounter = 0;
 
     @Override
@@ -362,8 +360,11 @@ public class PartitionedHTreeMap<K, V>
 
   private Hasher initializeHasher(String hasherName) {
     switch (hasherName) {
+      // Haimei: remove LSH codes
+      /*
       case "lsh":
         return new LocalitySensitiveHasher(LSHServer.getLSHEngine(), tableId);
+        */
       default:
         return new DefaultHasher(hashSalt);
     }
@@ -488,8 +489,8 @@ public class PartitionedHTreeMap<K, V>
     //TODO: Finish getSimilar
     final int h = hash((K) key);
     final int seg = h >>> BUCKET_LENGTH;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+
+    final int partition = partitioner.getPartition((K) key);
 
     LinkedList<K> lns;
     try {
@@ -529,14 +530,8 @@ public class PartitionedHTreeMap<K, V>
     if (o == null) return null;
     final int h = hash((K) o);
     final int seg = h >>> BUCKET_LENGTH;
-    final int partition1 = partitioner.getPartition((K) o);
-    int partition = 0;
-    if (!(hasher instanceof LocalitySensitiveHasher)) {
-      //if MainTable
-      partition = Math.abs(partition1);
-    } else {
-      partition = partition1;
-    }
+    int partition = partitioner.getPartition((K) o);
+
     LinkedNode<K, V> ln;
     try {
       final Lock ramLock = partitionRamLock.get(partition)[seg].readLock();
@@ -951,6 +946,7 @@ public class PartitionedHTreeMap<K, V>
    * @param newRecid the new record id
    * @return updated dir node reference
    */
+  // Haimei: ??? understand it again
   protected final Object putNewRecordIdInDir(Object dir, int slot, long newRecid) {
     if (dir instanceof int[]) {
       int[] updatedDir = (int[]) dir;
@@ -1153,19 +1149,8 @@ public class PartitionedHTreeMap<K, V>
   }
 
   public int hash(final K key) {
-    if (hasher instanceof LocalitySensitiveHasher) {
-      // the hasher is the locality sensitive hasher, where we need to calculate the hash of the
-      // vector instead of the key value
-      SparseVector v = ShardDatabase.vectorIdToVector().get(key);
-      if (v == null) {
-        System.out.println("fetch vector " + key + ", but got NULL");
-        System.exit(1);
-      }
-      return hasher.hash(v, Serializers.VectorSerializer());
-    } else {
-      // the hasher is the default hasher which calculates the hash based on the key directly
-      return hasher.hash(key, keySerializer);
-    }
+    // the hasher is the default hasher which calculates the hash based on the key directly
+    return hasher.hash(key, keySerializer);
   }
 
   @Override
@@ -1181,8 +1166,7 @@ public class PartitionedHTreeMap<K, V>
     V ret;
     final int h = hash(key);
     final int seg = h >>> BUCKET_LENGTH;
-    final int partition = partitioner.getPartition(
-            (K) (hasher instanceof LocalitySensitiveHasher ? h : key));
+    final int partition = partitioner.getPartition((K) key);
     initPartitionIfNecessary(partition);
     try {
       partitionRamLock.get(partition)[seg].writeLock().lock();

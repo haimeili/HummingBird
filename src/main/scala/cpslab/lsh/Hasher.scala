@@ -1,7 +1,6 @@
 package cpslab.lsh
 
 import cpslab.db.Serializer
-import cpslab.lsh.vector.SparseVector
 
 trait Hasher {
   def hash[K](key: K, keySerializer: Serializer[K]): Int
@@ -29,13 +28,3 @@ class DefaultHasher(hashSalt: Int) extends Hasher {
     h*/
   }
 }
-
-class LocalitySensitiveHasher(lsh: LSH, tableId: Int) extends Hasher {
-  assert(lsh != null)
-
-  override def hash[K](key: K, keySerializer: Serializer[K]): Int = {
-    lsh.calculateIndex(key.asInstanceOf[SparseVector], tableId)(0)
-  }
-}
-
-

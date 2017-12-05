@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import cpslab.deploy.ShardDatabase
 import cpslab.deploy.benchmark.HashTreeTest
-import cpslab.utils.LocalitySensitivePartitioner
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -16,7 +15,6 @@ import scala.language.postfixOps
 import akka.actor._
 import com.typesafe.config.Config
 import cpslab.deploy.ShardDatabase._
-import cpslab.lsh.LocalitySensitiveHasher
 import cpslab.lsh.vector.SparseVector
 
 import scala.util.Random
@@ -330,23 +328,21 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
   }
 
-  if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-    if (shareActor) {
-      // main table
-      for (partitionId <- 0 until partitioner.numPartitions) {
-        for (i <- 0 until writerActorsNumPerPartition) {
-          val id = s"$partitionId-$i"
-          bufferOfMainTable.put(id, new ListBuffer[(SparseVector, Int)])
-          bufferOfMainTableLocks.put(id, new ReentrantReadWriteLock())
-        }
+  if (shareActor) {
+    // main table
+    for (partitionId <- 0 until partitioner.numPartitions) {
+      for (i <- 0 until writerActorsNumPerPartition) {
+        val id = s"$partitionId-$i"
+        bufferOfMainTable.put(id, new ListBuffer[(SparseVector, Int)])
+        bufferOfMainTableLocks.put(id, new ReentrantReadWriteLock())
       }
-    } else {
-      for (partitionId <- 0 until partitioner.numPartitions) {
-        for (i <- 0 until math.pow(2, 32 - BUCKET_LENGTH).toInt) {
-          val id = s"$partitionId-$i"
-          bufferOfMainTable.put(id, new ListBuffer[(SparseVector, Int)])
-          bufferOfMainTableLocks.put(id, new ReentrantReadWriteLock())
-        }
+    }
+  } else {
+    for (partitionId <- 0 until partitioner.numPartitions) {
+      for (i <- 0 until math.pow(2, 32 - BUCKET_LENGTH).toInt) {
+        val id = s"$partitionId-$i"
+        bufferOfMainTable.put(id, new ListBuffer[(SparseVector, Int)])
+        bufferOfMainTableLocks.put(id, new ReentrantReadWriteLock())
       }
     }
   }
@@ -378,13 +374,8 @@ class ActorBasedPartitionedHTreeMap[K, V](
       h: Int,
       key: K,
       value: V): Unit = {
-    val seg: Int = {
-      if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
-        h >>> BUCKET_LENGTH
-      } else {
-        h % SEG
-      }
-    }
+    val seg: Int = h % SEG
+
     val storageName = buildStorageName(partition, seg)
     initPartitionIfNecessary(partition, seg)
     var ret: V = value
@@ -434,42 +425,24 @@ class ActorBasedPartitionedHTreeMap[K, V](
     }
 
     val h: Int = hash(key)
-    val partition: Int = partitioner.getPartition(
-      (
-        if (hasher.isInstanceOf[LocalitySensitiveHasher]) {
-          h
-        } else {
-          key
-        }
-      ).asInstanceOf[K])
+    val partition: Int = partitioner.getPartition((key).asInstanceOf[K])
     if (partition < 0) {
       println(s"partition is less than 0 in table $tableId")
     }
     var segmentId = 0 // h >>> PartitionedHTreeMap.BUCKET_LENGTH
-    if (!hasher.isInstanceOf[LocalitySensitiveHasher]) {
-      segmentId = h % SEG
-      if (shareActor) {
-        val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
-        if (bufferSize <= 0) {
-          writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
-        } else {
-          bufferingPutForMainTable(partition, actorId, value.asInstanceOf[SparseVector], h)
-        }
+    segmentId = h % SEG
+    if (shareActor) {
+      val actorId = math.abs(s"$tableId-$segmentId".hashCode) % writerActorsNumPerPartition
+      if (bufferSize <= 0) {
+        writerActors(partition)(actorId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
       } else {
-        if (bufferSize <= 0) {
-          actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
-        } else {
-          bufferingPutForMainTable(partition, segmentId, value.asInstanceOf[SparseVector], h)
-        }
+        bufferingPutForMainTable(partition, actorId, value.asInstanceOf[SparseVector], h)
       }
     } else {
-      segmentId = h >>> BUCKET_LENGTH
-      if (shareActor) {
-        val actorId = math.abs(s"$tableId-$segmentId".hashCode) %
-          writerActorsNumPerPartition
-        writerActors(partition)(actorId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+      if (bufferSize <= 0) {
+        actors(partition)(segmentId) ! ValueAndHash(value.asInstanceOf[SparseVector], h)
       } else {
-        actors(partition)(segmentId) ! KeyAndHash(tableId, key.asInstanceOf[Int], h)
+        bufferingPutForMainTable(partition, segmentId, value.asInstanceOf[SparseVector], h)
       }
     }
     value
